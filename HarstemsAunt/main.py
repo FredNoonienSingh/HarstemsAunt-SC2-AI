@@ -15,6 +15,9 @@ from sc2.data import Race, Difficulty
 from sc2.player import Bot, Computer, Human
 from sc2.ids.unit_typeid import UnitTypeId
 
+"""Utils"""
+from utils.can_build import can_build_unit, can_build_structure, can_research_upgrade
+
 class HarstemsAunt(BotAI):
 
     def __init__(self, debug:bool=False) -> None:
@@ -29,6 +32,9 @@ class HarstemsAunt(BotAI):
     async def on_step(self, iteration):
         print(f"running at iteration {iteration}")
         if self.townhalls and self.units:
+            for townhall in self.townhalls:
+                if townhall.is_idle and can_build_unit(self, UnitTypeId.PROBE):
+                    townhall.train(UnitTypeId.PROBE)
             return
         await self.client.leave()
 
