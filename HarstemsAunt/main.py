@@ -32,6 +32,9 @@ class HarstemsAunt(BotAI):
             return
         await self.client.leave()
 
+    async def on_end(self,game_result):
+        print(game_result)
+        await self.client.leave()
 
 if __name__ == "__main__":
     AiPlayer = HarstemsAunt()
