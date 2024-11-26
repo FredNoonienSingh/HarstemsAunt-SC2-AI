@@ -33,7 +33,6 @@ class HarstemsAunt(BotAI):
         await self.client.leave()
 
     async def on_end(self,game_result):
-        print(game_result)
         await self.client.leave()
 
 if __name__ == "__main__":
