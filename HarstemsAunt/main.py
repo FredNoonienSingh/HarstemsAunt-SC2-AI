@@ -6,14 +6,17 @@ from common import MAP_LIST
 from random import choice
 
 """SC2 Imports"""
-
 from sc2 import maps
-from sc2.bot_ai import BotAI
 from sc2.unit import Unit
+from sc2.bot_ai import BotAI
 from sc2.main import run_game
 from sc2.data import Race, Difficulty
 from sc2.player import Bot, Computer, Human
 from sc2.ids.unit_typeid import UnitTypeId
+
+"""Actions"""
+from actions.expand import expand
+from actions.build_supply import build_supply
 
 """Utils"""
 from utils.get_build_pos import get_build_pos
@@ -41,10 +44,13 @@ class HarstemsAunt(BotAI):
             worker = self.workers.prefer_idle.closest_to(build_pos)
             if not self.structures(UnitTypeId.PYLON) and can_build_structure(self, UnitTypeId.PYLON):
                 await self.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos, max_distance=0)
+            await build_supply(self, build_pos)
+            await expand(self)
             return
         await self.client.leave()
 
     async def on_end(self,game_result):
+        print(game_result)
         await self.client.leave()
 
 if __name__ == "__main__":
