@@ -16,15 +16,16 @@ from sc2.player import Bot, Computer, Human
 from sc2.ids.unit_typeid import UnitTypeId
 
 """Utils"""
+from utils.get_build_pos import get_build_pos
 from utils.can_build import can_build_unit, can_build_structure, can_research_upgrade
 
 class HarstemsAunt(BotAI):
 
     def __init__(self, debug:bool=False) -> None:
-        self.race = Race.Protoss
-        self.name = "HarstemsAunt"
-        self.version = "0.1"
-        self.debug = debug
+        self.race:Race = Race.Protoss
+        self.name:str = "HarstemsAunt"
+        self.version:str = "0.1"
+        self.debug:bool = debug
 
     async def on_start(self):
         pass
@@ -35,6 +36,11 @@ class HarstemsAunt(BotAI):
             for townhall in self.townhalls:
                 if townhall.is_idle and can_build_unit(self, UnitTypeId.PROBE):
                     townhall.train(UnitTypeId.PROBE)
+                await self.distribute_workers(resource_ratio=2)
+            build_pos = get_build_pos(self)
+            worker = self.workers.prefer_idle.closest_to(build_pos)
+            if not self.structures(UnitTypeId.PYLON) and can_build_structure(self, UnitTypeId.PYLON):
+                await self.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos, max_distance=0)
             return
         await self.client.leave()
 
