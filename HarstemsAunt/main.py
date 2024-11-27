@@ -29,12 +29,12 @@ class HarstemsAunt(BotAI):
         self.name:str = "HarstemsAunt"
         self.version:str = "0.1"
         self.debug:bool = debug
+        self.gateway_count = 1
 
     async def on_start(self):
         pass
 
     async def on_step(self, iteration):
-        print(f"running at iteration {iteration}")
         if self.townhalls and self.units:
             for townhall in self.townhalls:
                 if townhall.is_idle and can_build_unit(self, UnitTypeId.PROBE):
@@ -44,6 +44,8 @@ class HarstemsAunt(BotAI):
             worker = self.workers.prefer_idle.closest_to(build_pos)
             if not self.structures(UnitTypeId.PYLON) and can_build_structure(self, UnitTypeId.PYLON):
                 await self.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos, max_distance=0)
+            if len(self.structures(UnitTypeId.GATEWAY))<self.gateway_count and can_build_structure(self, UnitTypeId.GATEWAY):
+                await self.build(UnitTypeId.GATEWAY, build_worker=worker, near=build_pos)
             await build_supply(self, build_pos)
             await expand(self)
             return
