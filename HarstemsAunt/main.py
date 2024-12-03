@@ -16,6 +16,10 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
 
+"""MACRO"""
+from macro.game_start import game_start
+from macro.infrastructure import build_infrastructure
+
 """Actions"""
 from actions.expand import expand
 from actions.chronoboosting import chronoboosting
@@ -51,7 +55,7 @@ class HarstemsAunt(BotAI):
         """INFRA COUNTER"""
         self.gateway_count = 1
         self.robo_count = 0
-        self.stargate_counter = 1
+        self.stargate_count = 1
 
         """ENEMY DATA"""
         self.seen_enemys = []
@@ -87,7 +91,6 @@ class HarstemsAunt(BotAI):
             await chronoboosting(self)
             
             for townhall in self.townhalls:
-                
                 """THIS DOES NOT SEEM TO WORK"""
                 minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
                 if not minerals:
@@ -104,35 +107,11 @@ class HarstemsAunt(BotAI):
 
             build_pos = get_build_pos(self)             # THIS NEEDS TO IMPROVED
             worker = self.workers.closest_to(build_pos)
-            
-            """FIRST THREE MINUTES"""
             if self.time < 180:
-                if not self.structures(UnitTypeId.PYLON) or not self.structures(UnitTypeId.GATEWAY):
-                    nexus = self.structures(UnitTypeId.NEXUS)[0]
-                    minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
-                    if self.already_pending(UnitTypeId.PYLON) and worker.is_idle:
-                        worker.patrol(build_pos)
-                else:
-                    nexus = self.structures(UnitTypeId.NEXUS).sorted(lambda nexus: nexus.age)
-                    await set_nexus_rally(self, nexus[0], minerals.closest_to(nexus[0]))
-                
-                if len(self.structures(UnitTypeId.NEXUS)) == 1 and self.minerals > 320:
-                    next_expantion = await self.get_next_expansion()
-                    nexus_builder = self.workers.closest_to(next_expantion)
-                    nexus_builder.move(next_expantion)
+                await game_start(self, worker, build_pos)
 
             """INFRASTRUCTURE"""
-            if not self.structures(UnitTypeId.PYLON) and can_build_structure(self, UnitTypeId.PYLON):
-                await self.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos, max_distance=0)
-            if len(self.structures(UnitTypeId.GATEWAY))<self.gateway_count and can_build_structure(self, UnitTypeId.GATEWAY):
-                await self.build(UnitTypeId.GATEWAY, build_worker=worker, near=build_pos)
-            if not self.structures(UnitTypeId.CYBERNETICSCORE) and len(self.structures(UnitTypeId.NEXUS))==2:
-                await build_structure(self, UnitTypeId.CYBERNETICSCORE, build_pos, worker)
-            if not self.structures(UnitTypeId.TWILIGHTCOUNCIL) and not self.already_pending(UnitTypeId.TWILIGHTCOUNCIL):
-                await build_structure(self, UnitTypeId.TWILIGHTCOUNCIL, build_pos, worker)
-
-            if not self.structures(UnitTypeId.STARGATE) and can_build_structure(self, UnitTypeId.STARGATE):
-                await build_structure(self, UnitTypeId.STARGATE, build_pos, worker)
+            await build_infrastructure(self,worker, build_pos)
 
             """UPGRADES"""
             if self.structures(UnitTypeId.TWILIGHTCOUNCIL) and self.can_afford(UpgradeId.BLINKTECH):
@@ -233,4 +212,4 @@ if __name__ == "__main__":
     enemy:Race = Race.Zerg
     
     #play_against_ai(Race.Protoss)
-    run_ai(enemy,Difficulty.CheatInsane, False)
+    run_ai(enemy,Difficulty.Hard, False)
