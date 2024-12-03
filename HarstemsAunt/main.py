@@ -18,6 +18,7 @@ from sc2.player import Bot, Computer, Human
 
 """MACRO"""
 from macro.game_start import game_start
+from macro.infrastructure import build_infrastructure
 
 """Actions"""
 from actions.expand import expand
@@ -54,7 +55,7 @@ class HarstemsAunt(BotAI):
         """INFRA COUNTER"""
         self.gateway_count = 1
         self.robo_count = 0
-        self.stargate_counter = 1
+        self.stargate_count = 1
 
         """ENEMY DATA"""
         self.seen_enemys = []
@@ -81,11 +82,10 @@ class HarstemsAunt(BotAI):
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
-            print(self.gateway_count)
             """CAMERA CONTROL"""
             pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
                 if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
-            #await self.client.move_camera(pos)
+            await self.client.move_camera(pos)
 
             """CHRONOBOOSTING"""
             await chronoboosting(self)
@@ -107,23 +107,11 @@ class HarstemsAunt(BotAI):
 
             build_pos = get_build_pos(self)             # THIS NEEDS TO IMPROVED
             worker = self.workers.closest_to(build_pos)
-            
-            """FIRST THREE MINUTES"""
             if self.time < 180:
-                game_start(self, worker, build_pos)
+                await game_start(self, worker, build_pos)
 
             """INFRASTRUCTURE"""
-            if not self.structures(UnitTypeId.PYLON) and can_build_structure(self, UnitTypeId.PYLON):
-                await self.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos, max_distance=0)
-            if len(self.structures(UnitTypeId.GATEWAY))<self.gateway_count and can_build_structure(self, UnitTypeId.GATEWAY):
-                await self.build(UnitTypeId.GATEWAY, build_worker=worker, near=build_pos)
-            if not self.structures(UnitTypeId.CYBERNETICSCORE) and len(self.structures(UnitTypeId.NEXUS))==2:
-                await build_structure(self, UnitTypeId.CYBERNETICSCORE, build_pos, worker)
-            if not self.structures(UnitTypeId.TWILIGHTCOUNCIL) and not self.already_pending(UnitTypeId.TWILIGHTCOUNCIL):
-                await build_structure(self, UnitTypeId.TWILIGHTCOUNCIL, build_pos, worker)
-
-            if not self.structures(UnitTypeId.STARGATE) and can_build_structure(self, UnitTypeId.STARGATE):
-                await build_structure(self, UnitTypeId.STARGATE, build_pos, worker)
+            await build_infrastructure(self,worker, build_pos)
 
             """UPGRADES"""
             if self.structures(UnitTypeId.TWILIGHTCOUNCIL) and self.can_afford(UpgradeId.BLINKTECH):
