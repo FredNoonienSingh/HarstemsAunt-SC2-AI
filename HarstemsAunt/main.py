@@ -19,6 +19,7 @@ from sc2.player import Bot, Computer, Human
 """MACRO"""
 from macro.game_start import game_start
 from macro.infrastructure import build_infrastructure
+from macro.upgrade import get_upgrades
 
 """Actions"""
 from actions.expand import expand
@@ -41,6 +42,7 @@ class HarstemsAunt(BotAI):
         self.race:Race = Race.Protoss
         self.name:str = "HarstemsAunt"
         self.version:str = "0.1"
+        self.taunt:str = " "
         self.debug:bool = debug
         self.expand_locs = []
         self.temp = []
@@ -75,23 +77,27 @@ class HarstemsAunt(BotAI):
         bottom_left = Point2((0, 0))
         top_left = Point2((0, self.game_info.playable_area.top))
         self.map_corners = [top_right, bottom_right, bottom_left, top_left]
+        
+        if self.enemy_race == Race.Zerg:
+            self.taunt = "Ihhh, Bugs ... thats disgusting"
+        if self.enemy_race == Race.Terran:
+            self.taunt = "Humans, thats very original... "
+        if self.enemy_race == Race.Protoss:
+            self.taunt = "At least you choose the right race"
  
     async def on_start(self):
-        await self.chat_send("GL HF")
+        await self.chat_send(self.taunt)
         self.expand_locs = list(self.expansion_locations)
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
-            """CAMERA CONTROL"""
             pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
                 if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
             await self.client.move_camera(pos)
 
-            """CHRONOBOOSTING"""
             await chronoboosting(self)
             
             for townhall in self.townhalls:
-                """THIS DOES NOT SEEM TO WORK"""
                 minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
                 if not minerals:
                     if not townhall in self.mined_out_bases:
@@ -110,18 +116,10 @@ class HarstemsAunt(BotAI):
             if self.time < 180:
                 await game_start(self, worker, build_pos)
 
-            """INFRASTRUCTURE"""
             await build_infrastructure(self,worker, build_pos)
 
-            """UPGRADES"""
-            if self.structures(UnitTypeId.TWILIGHTCOUNCIL) and self.can_afford(UpgradeId.BLINKTECH):
-                self.research(UpgradeId.BLINKTECH)
+            get_upgrades(self)
 
-            if self.units(UnitTypeId.ZEALOT):
-                if self.structures(UnitTypeId.TWILIGHTCOUNCIL) and self.can_afford(UpgradeId.CHARGE):
-                    self.research(UpgradeId.CHARGE)
-
-            """ARMY"""
             if len(self.units(UnitTypeId.STALKER)) > 20:
                 await build_gateway_units(self, UnitTypeId.ZEALOT)
             await build_gateway_units(self, UnitTypeId.STALKER)
@@ -129,22 +127,19 @@ class HarstemsAunt(BotAI):
 
             await build_supply(self, build_pos)
             await expand(self)
-            
-            """Handling Alerts & Mined out Bases"""
+
             if self.alert(Alert.VespeneExhausted):
                 self.gas_count += 1
             if not len(self.mined_out_bases) == len(self.temp):
                 self.base_count += 1
                 self.temp = self.mined_out_bases
 
-            """UNIT CONTROL"""
             await control_zealots(self)
             await control_stalkers(self)
             await control_phoenix(self)
 
             return
 
-        """IF GAME IS LOST"""
         if self.last_tick == 0:
             await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also {self.enemy_race} is IMBA")
             self.last_tick = iteration
