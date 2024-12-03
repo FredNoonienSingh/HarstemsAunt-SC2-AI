@@ -2,37 +2,33 @@
 import csv
 from common import MAP_LIST
 from random import choice
-from datetime import datetime
 
 """SC2 Imports"""
 from sc2 import maps
-from sc2.unit import Unit
-from sc2.data import Alert
 from sc2.position import Point2
 from sc2.bot_ai import BotAI
 from sc2.main import run_game
 from sc2.data import Race, Difficulty
-from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
 
 """MACRO"""
+from macro.upgrade import get_upgrades
 from macro.game_start import game_start
+from macro.build_army import build_army
 from macro.infrastructure import build_infrastructure
 
 """Actions"""
 from actions.expand import expand
 from actions.chronoboosting import chronoboosting
-from actions.set_rally import set_nexus_rally
 from actions.build_supply import build_supply
 from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
-from actions.build_structure import build_structure, build_gas
-from actions.build_army import build_gateway_units, build_stargate_units, build_robo_units
+from actions.build_structure import build_gas
 
 """Utils"""
+from utils.handle_alerts import handle_alerts
 from utils.get_build_pos import get_build_pos
-from utils.in_proximity import unit_in_proximity
-from utils.can_build import can_build_unit, can_build_structure, can_research_upgrade
+from utils.can_build import can_build_unit
 
 class HarstemsAunt(BotAI):
 
@@ -41,12 +37,15 @@ class HarstemsAunt(BotAI):
         self.race:Race = Race.Protoss
         self.name:str = "HarstemsAunt"
         self.version:str = "0.1"
+        self.taunt:str = " "
         self.debug:bool = debug
         self.expand_locs = []
         self.temp = []
         self.mined_out_bases = []
         self.tick_data = []
         self.map_corners = []
+        self.map_ramps = []
+        self.researched = []
         
         """ECO COUNTER"""
         self.base_count = 5
@@ -75,23 +74,29 @@ class HarstemsAunt(BotAI):
         bottom_left = Point2((0, 0))
         top_left = Point2((0, self.game_info.playable_area.top))
         self.map_corners = [top_right, bottom_right, bottom_left, top_left]
+        self.map_ramps = self.game_info.map_ramps
+        if self.enemy_race == Race.Zerg:
+            self.taunt = "Ihhh, Bugs ... thats disgusting"
+        if self.enemy_race == Race.Terran:
+            self.taunt = "Humans, thats very original... "
+        if self.enemy_race == Race.Protoss:
+            self.taunt = "At least you choose the right race"
+        print(self.game_info.pathing_grid.print())
+        self.game_info.pathing_grid.save_image("data/pathinggrid.png")
  
     async def on_start(self):
-        await self.chat_send("GL HF")
+        await self.chat_send(self.taunt)
         self.expand_locs = list(self.expansion_locations)
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
-            """CAMERA CONTROL"""
             pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
                 if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
             await self.client.move_camera(pos)
 
-            """CHRONOBOOSTING"""
             await chronoboosting(self)
             
             for townhall in self.townhalls:
-                """THIS DOES NOT SEEM TO WORK"""
                 minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
                 if not minerals:
                     if not townhall in self.mined_out_bases:
@@ -110,46 +115,35 @@ class HarstemsAunt(BotAI):
             if self.time < 180:
                 await game_start(self, worker, build_pos)
 
-            """INFRASTRUCTURE"""
             await build_infrastructure(self,worker, build_pos)
-
-            """UPGRADES"""
-            if self.structures(UnitTypeId.TWILIGHTCOUNCIL) and self.can_afford(UpgradeId.BLINKTECH):
-                self.research(UpgradeId.BLINKTECH)
-
-            if self.units(UnitTypeId.ZEALOT):
-                if self.structures(UnitTypeId.TWILIGHTCOUNCIL) and self.can_afford(UpgradeId.CHARGE):
-                    self.research(UpgradeId.CHARGE)
-
-            """ARMY"""
-            if len(self.units(UnitTypeId.STALKER)) > 20:
-                await build_gateway_units(self, UnitTypeId.ZEALOT)
-            await build_gateway_units(self, UnitTypeId.STALKER)
-            await build_stargate_units(self, UnitTypeId.PHOENIX)
-
+            get_upgrades(self)
+            await build_army(self)
             await build_supply(self, build_pos)
             await expand(self)
-            
-            """Handling Alerts & Mined out Bases"""
-            if self.alert(Alert.VespeneExhausted):
-                self.gas_count += 1
+
+            handle_alerts(self, self.alert)
+
             if not len(self.mined_out_bases) == len(self.temp):
                 self.base_count += 1
                 self.temp = self.mined_out_bases
 
-            """UNIT CONTROL"""
+            #### Will get moved to Micro as soon as i get there ####
             await control_zealots(self)
             await control_stalkers(self)
             await control_phoenix(self)
-
+            
+            # print(self.game_info.pathing_grid.print())
+            
             return
 
-        """IF GAME IS LOST"""
         if self.last_tick == 0:
             await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also {self.enemy_race} is IMBA")
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
+
+    async def on_building_construction_started(self,unit):
+        pass
 
     async def on_building_construction_complete(self, unit):
         match unit.name:
@@ -169,6 +163,20 @@ class HarstemsAunt(BotAI):
         if not unit.tag in self.seen_enemys:
             self.seen_enemys.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
+        if self.chatter_counts[1] == 1:
+            match self.enemy_race:
+                case Race.Zerg:
+                    await self.chat_send("STAY ON YOUR SIDE OF THE MAP, YOU DISGUSTING THING ")
+                    self.chatter_counts[1] = 0
+                case Race.Terran:
+                    await self.chat_send("GO BACK TO YOUR PLANET")
+                    self.chatter_counts[1] = 0
+                case Race.Protoss:
+                    await self.chat_send("thanks for the visit brother, ... HEY ! ARE YOU HERE TO ATTACK ME ??? THATS SUPER MEAN !")
+                    self.chatter_counts[1] = 0
+
+    async def on_enemy_unit_left_vision(self, unit_tag):
+        return await super().on_enemy_unit_left_vision(unit_tag)
 
     async def on_unit_destroyed(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
@@ -177,6 +185,9 @@ class HarstemsAunt(BotAI):
         elif not unit and self.chatter_counts[0] == 1:
             self.chatter_counts[0] = 0
             await self.chat_send("RUDE !!!")
+
+    async def on_upgrade_complete(self, upgrade):
+        self.researched.append(upgrade)
 
     async def on_end(self,game_result):
        # path = f'data/{self.name}_{self.version}_vs{self.enemy_race}_at_{datetime.now()}_{game_result}.csv'
