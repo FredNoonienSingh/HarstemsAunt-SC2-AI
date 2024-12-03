@@ -6,10 +6,8 @@ from utils.can_build import can_research_upgrade
 
 def get_upgrades(bot:BotAI) -> None:
     if bot.structures(UnitTypeId.TWILIGHTCOUNCIL).idle and can_research_upgrade(bot,UpgradeId.BLINKTECH):
-        print("Getting Blink")
         bot.research(UpgradeId.BLINKTECH)
 
     if bot.units(UnitTypeId.ZEALOT):
         if bot.structures(UnitTypeId.TWILIGHTCOUNCIL).idle and can_research_upgrade(bot,UpgradeId.CHARGE):
-            print("Getting Charge")
             bot.research(UpgradeId.CHARGE)

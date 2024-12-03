@@ -7,7 +7,7 @@ from datetime import datetime
 """SC2 Imports"""
 from sc2 import maps
 from sc2.unit import Unit
-from sc2.data import Alert
+
 from sc2.position import Point2
 from sc2.bot_ai import BotAI
 from sc2.main import run_game
@@ -31,6 +31,7 @@ from actions.build_structure import build_structure, build_gas
 from actions.build_army import build_gateway_units, build_stargate_units, build_robo_units
 
 """Utils"""
+from utils.handle_alerts import handle_alerts
 from utils.get_build_pos import get_build_pos
 from utils.in_proximity import unit_in_proximity
 from utils.can_build import can_build_unit, can_build_structure, can_research_upgrade
@@ -49,6 +50,7 @@ class HarstemsAunt(BotAI):
         self.mined_out_bases = []
         self.tick_data = []
         self.map_corners = []
+        self.map_ramps = []
         
         """ECO COUNTER"""
         self.base_count = 5
@@ -77,7 +79,7 @@ class HarstemsAunt(BotAI):
         bottom_left = Point2((0, 0))
         top_left = Point2((0, self.game_info.playable_area.top))
         self.map_corners = [top_right, bottom_right, bottom_left, top_left]
-        
+        self.map_ramps = self.game_info.map_ramps
         if self.enemy_race == Race.Zerg:
             self.taunt = "Ihhh, Bugs ... thats disgusting"
         if self.enemy_race == Race.Terran:
@@ -117,7 +119,6 @@ class HarstemsAunt(BotAI):
                 await game_start(self, worker, build_pos)
 
             await build_infrastructure(self,worker, build_pos)
-
             get_upgrades(self)
 
             if len(self.units(UnitTypeId.STALKER)) > 20:
@@ -128,8 +129,8 @@ class HarstemsAunt(BotAI):
             await build_supply(self, build_pos)
             await expand(self)
 
-            if self.alert(Alert.VespeneExhausted):
-                self.gas_count += 1
+            handle_alerts(self, self.alert)
+
             if not len(self.mined_out_bases) == len(self.temp):
                 self.base_count += 1
                 self.temp = self.mined_out_bases
@@ -145,6 +146,9 @@ class HarstemsAunt(BotAI):
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
+
+    async def on_building_construction_started(self,unit):
+        pass
 
     async def on_building_construction_complete(self, unit):
         match unit.name:
@@ -164,6 +168,20 @@ class HarstemsAunt(BotAI):
         if not unit.tag in self.seen_enemys:
             self.seen_enemys.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
+        if self.chatter_counts[1] == 1:
+            match self.enemy_race:
+                case Race.Zerg:
+                    await self.chat_send("STAY ON YOUR SIDE OF THE MAP, YOU DISGUSTING THING ")
+                    self.chatter_counts[1] = 0
+                case Race.Terran:
+                    await self.chat_send("GO BACK TO YOUR PLANET")
+                    self.chatter_counts[1] = 0
+                case Race.Protoss:
+                    await self.chat_send("thanks for the visit brother, ... HEY ! ARE YOU HERE TO ATTACK ME ??? THATS SUPER MEAN !")
+                    self.chatter_counts[1] = 0
+
+    async def on_enemy_unit_left_vision(self, unit_tag):
+        return await super().on_enemy_unit_left_vision(unit_tag)
 
     async def on_unit_destroyed(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
