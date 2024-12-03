@@ -8,6 +8,7 @@ from datetime import datetime
 from sc2 import maps
 from sc2.unit import Unit
 from sc2.data import Alert
+from sc2.position import Point2
 from sc2.bot_ai import BotAI
 from sc2.main import run_game
 from sc2.data import Race, Difficulty
@@ -17,6 +18,7 @@ from sc2.player import Bot, Computer, Human
 
 """Actions"""
 from actions.expand import expand
+from actions.chronoboosting import chronoboosting
 from actions.set_rally import set_nexus_rally
 from actions.build_supply import build_supply
 from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
@@ -31,6 +33,7 @@ from utils.can_build import can_build_unit, can_build_structure, can_research_up
 class HarstemsAunt(BotAI):
 
     def __init__(self, debug:bool=False) -> None:
+        super().__init__()
         self.race:Race = Race.Protoss
         self.name:str = "HarstemsAunt"
         self.version:str = "0.1"
@@ -39,6 +42,7 @@ class HarstemsAunt(BotAI):
         self.temp = []
         self.mined_out_bases = []
         self.tick_data = []
+        self.map_corners = []
         
         """ECO COUNTER"""
         self.base_count = 5
@@ -49,6 +53,11 @@ class HarstemsAunt(BotAI):
         self.robo_count = 0
         self.stargate_counter = 1
 
+        """ENEMY DATA"""
+        self.seen_enemys = []
+        self.enemy_supply = 12
+        
+        self.chatter_counts = [1, 1, 1]
         self.last_tick = 0
 
     async def writetocsv(self,path):
@@ -56,18 +65,27 @@ class HarstemsAunt(BotAI):
             writer = csv.writer(file, delimiter=";")
             writer.writerows(self.tick_data)
  
+    async def on_before_start(self) -> None:
+        top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
+        bottom_right = Point2((self.game_info.playable_area.right, 0))
+        bottom_left = Point2((0, 0))
+        top_left = Point2((0, self.game_info.playable_area.top))
+        self.map_corners = [top_right, bottom_right, bottom_left, top_left]
+ 
     async def on_start(self):
         await self.chat_send("GL HF")
         self.expand_locs = list(self.expansion_locations)
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
-
             """CAMERA CONTROL"""
             pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
                 if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
             await self.client.move_camera(pos)
 
+            """CHRONOBOOSTING"""
+            await chronoboosting(self)
+            
             for townhall in self.townhalls:
                 
                 """THIS DOES NOT SEEM TO WORK"""
@@ -87,16 +105,21 @@ class HarstemsAunt(BotAI):
             build_pos = get_build_pos(self)             # THIS NEEDS TO IMPROVED
             worker = self.workers.closest_to(build_pos)
             
-            """FIRST FEW MINUTES"""
-            if not self.structures(UnitTypeId.PYLON) or not self.structures(UnitTypeId.GATEWAY):
-                if self.already_pending(UnitTypeId.PYLON) and worker.is_idle:
-                    worker.patrol(build_pos.towards(self.enemy_start_locations[0], 1))
-                if not unit_in_proximity(self, UnitTypeId.PROBE, build_pos, 6):
+            """FIRST THREE MINUTES"""
+            if self.time < 180:
+                if not self.structures(UnitTypeId.PYLON) or not self.structures(UnitTypeId.GATEWAY):
                     nexus = self.structures(UnitTypeId.NEXUS)[0]
-                    await set_nexus_rally(self ,nexus, build_pos)
-            else:
-                nexus = self.structures(UnitTypeId.NEXUS).sorted(lambda nexus: nexus.age)
-                await set_nexus_rally(self, nexus[0], minerals.closest_to(nexus[0]))
+                    minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
+                    if self.already_pending(UnitTypeId.PYLON) and worker.is_idle:
+                        worker.patrol(build_pos)
+                else:
+                    nexus = self.structures(UnitTypeId.NEXUS).sorted(lambda nexus: nexus.age)
+                    await set_nexus_rally(self, nexus[0], minerals.closest_to(nexus[0]))
+                
+                if len(self.structures(UnitTypeId.NEXUS)) == 1 and self.minerals > 320:
+                    next_expantion = await self.get_next_expansion()
+                    nexus_builder = self.workers.closest_to(next_expantion)
+                    nexus_builder.move(next_expantion)
 
             """INFRASTRUCTURE"""
             if not self.structures(UnitTypeId.PYLON) and can_build_structure(self, UnitTypeId.PYLON):
@@ -144,7 +167,7 @@ class HarstemsAunt(BotAI):
 
         """IF GAME IS LOST"""
         if self.last_tick == 0:
-            await self.chat_send(f"GG, you are probably a hackcheating smurf hacker anyway also {self.enemy_race} is IMBA")
+            await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also {self.enemy_race} is IMBA")
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
@@ -162,6 +185,19 @@ class HarstemsAunt(BotAI):
                     self.gas_count += 1
             #case "Gateway":
              #   await set_nexus_rally(self, self.structures(UnitTypeId.NEXUS)[0], self.structures(UnitTypeId.NEXUS)[0].position.towards(self.game_info.map_center, -5))
+
+    async def on_enemy_unit_entered_vision(self, unit):
+        if not unit.tag in self.seen_enemys:
+            self.seen_enemys.append(unit.tag)
+            self.enemy_supply += self.calculate_supply_cost(unit.type_id)
+
+    async def on_unit_destroyed(self, unit_tag):
+        unit = self.enemy_units.find_by_tag(unit_tag)
+        if unit:
+            self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
+        elif not unit and self.chatter_counts[0] == 1:
+            self.chatter_counts[0] = 0
+            await self.chat_send("RUDE !!!")
 
     async def on_end(self,game_result):
        # path = f'data/{self.name}_{self.version}_vs{self.enemy_race}_at_{datetime.now()}_{game_result}.csv'
