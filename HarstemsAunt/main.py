@@ -132,7 +132,7 @@ class HarstemsAunt(BotAI):
             await control_stalkers(self)
             await control_phoenix(self)
             
-            print(self.game_info.pathing_grid.print())
+            # print(self.game_info.pathing_grid.print())
             
             return
 
