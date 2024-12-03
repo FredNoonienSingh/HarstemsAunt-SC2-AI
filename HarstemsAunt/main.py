@@ -13,9 +13,10 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
 
 """MACRO"""
-from macro.game_start import game_start
-from macro.infrastructure import build_infrastructure
 from macro.upgrade import get_upgrades
+from macro.game_start import game_start
+from macro.build_army import build_army
+from macro.infrastructure import build_infrastructure
 
 """Actions"""
 from actions.expand import expand
@@ -23,7 +24,6 @@ from actions.chronoboosting import chronoboosting
 from actions.build_supply import build_supply
 from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
 from actions.build_structure import build_gas
-from actions.build_army import build_gateway_units, build_stargate_units, build_robo_units
 
 """Utils"""
 from utils.handle_alerts import handle_alerts
@@ -117,12 +117,7 @@ class HarstemsAunt(BotAI):
 
             await build_infrastructure(self,worker, build_pos)
             get_upgrades(self)
-
-            if len(self.units(UnitTypeId.STALKER)) > 20:
-                await build_gateway_units(self, UnitTypeId.ZEALOT)
-            await build_gateway_units(self, UnitTypeId.STALKER)
-            await build_stargate_units(self, UnitTypeId.PHOENIX)
-
+            await build_army(self)
             await build_supply(self, build_pos)
             await expand(self)
 
@@ -132,12 +127,12 @@ class HarstemsAunt(BotAI):
                 self.base_count += 1
                 self.temp = self.mined_out_bases
 
+            #### Will get moved to Micro as soon as i get there ####
             await control_zealots(self)
             await control_stalkers(self)
             await control_phoenix(self)
             
             print(self.game_info.pathing_grid.print())
-            #self.game_info.pathing_grid.save_image(f"data/pathinggrid_{iteration}.png")
             
             return
 
