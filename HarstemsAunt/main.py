@@ -2,17 +2,13 @@
 import csv
 from common import MAP_LIST
 from random import choice
-from datetime import datetime
 
 """SC2 Imports"""
 from sc2 import maps
-from sc2.unit import Unit
-
 from sc2.position import Point2
 from sc2.bot_ai import BotAI
 from sc2.main import run_game
 from sc2.data import Race, Difficulty
-from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
 
@@ -24,17 +20,15 @@ from macro.upgrade import get_upgrades
 """Actions"""
 from actions.expand import expand
 from actions.chronoboosting import chronoboosting
-from actions.set_rally import set_nexus_rally
 from actions.build_supply import build_supply
 from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
-from actions.build_structure import build_structure, build_gas
+from actions.build_structure import build_gas
 from actions.build_army import build_gateway_units, build_stargate_units, build_robo_units
 
 """Utils"""
 from utils.handle_alerts import handle_alerts
 from utils.get_build_pos import get_build_pos
-from utils.in_proximity import unit_in_proximity
-from utils.can_build import can_build_unit, can_build_structure, can_research_upgrade
+from utils.can_build import can_build_unit
 
 class HarstemsAunt(BotAI):
 
@@ -51,6 +45,7 @@ class HarstemsAunt(BotAI):
         self.tick_data = []
         self.map_corners = []
         self.map_ramps = []
+        self.researched = []
         
         """ECO COUNTER"""
         self.base_count = 5
@@ -86,6 +81,8 @@ class HarstemsAunt(BotAI):
             self.taunt = "Humans, thats very original... "
         if self.enemy_race == Race.Protoss:
             self.taunt = "At least you choose the right race"
+        print(self.game_info.pathing_grid.print())
+        self.game_info.pathing_grid.save_image("data/pathinggrid.png")
  
     async def on_start(self):
         await self.chat_send(self.taunt)
@@ -138,7 +135,10 @@ class HarstemsAunt(BotAI):
             await control_zealots(self)
             await control_stalkers(self)
             await control_phoenix(self)
-
+            
+            print(self.game_info.pathing_grid.print())
+            #self.game_info.pathing_grid.save_image(f"data/pathinggrid_{iteration}.png")
+            
             return
 
         if self.last_tick == 0:
@@ -190,6 +190,9 @@ class HarstemsAunt(BotAI):
         elif not unit and self.chatter_counts[0] == 1:
             self.chatter_counts[0] = 0
             await self.chat_send("RUDE !!!")
+
+    async def on_upgrade_complete(self, upgrade):
+        self.researched.append(upgrade)
 
     async def on_end(self,game_result):
        # path = f'data/{self.name}_{self.version}_vs{self.enemy_race}_at_{datetime.now()}_{game_result}.csv'
