@@ -16,6 +16,9 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
 
+"""MACRO"""
+from macro.game_start import game_start
+
 """Actions"""
 from actions.expand import expand
 from actions.chronoboosting import chronoboosting
@@ -78,16 +81,16 @@ class HarstemsAunt(BotAI):
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
+            print(self.gateway_count)
             """CAMERA CONTROL"""
             pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
                 if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
-            await self.client.move_camera(pos)
+            #await self.client.move_camera(pos)
 
             """CHRONOBOOSTING"""
             await chronoboosting(self)
             
             for townhall in self.townhalls:
-                
                 """THIS DOES NOT SEEM TO WORK"""
                 minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
                 if not minerals:
@@ -107,19 +110,7 @@ class HarstemsAunt(BotAI):
             
             """FIRST THREE MINUTES"""
             if self.time < 180:
-                if not self.structures(UnitTypeId.PYLON) or not self.structures(UnitTypeId.GATEWAY):
-                    nexus = self.structures(UnitTypeId.NEXUS)[0]
-                    minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
-                    if self.already_pending(UnitTypeId.PYLON) and worker.is_idle:
-                        worker.patrol(build_pos)
-                else:
-                    nexus = self.structures(UnitTypeId.NEXUS).sorted(lambda nexus: nexus.age)
-                    await set_nexus_rally(self, nexus[0], minerals.closest_to(nexus[0]))
-                
-                if len(self.structures(UnitTypeId.NEXUS)) == 1 and self.minerals > 320:
-                    next_expantion = await self.get_next_expansion()
-                    nexus_builder = self.workers.closest_to(next_expantion)
-                    nexus_builder.move(next_expantion)
+                game_start(self, worker, build_pos)
 
             """INFRASTRUCTURE"""
             if not self.structures(UnitTypeId.PYLON) and can_build_structure(self, UnitTypeId.PYLON):
@@ -233,4 +224,4 @@ if __name__ == "__main__":
     enemy:Race = Race.Zerg
     
     #play_against_ai(Race.Protoss)
-    run_ai(enemy,Difficulty.CheatInsane, False)
+    run_ai(enemy,Difficulty.Hard, False)
