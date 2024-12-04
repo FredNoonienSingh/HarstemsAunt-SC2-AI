@@ -1,7 +1,7 @@
 """MainClass of the Bot handling"""
 import csv
 from random import choice
-from common import MAP_LIST
+from .common import MAP_LIST
 
 """SC2 Imports"""
 from sc2 import maps
@@ -152,7 +152,6 @@ class HarstemsAunt(BotAI):
                 if self.gas_count < 2:
                     self.gas_count += 1
             case "Gateway":
-                print("setting rally")
                 await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
             case "RoboticsFacility":
                 await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
