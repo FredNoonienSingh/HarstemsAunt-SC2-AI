@@ -20,6 +20,7 @@ from macro.infrastructure import build_infrastructure
 
 """Actions"""
 from actions.expand import expand
+from actions.set_rally import set_rally
 from actions.build_structure import build_gas
 from actions.build_supply import build_supply
 from actions.chronoboosting import chronoboosting
@@ -105,7 +106,10 @@ class HarstemsAunt(BotAI):
 
             # Needs improvement
             build_pos = get_build_pos(self)
-            worker = self.workers.closest_to(build_pos)
+            if self.workers:
+                worker = self.workers.closest_to(build_pos)
+            else:
+                return
             if self.time < 180:
                 await game_start(self, worker)
 
@@ -147,6 +151,11 @@ class HarstemsAunt(BotAI):
             case "Assimilator":
                 if self.gas_count < 2:
                     self.gas_count += 1
+            case "Gateway":
+                print("setting rally")
+                await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
+            case "RoboticsFacility":
+                await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
 
     async def on_enemy_unit_entered_vision(self, unit):
         if not unit.tag in self.seen_enemys:
@@ -180,7 +189,6 @@ class HarstemsAunt(BotAI):
 
     async def on_unit_destroyed(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
-        print(unit)
         if unit:
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
         elif not unit and self.chatter_counts[0] == 1:
@@ -189,7 +197,6 @@ class HarstemsAunt(BotAI):
 
     async def on_upgrade_complete(self, upgrade):
         self.researched.append(upgrade)
-
 
     async def on_end(self,game_result):
        # path = f'data/{self.name}_{self.version}_vs{self.enemy_race}_at_{datetime.now()}_{game_result}.csv'
@@ -224,7 +231,7 @@ if __name__ == "__main__":
         Race.Zerg,
         Race.Protoss
         ]
-    enemy:Race = Race.Zerg
-    
+
     #play_against_ai(Race.Protoss)
-    run_ai(enemy,Difficulty.VeryEasy, False)
+    for race in races:
+        run_ai(race,Difficulty.Hard, False)
