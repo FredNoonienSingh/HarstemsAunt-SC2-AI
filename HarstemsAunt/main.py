@@ -1,13 +1,13 @@
 """MainClass of the Bot handling"""
 import csv
-from common import MAP_LIST
 from random import choice
+from common import MAP_LIST
 
 """SC2 Imports"""
 from sc2 import maps
-from sc2.position import Point2
 from sc2.bot_ai import BotAI
 from sc2.main import run_game
+from sc2.position import Point2
 from sc2.data import Race, Difficulty
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
@@ -20,15 +20,15 @@ from macro.infrastructure import build_infrastructure
 
 """Actions"""
 from actions.expand import expand
-from actions.chronoboosting import chronoboosting
-from actions.build_supply import build_supply
-from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
 from actions.build_structure import build_gas
+from actions.build_supply import build_supply
+from actions.chronoboosting import chronoboosting
+from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
 
 """Utils"""
+from utils.can_build import can_build_unit
 from utils.handle_alerts import handle_alerts
 from utils.get_build_pos import get_build_pos
-from utils.can_build import can_build_unit
 
 class HarstemsAunt(BotAI):
 
@@ -37,7 +37,7 @@ class HarstemsAunt(BotAI):
         self.race:Race = Race.Protoss
         self.name:str = "HarstemsAunt"
         self.version:str = "0.1"
-        self.taunt:str = " "
+        self.greeting:str = " "
         self.debug:bool = debug
         self.expand_locs = []
         self.temp = []
@@ -46,20 +46,13 @@ class HarstemsAunt(BotAI):
         self.map_corners = []
         self.map_ramps = []
         self.researched = []
-        
-        """ECO COUNTER"""
         self.base_count = 5
         self.gas_count = 1
-        
-        """INFRA COUNTER"""
         self.gateway_count = 1
         self.robo_count = 0
         self.stargate_count = 1
-
-        """ENEMY DATA"""
         self.seen_enemys = []
         self.enemy_supply = 12
-        
         self.chatter_counts = [1, 1, 1]
         self.last_tick = 0
 
@@ -76,16 +69,14 @@ class HarstemsAunt(BotAI):
         self.map_corners = [top_right, bottom_right, bottom_left, top_left]
         self.map_ramps = self.game_info.map_ramps
         if self.enemy_race == Race.Zerg:
-            self.taunt = "Ihhh, Bugs ... thats disgusting"
+            self.greeting = "Ihhh, Bugs ... thats disgusting"
         if self.enemy_race == Race.Terran:
-            self.taunt = "Humans, thats very original... "
+            self.greeting = "Humans, thats very original... "
         if self.enemy_race == Race.Protoss:
-            self.taunt = "At least you choose the right race"
-        print(self.game_info.pathing_grid.print())
-        self.game_info.pathing_grid.save_image("data/pathinggrid.png")
+            self.greeting = "At least you choose the right race"
  
     async def on_start(self):
-        await self.chat_send(self.taunt)
+        await self.chat_send(self.greeting)
         self.expand_locs = list(self.expansion_locations)
 
     async def on_step(self, iteration):
@@ -106,14 +97,17 @@ class HarstemsAunt(BotAI):
                     and self.structures(UnitTypeId.GATEWAY) and len(self.structures(UnitTypeId.ASSIMILATOR)) < self.gas_count \
                         and not self.already_pending(UnitTypeId.ASSIMILATOR):
                     await build_gas(self, townhall)
+
+                # Build_Probes
                 if townhall.is_idle and can_build_unit(self, UnitTypeId.PROBE):
                     townhall.train(UnitTypeId.PROBE)
                 await self.distribute_workers(resource_ratio=2)
 
-            build_pos = get_build_pos(self)             # THIS NEEDS TO IMPROVED
+            # Needs improvement
+            build_pos = get_build_pos(self)
             worker = self.workers.closest_to(build_pos)
             if self.time < 180:
-                await game_start(self, worker, build_pos)
+                await game_start(self, worker)
 
             await build_infrastructure(self,worker, build_pos)
             get_upgrades(self)
@@ -131,9 +125,6 @@ class HarstemsAunt(BotAI):
             await control_zealots(self)
             await control_stalkers(self)
             await control_phoenix(self)
-            
-            # print(self.game_info.pathing_grid.print())
-            
             return
 
         if self.last_tick == 0:
@@ -156,8 +147,6 @@ class HarstemsAunt(BotAI):
             case "Assimilator":
                 if self.gas_count < 2:
                     self.gas_count += 1
-            #case "Gateway":
-             #   await set_nexus_rally(self, self.structures(UnitTypeId.NEXUS)[0], self.structures(UnitTypeId.NEXUS)[0].position.towards(self.game_info.map_center, -5))
 
     async def on_enemy_unit_entered_vision(self, unit):
         if not unit.tag in self.seen_enemys:
@@ -178,8 +167,20 @@ class HarstemsAunt(BotAI):
     async def on_enemy_unit_left_vision(self, unit_tag):
         return await super().on_enemy_unit_left_vision(unit_tag)
 
+    async def on_unit_created(self, unit):
+        return await super().on_unit_created(unit)
+
+    async def on_unit_type_changed(self, unit, previous_type):
+        return await super().on_unit_type_changed(unit, previous_type)
+
+    async def on_unit_took_damage(self, unit, amount_damage_taken):
+        if self.chatter_counts[2] == 1:
+            await self.chat_send("HEY! that hurt - cut it out !")
+            self.chatter_counts[2] = 0
+
     async def on_unit_destroyed(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
+        print(unit)
         if unit:
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
         elif not unit and self.chatter_counts[0] == 1:
@@ -189,9 +190,11 @@ class HarstemsAunt(BotAI):
     async def on_upgrade_complete(self, upgrade):
         self.researched.append(upgrade)
 
+
     async def on_end(self,game_result):
        # path = f'data/{self.name}_{self.version}_vs{self.enemy_race}_at_{datetime.now()}_{game_result}.csv'
         #await self.writetocsv(path)
+        await self.client.save_replay(f"data/replays/HarstemsAunt.SC2Replay")
         await self.client.leave()
 
 def run_ai(race, diffiicultiy, time):
@@ -201,7 +204,8 @@ def run_ai(race, diffiicultiy, time):
                 Bot(AiPlayer.race, HarstemsAunt(debug=True)),
                 Computer(race, difficulty=(diffiicultiy))
              ],
-             realtime=time
+             realtime=time, 
+             sc2_version="5.0.10"
         )
 
 def play_against_ai(race):
@@ -223,4 +227,4 @@ if __name__ == "__main__":
     enemy:Race = Race.Zerg
     
     #play_against_ai(Race.Protoss)
-    run_ai(enemy,Difficulty.Hard, False)
+    run_ai(enemy,Difficulty.VeryEasy, False)

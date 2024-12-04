@@ -3,8 +3,14 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from actions.set_rally import set_nexus_rally
 
-async def game_start(bot:BotAI, worker, build_pos) -> None:
-    if not bot.structures(UnitTypeId.PYLON) or not bot.structures(UnitTypeId.GATEWAY):
+async def game_start(bot:BotAI, worker) -> None:
+    
+    if not bot.structures(UnitTypeId.PYLON):
+        build_pos = bot.main_base_ramp.protoss_wall_pylon
+        await bot.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos)
+    
+    if not bot.structures(UnitTypeId.GATEWAY):
+        build_pos = list(bot.main_base_ramp.protoss_wall_buildings)[0]
         nexus = bot.structures(UnitTypeId.NEXUS)[0]
         minerals =  bot.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
         if bot.already_pending(UnitTypeId.PYLON) and worker.is_idle:
