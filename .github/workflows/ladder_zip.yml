@@ -14,8 +14,8 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
       # install poetry
-      #- name: Install poetry
-        #run: pipx install poetry
+      - name: Install poetry
+        run: pipx install poetry
       # set-up python with cache
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
