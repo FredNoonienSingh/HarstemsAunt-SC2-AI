@@ -7,6 +7,7 @@ certifi==2024.8.30
 charset-normalizer==3.3.2
 e==1.4.5
 frozenlist==1.5.0
+HarstemsAunt @ file:///Users/Frederic/ApplicationProjects/StarCraftBot
 idna==3.10
 loguru==0.6.0
 mpyq==0.2.5
@@ -17,6 +18,7 @@ portpicker==1.6.0
 propcache==0.2.1
 protobuf==3.20.3
 psutil==6.1.0
+PyYAML==6.0.2
 requests==2.32.3
 s2clientprotocol==5.0.14.93272.0
 scipy==1.14.1
