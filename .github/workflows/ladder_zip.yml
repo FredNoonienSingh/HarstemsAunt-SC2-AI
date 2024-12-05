@@ -14,8 +14,8 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
       # install poetry
-      - name: Install poetry
-        run: pipx install poetry
+      #- name: Install poetry
+        #run: pipx install poetry
       # set-up python with cache
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
@@ -23,11 +23,11 @@ jobs:
           python-version: '3.12'
           cache: 'poetry'
       - name: Update pip
-        run: poetry run pip install -U pip
+        run: pip install -U pip
       - name: Install requirements
         run: pip install -e .
       - name: Compile ladder zip
-        run: poetry run python scripts/create_ladder_zip.py
+        run: run python scripts/create_ladder_zip.py
       - uses: montudor/action-zip@v1
         with:
           args: unzip -qq bot.zip -d out
