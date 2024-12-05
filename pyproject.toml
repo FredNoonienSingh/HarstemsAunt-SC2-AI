@@ -3,7 +3,7 @@ name = "harstems aunt"
 version = "0.1.0"
 description = ""
 authors = [ "FredNoonienSingh" ]
-readme = "README.md"
+readme = "readME.md"
 
 [tool.poetry.dependencies]
 python = ">=3.11, <3.13"
