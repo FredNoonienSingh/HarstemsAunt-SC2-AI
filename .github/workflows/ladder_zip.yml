@@ -27,7 +27,7 @@ jobs:
       - name: Install requirements
         run: pip install -e .
       - name: Compile ladder zip
-        run: run python scripts/create_ladder_zip.py
+        run: poetry run python scripts/create_ladder_zip.py
       - uses: montudor/action-zip@v1
         with:
           args: unzip -qq bot.zip -d out
