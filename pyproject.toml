@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "harstems aunt"
+version = "0.1.0"
+description = ""
+authors = [ FredNoonienSingh ]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11, <3.13"
+black = "^23.1.0"
+isort = "^5.12.0"
+requests = "^2.32.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+skip_glob = ["ares-sc2/*"]
