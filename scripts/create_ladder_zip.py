@@ -8,5 +8,6 @@ def create_zip(zip_filename):
                 zipf.write(os.path.join(root, file))
 
 if __name__ == "__main__":
-    zip_filename = "my_project.zip"
+    print("creating zip ...")
+    zip_filename = "harstemsaunt.zip"
     create_zip(zip_filename)
