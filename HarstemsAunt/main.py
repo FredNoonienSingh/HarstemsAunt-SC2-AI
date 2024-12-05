@@ -1,7 +1,9 @@
 """MainClass of the Bot handling"""
 import csv
+from __init__ import logger
 from random import choice
 from .common import MAP_LIST
+
 
 """SC2 Imports"""
 from sc2 import maps
@@ -152,9 +154,15 @@ class HarstemsAunt(BotAI):
                 if self.gas_count < 2:
                     self.gas_count += 1
             case "Gateway":
-                await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
+                try:
+                    await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
+                except Exception as e:
+                    logger.info(f"can not set rally point due to {e} ")
             case "RoboticsFacility":
-                await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
+                try:
+                    await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
+                except Exception as e:
+                    logger.info(f"can not set rally point due to {e} ")
 
     async def on_enemy_unit_entered_vision(self, unit):
         if not unit.tag in self.seen_enemys:
