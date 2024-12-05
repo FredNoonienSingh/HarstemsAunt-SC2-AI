@@ -12,9 +12,9 @@ from os import path, remove, walk
 from subprocess import Popen, run
 from typing import Dict, List, Tuple
 
-import yaml
+#import yaml
 
-MY_BOT_NAME: str = "MyBotName"
+MY_BOT_NAME: str = "HarstemsAunt"
 ZIPFILE_NAME: str = "bot.zip"
 
 CONFIG_FILE: str = "config.yml"
@@ -152,7 +152,8 @@ def check_config_values():
     config_path: str = path.join(ROOT_DIRECTORY, CONFIG_FILE)
     if path.isfile(config_path):
         with open(path.join(ROOT_DIRECTORY, CONFIG_FILE), "r") as f:
-            config = yaml.safe_load(f)
+            pass
+            #config = yaml.safe_load(f)
         assert not config["Debug"], "Debug is not False"
 
 
