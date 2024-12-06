@@ -73,10 +73,6 @@ class HarstemsAunt(BotAI):
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
-            pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
-                if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
-            await self.client.move_camera(pos)
-
             await chronoboosting(self)
 
             for townhall in self.townhalls:
