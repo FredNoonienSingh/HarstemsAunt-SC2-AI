@@ -9,7 +9,8 @@ from utils.can_build import can_build_structure
 async def build_infrastructure(bot:BotAI, worker, build_pos) -> None:
         if not bot.structures(UnitTypeId.PYLON) and can_build_structure(bot, UnitTypeId.PYLON):
             await bot.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos, max_distance=0)
-        if len(bot.structures(UnitTypeId.GATEWAY))<bot.gateway_count and can_build_structure(bot, UnitTypeId.GATEWAY):                
+        if (len(bot.structures(UnitTypeId.GATEWAY))+len(bot.structures(UnitTypeId.WARPGATE)))<bot.gateway_count\
+            and can_build_structure(bot, UnitTypeId.GATEWAY):
             await bot.build(UnitTypeId.GATEWAY, build_worker=worker, near=build_pos)
         if not bot.structures(UnitTypeId.CYBERNETICSCORE) and len(bot.structures(UnitTypeId.NEXUS))==2:
             await build_structure(bot, UnitTypeId.CYBERNETICSCORE, build_pos, worker)

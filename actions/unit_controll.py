@@ -1,3 +1,5 @@
+from random import choice
+
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
@@ -29,18 +31,28 @@ async def control_stalkers(bot:BotAI):
 async def control_zealots(bot:BotAI):
     
     target_types:list = [
-    UnitTypeId.HATCHERY, 
-    UnitTypeId.LAIR, 
+    UnitTypeId.HATCHERY,
+    UnitTypeId.LAIR,
     UnitTypeId.HIVE,
-    UnitTypeId.COMMANDCENTER, 
+    UnitTypeId.COMMANDCENTER,
     UnitTypeId.ORBITALCOMMAND,
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.NEXUS
     ]
     if bot.enemy_units:
         targets = bot.enemy_structures.filter(lambda unit: unit.type_id in target_types)
+        if targets:
+            target = targets.furthest_to(bot.enemy_units.center)
+        else:
+            target = bot.enemy_start_locations[0]
         for zealot in bot.units(UnitTypeId.ZEALOT):
-            zealot.attack(bot.enemy_start_locations[0])
+            bot.logger.info(f"{zealot} attacking {target}")
+            zealot.attack(target)
+    else:
+        for zealot in bot.units(UnitTypeId.ZEALOT):
+            target = choice(bot.expand_locs)
+            bot.logger.info(f"{zealot} attacking {target}")
+            zealot.attack(target)
 
 async def control_phoenix(bot:BotAI):
     targets = bot.enemy_units.filter(lambda unit: unit.is_flying)

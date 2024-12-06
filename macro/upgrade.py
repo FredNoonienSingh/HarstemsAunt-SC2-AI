@@ -22,22 +22,19 @@ def get_upgrades(bot:BotAI) -> None:
             for upgrades in attack:
                 if upgrades not in bot.researched:
                    upgrade(bot, UnitTypeId.FORGE, upgrades)
-                   bot.logger.info(upgrades)
-                   print(upgrades)
             for upgrades in amor:
                 if upgrades not in bot.researched:
                     upgrade(bot, UnitTypeId.FORGE, upgrades)
-                    bot.logger.info(upgrades)
 
+    if bot.structures(UnitTypeId.CYBERNETICSCORE):
+        if not UpgradeId.WARPGATERESEARCH in bot.researched:
+            upgrade(bot, UnitTypeId.CYBERNETICSCORE, UpgradeId.WARPGATERESEARCH)
     if bot.structures(UnitTypeId.TWILIGHTCOUNCIL):
         if not UpgradeId.BLINKTECH in bot.researched:
             upgrade(bot, UnitTypeId.TWILIGHTCOUNCIL, UpgradeId.BLINKTECH)
         if not UpgradeId.CHARGE in bot.researched:
             upgrade(bot, UnitTypeId.TWILIGHTCOUNCIL, UpgradeId.CHARGE)
-    
-
 
 def upgrade(bot:BotAI, Upgrade_structure:UnitTypeId, Upgrade_id:UpgradeId) -> None:
         if bot.structures(Upgrade_structure).idle and can_research_upgrade(bot,Upgrade_id):
             bot.research(Upgrade_id)
- 

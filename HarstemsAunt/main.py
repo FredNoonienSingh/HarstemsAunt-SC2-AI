@@ -22,7 +22,7 @@ from macro.infrastructure import build_infrastructure
 
 """Actions"""
 from actions.expand import expand
-from actions.set_rally import set_rally
+from actions.set_rally import set_rally, set_nexus_rally
 from actions.build_structure import build_gas
 from actions.build_supply import build_supply
 from actions.chronoboosting import chronoboosting
@@ -59,11 +59,6 @@ class HarstemsAunt(BotAI):
         self.chatter_counts = [1, 1, 1]
         self.last_tick = 0
         self.logger = logger
-
-    async def writetocsv(self,path):
-        with open(path, mode='w') as file:
-            writer = csv.writer(file, delimiter=";")
-            writer.writerows(self.tick_data)
  
     async def on_before_start(self) -> None:
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -85,9 +80,9 @@ class HarstemsAunt(BotAI):
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
-            pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
-                if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
-            await self.client.move_camera(pos)
+            #pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
+             #   if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
+            #await self.client.move_camera(pos)
 
             await chronoboosting(self)
             
@@ -141,7 +136,11 @@ class HarstemsAunt(BotAI):
             await self.client.leave()
 
     async def on_building_construction_started(self,unit):
-        pass
+        
+        if unit.type_id == UnitTypeId.PYLON and self.time < 60:
+            for nexus in self.structures(UnitTypeId.NEXUS):
+                minerals =  self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
+                await set_nexus_rally(self, nexus, minerals.closest_to(nexus))
 
     async def on_building_construction_complete(self, unit):
         match unit.name:
@@ -158,12 +157,12 @@ class HarstemsAunt(BotAI):
                 try:
                     await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
                 except Exception as e:
-                    logger.info(f"can not set rally point due to {e} ")
+                    self.logger.info(f"can not set rally point due to {e} ")
             case "RoboticsFacility":
                 try:
                     await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
                 except Exception as e:
-                    logger.info(f"can not set rally point due to {e} ")
+                    self.logger.info(f"can not set rally point due to {e} ")
 
     async def on_enemy_unit_entered_vision(self, unit):
         if not unit.tag in self.seen_enemys:
@@ -185,15 +184,13 @@ class HarstemsAunt(BotAI):
         return await super().on_enemy_unit_left_vision(unit_tag)
 
     async def on_unit_created(self, unit):
-        return await super().on_unit_created(unit)
+        self.logger.info(f"{unit} created")
 
     async def on_unit_type_changed(self, unit, previous_type):
-        return await super().on_unit_type_changed(unit, previous_type)
+        self.logger.info(f"{unit} morphed from {previous_type}")
 
     async def on_unit_took_damage(self, unit, amount_damage_taken):
-        if self.chatter_counts[2] == 1:
-            await self.chat_send("HEY! that hurt - cut it out !")
-            self.chatter_counts[2] = 0
+        pass
 
     async def on_unit_destroyed(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
@@ -204,12 +201,11 @@ class HarstemsAunt(BotAI):
             await self.chat_send("RUDE !!!")
 
     async def on_upgrade_complete(self, upgrade):
+        self.logger.info(f"researched {upgrade}")
         self.researched.append(upgrade)
 
     async def on_end(self,game_result):
-       # path = f'data/{self.name}_{self.version}_vs{self.enemy_race}_at_{datetime.now()}_{game_result}.csv'
-        #await self.writetocsv(path)
-        await self.client.save_replay(f"data/replays/HarstemsAunt.SC2Replay")
+        self.logger.info(f"game ended with result {game_result}")
         await self.client.leave()
 
 def run_ai(race, diffiicultiy, time):
