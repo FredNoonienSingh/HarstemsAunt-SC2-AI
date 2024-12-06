@@ -58,6 +58,7 @@ class HarstemsAunt(BotAI):
         self.enemy_supply = 12
         self.chatter_counts = [1, 1, 1]
         self.last_tick = 0
+        self.logger = logger
 
     async def writetocsv(self,path):
         with open(path, mode='w') as file:
