@@ -80,8 +80,10 @@ class HarstemsAunt(BotAI):
             await chronoboosting(self)
 
             for townhall in self.townhalls:
-                minerals =  \
-                    self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
+
+                # maybe not sorting the minerals does not create this issue
+                minerals = self.expansion_locations_dict[townhall.position].mineral_field
+
                 if not minerals:
                     if not townhall in self.mined_out_bases:
                         self.mined_out_bases.append(townhall)
@@ -93,7 +95,8 @@ class HarstemsAunt(BotAI):
                     await build_gas(self, townhall)
 
                 # Build_Probes
-                if townhall.is_idle and can_build_unit(self, UnitTypeId.PROBE):
+                probe_count:int = len(self.structures(UnitTypeId.NEXUS))*16 + len(self.structures(UnitTypeId.ASSIMILATOR))*3
+                if townhall.is_idle and can_build_unit(self, UnitTypeId.PROBE) and len(self.workers) < probe_count:
                     townhall.train(UnitTypeId.PROBE)
                 await self.distribute_workers(resource_ratio=2)
 
