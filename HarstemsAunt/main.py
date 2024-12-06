@@ -67,25 +67,18 @@ class HarstemsAunt(BotAI):
         top_left = Point2((0, self.game_info.playable_area.top))
         self.map_corners = [top_right, bottom_right, bottom_left, top_left]
         self.map_ramps = self.game_info.map_ramps
-        if self.enemy_race == Race.Zerg:
-            self.greeting = "Ihhh, Bugs ... thats disgusting"
-        if self.enemy_race == Race.Terran:
-            self.greeting = "Humans, thats very original... "
-        if self.enemy_race == Race.Protoss:
-            self.greeting = "At least you choose the right race"
  
     async def on_start(self):
-        await self.chat_send(self.greeting)
         self.expand_locs = list(self.expansion_locations)
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
-            #pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
-             #   if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
-            #await self.client.move_camera(pos)
+            pos = self.units.closest_n_units(self.enemy_start_locations[0], 1)[0] \
+                if not self.enemy_units else self.units.closest_to(self.enemy_units.center)
+            await self.client.move_camera(pos)
 
             await chronoboosting(self)
-            
+
             for townhall in self.townhalls:
                 minerals =  \
                     self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
@@ -127,7 +120,7 @@ class HarstemsAunt(BotAI):
 
             #### Will get moved to Micro as soon as i get there ####
             await control_zealots(self)
-            await control_stalkers(self)
+            await control_stalkers(self, self.enemy_start_locations[0])
             await control_phoenix(self)
             return
 
@@ -141,7 +134,8 @@ class HarstemsAunt(BotAI):
     async def on_building_construction_started(self,unit):
         if unit.type_id == UnitTypeId.PYLON and self.time < 60:
             for nexus in self.structures(UnitTypeId.NEXUS):
-                minerals =  self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
+                minerals =  \
+                    self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
                 await set_nexus_rally(self, nexus, minerals.closest_to(nexus))
 
     async def on_building_construction_complete(self, unit):
@@ -170,18 +164,6 @@ class HarstemsAunt(BotAI):
         if not unit.tag in self.seen_enemys:
             self.seen_enemys.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
-        if self.chatter_counts[1] == 1:
-            match self.enemy_race:
-                case Race.Zerg:
-                    await self.chat_send("STAY ON YOUR SIDE OF THE MAP, YOU DISGUSTING THING ")
-                    self.chatter_counts[1] = 0
-                case Race.Terran:
-                    await self.chat_send("GO BACK TO YOUR PLANET")
-                    self.chatter_counts[1] = 0
-                case Race.Protoss:
-                    await self.chat_send("thanks for the visit brother, ...\
-                        HEY ! ARE YOU HERE TO ATTACK ME ??? THATS SUPER MEAN !")
-                    self.chatter_counts[1] = 0
 
     async def on_enemy_unit_left_vision(self, unit_tag):
         return await super().on_enemy_unit_left_vision(unit_tag)
@@ -199,9 +181,6 @@ class HarstemsAunt(BotAI):
         unit = self.enemy_units.find_by_tag(unit_tag)
         if unit:
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
-        elif not unit and self.chatter_counts[0] == 1:
-            self.chatter_counts[0] = 0
-            await self.chat_send("RUDE !!!")
 
     async def on_upgrade_complete(self, upgrade):
         self.logger.info(f"researched {upgrade}")
