@@ -87,13 +87,15 @@ class HarstemsAunt(BotAI):
             await chronoboosting(self)
             
             for townhall in self.townhalls:
-                minerals =  self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
+                minerals =  \
+                    self.expansion_locations_dict[townhall.position].mineral_field.sorted_by_distance_to(townhall)
                 if not minerals:
                     if not townhall in self.mined_out_bases:
                         self.mined_out_bases.append(townhall)
 
                 if townhall.is_ready and self.structures(UnitTypeId.PYLON) \
-                    and self.structures(UnitTypeId.GATEWAY) and len(self.structures(UnitTypeId.ASSIMILATOR)) < self.gas_count \
+                    and self.structures(UnitTypeId.GATEWAY) and\
+                        len(self.structures(UnitTypeId.ASSIMILATOR)) < self.gas_count \
                         and not self.already_pending(UnitTypeId.ASSIMILATOR):
                     await build_gas(self, townhall)
 
@@ -130,13 +132,13 @@ class HarstemsAunt(BotAI):
             return
 
         if self.last_tick == 0:
-            await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also {self.enemy_race} is IMBA")
+            await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also \
+                {self.enemy_race} is IMBA")
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
 
     async def on_building_construction_started(self,unit):
-        
         if unit.type_id == UnitTypeId.PYLON and self.time < 60:
             for nexus in self.structures(UnitTypeId.NEXUS):
                 minerals =  self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
@@ -177,7 +179,8 @@ class HarstemsAunt(BotAI):
                     await self.chat_send("GO BACK TO YOUR PLANET")
                     self.chatter_counts[1] = 0
                 case Race.Protoss:
-                    await self.chat_send("thanks for the visit brother, ... HEY ! ARE YOU HERE TO ATTACK ME ??? THATS SUPER MEAN !")
+                    await self.chat_send("thanks for the visit brother, ...\
+                        HEY ! ARE YOU HERE TO ATTACK ME ??? THATS SUPER MEAN !")
                     self.chatter_counts[1] = 0
 
     async def on_enemy_unit_left_vision(self, unit_tag):
@@ -190,7 +193,7 @@ class HarstemsAunt(BotAI):
         self.logger.info(f"{unit} morphed from {previous_type}")
 
     async def on_unit_took_damage(self, unit, amount_damage_taken):
-        pass
+        self.logger.info(f"{unit} took {amount_damage_taken} damage")
 
     async def on_unit_destroyed(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
@@ -207,35 +210,3 @@ class HarstemsAunt(BotAI):
     async def on_end(self,game_result):
         self.logger.info(f"game ended with result {game_result}")
         await self.client.leave()
-
-def run_ai(race, diffiicultiy, time):
-    AiPlayer = HarstemsAunt()
-    run_game(maps.get(choice(MAP_LIST)),
-             [
-                Bot(AiPlayer.race, HarstemsAunt(debug=True)),
-                Computer(race, difficulty=(diffiicultiy))
-             ],
-             realtime=time, 
-             sc2_version="5.0.10"
-        )
-
-def play_against_ai(race):
-    AiPlayer = HarstemsAunt()
-    run_game(maps.get(choice(MAP_LIST)),
-             [
-                 Bot(AiPlayer.race, HarstemsAunt(debug=True)),
-                 Human(race, "NoonienSingh", False)
-             ],
-             realtime=True
-        )
-
-if __name__ == "__main__":
-    races:list = [
-        Race.Terran,
-        Race.Zerg,
-        Race.Protoss
-        ]
-
-    #play_against_ai(Race.Protoss)
-    for race in races:
-        run_ai(race,Difficulty.Hard, False)
