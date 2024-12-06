@@ -1,46 +1,60 @@
+
+from typing import Union
+from random import choice
+
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
+from sc2.position import Point2, Point3
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from actions.stay_out_range import stay_out_of_range
-from utils.in_proximity import is_close_to_unit
+
+from HarstemsAunt.common import TOWNHALL_IDS
 
 from actions.abilliies import blink
+from utils.in_proximity import is_close_to_unit
+from actions.stay_out_range import stay_out_of_range
 
-async def control_stalkers(bot:BotAI):
+async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
     for stalker in bot.units(UnitTypeId.STALKER):
-        if stalker.weapon_ready and stalker.shield_percentage > .55:
-            if bot.enemy_units:
-                attack_pos = stalker.position3d.towards(bot.enemy_units.closest_to(stalker), 12)
-            elif bot.enemy_structures:
-                attack_pos = stalker.position3d.towards(bot.enemy_structures.closest_to(stalker), 12)
-            else:
-                attack_pos = stalker.position3d.towards(bot.enemy_start_locations[0], 12)
-            stalker.attack(attack_pos)
-        else:
-            if [x for x in bot.enemy_units if x.can_attack]:
-                pos = stalker.position3d.towards(bot.enemy_units.closest_to(stalker), -15)
-                if await bot.can_cast(stalker, AbilityId.EFFECT_BLINK, pos) and stalker.shield_percentage < .33:
-                    await blink(bot, stalker, pos)
+        if bot.enemy_units:
+            visible_units = bot.enemy_units.closer_than(stalker.sight_range, stalker)
+            if stalker.weapon_ready and visible_units:
+                target = visible_units.sorted(lambda Unit: Unit.ground_dps)
+                stalker.attack(target[0])
+                bot.logger.info(f"stalker attacking {target[0]}")
+            elif not stalker.weapon_ready and visible_units:
+                threads = bot.enemy_units.filter(lambda Unit: Unit.distance_to(stalker) <= Unit.ground_range+2)
+                print(threads)
+                if threads:
+                    target = stalker.position.towards(threads.closest_to(stalker), -5)
+                    stalker.move(target)
+                    bot.logger.info(f"stalker retreating from {stalker.position} to {target}")
                 else:
-                    stalker.move(pos)
+                    return
+            else:
+                stalker.move(target_pos)
+                bot.logger.info(f" stalker moving to {target_pos}")
+        else:
+            stalker.move(target_pos)
+            bot.logger.info(f" stalker moving to {target_pos}")
 
 async def control_zealots(bot:BotAI):
-    
-    target_types:list = [
-    UnitTypeId.HATCHERY, 
-    UnitTypeId.LAIR, 
-    UnitTypeId.HIVE,
-    UnitTypeId.COMMANDCENTER, 
-    UnitTypeId.ORBITALCOMMAND,
-    UnitTypeId.PLANETARYFORTRESS,
-    UnitTypeId.NEXUS
-    ]
+    target_types:list = TOWNHALL_IDS
     if bot.enemy_units:
         targets = bot.enemy_structures.filter(lambda unit: unit.type_id in target_types)
+        if targets:
+            target = targets.furthest_to(bot.enemy_units.center)
+        else:
+            target = bot.enemy_start_locations[0]
         for zealot in bot.units(UnitTypeId.ZEALOT):
-            zealot.attack(bot.enemy_start_locations[0])
+            bot.logger.info(f"{zealot} attacking {target}")
+            zealot.attack(target.towards(bot.game_info.map_center, -5))
+    else:
+        for zealot in bot.units(UnitTypeId.ZEALOT):
+            target = choice(bot.expand_locs)
+            bot.logger.info(f"{zealot} attacking {target}")
+            zealot.attack(target)
 
 async def control_phoenix(bot:BotAI):
     targets = bot.enemy_units.filter(lambda unit: unit.is_flying)
