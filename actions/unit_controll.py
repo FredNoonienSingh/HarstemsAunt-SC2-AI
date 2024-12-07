@@ -18,10 +18,18 @@ async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
     for stalker in bot.units(UnitTypeId.STALKER):
         if bot.enemy_units:
             visible_units = bot.enemy_units.closer_than(stalker.sight_range, stalker)
-            if stalker.weapon_ready and visible_units:
-                target = visible_units.closest_to(stalker)
-                stalker.attack(target)
-                bot.logger.info(f"stalker attacking {target}")
+            enemy_structs = bot.enemy_structures.closer_than(20, stalker)
+
+            if stalker.weapon_ready:
+                if visible_units:
+                    target = visible_units.closest_to(stalker)
+                    stalker.attack(target)
+                    bot.logger.info(f"stalker attacking {target}")
+                if not visible_units and enemy_structs:
+                    target = enemy_structs.closest_to(stalker)
+                    stalker.attack(target)
+                    bot.logger.info(f"stalker attacking {target}")
+
             elif not stalker.weapon_ready and visible_units:
                 threads = bot.enemy_units.filter(lambda Unit: Unit.distance_to(stalker) <= Unit.ground_range+2)
                 if threads:
@@ -30,13 +38,11 @@ async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
                     bot.logger.info(f"stalker retreating from {stalker.position} to {target}")
                 else:
                     return
-            elif stalker.weapon_ready and not visible_units and bot.enemy_structures.closer_than(stalker.sight_range, stalker):
-                stalker.attack(bot.enemy_structures.closest_to(stalker))
             else:
-                stalker.move(target_pos)
+                stalker.attack(target_pos)
                 bot.logger.info(f" stalker moving to {target_pos}")
         else:
-            stalker.move(target_pos)
+            stalker.attack(target_pos)
             bot.logger.info(f" stalker moving to {target_pos}")
 
 async def control_zealots(bot:BotAI):
@@ -49,7 +55,7 @@ async def control_zealots(bot:BotAI):
             target = bot.enemy_start_locations[0]
         for zealot in bot.units(UnitTypeId.ZEALOT):
             bot.logger.info(f"{zealot} attacking {target}")
-            zealot.attack(target.towards(bot.game_info.map_center, -5))
+            zealot.attack(target.position.towards(bot.game_info.map_center, -5))
     else:
         for zealot in bot.units(UnitTypeId.ZEALOT):
             target = choice(bot.expand_locs)
