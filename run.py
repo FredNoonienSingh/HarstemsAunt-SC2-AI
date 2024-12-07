@@ -7,7 +7,7 @@ from __init__ import run_ladder_game
 
 from sc2 import maps
 from sc2.main import run_game
-from sc2.data import Difficulty, Race
+from sc2.data import Difficulty,Race
 from sc2.player import Bot, Computer
 
 bot = Bot(Race.Protoss, HarstemsAunt())
@@ -23,5 +23,5 @@ if __name__ == "__main__":
         # Local game
         print("Starting local game...")
         run_game(maps.get(choice(MAP_LIST)), \
-            [bot, Computer(choice(RACES), Difficulty.Hard)], \
+            [bot, Computer(choice(RACES), Difficulty.Harder)], \
                 realtime=False, sc2_version="5.0.10")
