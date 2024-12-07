@@ -8,7 +8,6 @@ from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-
 from HarstemsAunt.common import TOWNHALL_IDS
 
 from actions.abilliies import blink
@@ -20,18 +19,19 @@ async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
         if bot.enemy_units:
             visible_units = bot.enemy_units.closer_than(stalker.sight_range, stalker)
             if stalker.weapon_ready and visible_units:
-                target = visible_units.sorted(lambda Unit: Unit.ground_dps)
-                stalker.attack(target[0])
-                bot.logger.info(f"stalker attacking {target[0]}")
+                target = visible_units.closest_to(stalker)
+                stalker.attack(target)
+                bot.logger.info(f"stalker attacking {target}")
             elif not stalker.weapon_ready and visible_units:
                 threads = bot.enemy_units.filter(lambda Unit: Unit.distance_to(stalker) <= Unit.ground_range+2)
-                print(threads)
                 if threads:
                     target = stalker.position.towards(threads.closest_to(stalker), -5)
                     stalker.move(target)
                     bot.logger.info(f"stalker retreating from {stalker.position} to {target}")
                 else:
                     return
+            elif stalker.weapon_ready and not visible_units and bot.enemy_structures.closer_than(stalker.sight_range, stalker):
+                stalker.attack(bot.enemy_structures.closest_to(stalker))
             else:
                 stalker.move(target_pos)
                 bot.logger.info(f" stalker moving to {target_pos}")

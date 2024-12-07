@@ -1,8 +1,7 @@
 import sys
 from random import choice
-from HarstemsAunt.common import MAP_LIST, RACES
 from HarstemsAunt.main import HarstemsAunt
-
+from HarstemsAunt.common import MAP_LIST, RACES
 
 from __init__ import run_ladder_game
 
