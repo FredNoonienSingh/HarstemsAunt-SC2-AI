@@ -4,12 +4,11 @@ from __init__ import logger
 from random import choice
 from .common import MAP_LIST
 
-
 """SC2 Imports"""
 from sc2 import maps
 from sc2.bot_ai import BotAI
 from sc2.main import run_game
-from sc2.position import Point2
+from sc2.position import Point2, Point3
 from sc2.data import Race, Difficulty
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
@@ -32,6 +31,7 @@ from actions.unit_controll import control_stalkers, control_phoenix, control_zea
 from utils.can_build import can_build_unit
 from utils.handle_alerts import handle_alerts
 from utils.get_build_pos import get_build_pos
+from utils.get_army_target import get_army_target, check_position
 
 class HarstemsAunt(BotAI):
 
@@ -42,6 +42,8 @@ class HarstemsAunt(BotAI):
         self.version:str = "0.1"
         self.greeting:str = " "
         self.debug:bool = debug
+        self.last_enemy_army_pos = Point3((0,0,0))
+        self.pos_checked = False
         self.expand_locs = []
         self.temp = []
         self.mined_out_bases = []
@@ -104,7 +106,7 @@ class HarstemsAunt(BotAI):
                 return
             if self.time < 180:
                 await game_start(self, worker)
-
+  
             await build_infrastructure(self,worker, build_pos)
             get_upgrades(self)
             await build_army(self)
@@ -118,9 +120,20 @@ class HarstemsAunt(BotAI):
                 self.temp = self.mined_out_bases
 
             #### Will get moved to Micro as soon as i get there ####
+            army_target = get_army_target(self)
+            z = self.get_terrain_z_height(army_target)+1
+            x,y = army_target.x, army_target.y
+            pos_3d = Point3((x,y,z))
+
+            self.client.debug_sphere_out(pos_3d, 5, (255,255,255))
+            
+
+            
             await control_zealots(self)
-            await control_stalkers(self, self.enemy_start_locations[0])
+            await control_stalkers(self, army_target)
             await control_phoenix(self)
+            
+            self.pos_checked = check_position(self)
             return
 
         if self.last_tick == 0:
@@ -165,7 +178,11 @@ class HarstemsAunt(BotAI):
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
 
     async def on_enemy_unit_left_vision(self, unit_tag):
-        return await super().on_enemy_unit_left_vision(unit_tag)
+        unit = self.enemy_units.find_by_tag(unit_tag)
+        self.logger.info(f"{unit} left vision")
+        if unit:
+            self.last_enemy_army_pos = unit.position3d
+            self.pos_checked = False
 
     async def on_unit_created(self, unit):
         self.logger.info(f"{unit} created")

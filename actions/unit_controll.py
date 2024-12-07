@@ -1,4 +1,3 @@
-
 from typing import Union
 from random import choice
 
@@ -8,7 +7,6 @@ from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-
 from HarstemsAunt.common import TOWNHALL_IDS
 
 from actions.abilliies import blink
@@ -19,13 +17,20 @@ async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
     for stalker in bot.units(UnitTypeId.STALKER):
         if bot.enemy_units:
             visible_units = bot.enemy_units.closer_than(stalker.sight_range, stalker)
-            if stalker.weapon_ready and visible_units:
-                target = visible_units.sorted(lambda Unit: Unit.ground_dps)
-                stalker.attack(target[0])
-                bot.logger.info(f"stalker attacking {target[0]}")
+            enemy_structs = bot.enemy_structures.closer_than(20, stalker)
+
+            if stalker.weapon_ready:
+                if visible_units:
+                    target = visible_units.closest_to(stalker)
+                    stalker.attack(target)
+                    bot.logger.info(f"stalker attacking {target}")
+                if not visible_units and enemy_structs:
+                    target = enemy_structs.closest_to(stalker)
+                    stalker.attack(target)
+                    bot.logger.info(f"stalker attacking {target}")
+
             elif not stalker.weapon_ready and visible_units:
                 threads = bot.enemy_units.filter(lambda Unit: Unit.distance_to(stalker) <= Unit.ground_range+2)
-                print(threads)
                 if threads:
                     target = stalker.position.towards(threads.closest_to(stalker), -5)
                     stalker.move(target)
@@ -33,10 +38,10 @@ async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
                 else:
                     return
             else:
-                stalker.move(target_pos)
+                stalker.attack(target_pos)
                 bot.logger.info(f" stalker moving to {target_pos}")
         else:
-            stalker.move(target_pos)
+            stalker.attack(target_pos)
             bot.logger.info(f" stalker moving to {target_pos}")
 
 async def control_zealots(bot:BotAI):
@@ -49,7 +54,7 @@ async def control_zealots(bot:BotAI):
             target = bot.enemy_start_locations[0]
         for zealot in bot.units(UnitTypeId.ZEALOT):
             bot.logger.info(f"{zealot} attacking {target}")
-            zealot.attack(target.towards(bot.game_info.map_center, -5))
+            zealot.attack(target.position.towards(bot.game_info.map_center, -5))
     else:
         for zealot in bot.units(UnitTypeId.ZEALOT):
             target = choice(bot.expand_locs)

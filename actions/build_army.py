@@ -18,13 +18,11 @@ async def warp_in_unit(bot: BotAI, unit:UnitTypeId, warp_in_position:Union[Point
     for gate in bot.structures(UnitTypeId.WARPGATE).idle:
         if can_build_unit(bot, unit):
             gate.warp_in(unit, placement)
-            return True
-        break
-    return False
 
 async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
+    gate_aliases: list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
     if can_build_unit(bot, unit_type):
-        for gate in bot.structures(UnitTypeId.GATEWAY):
+        for gate in bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
             if gate.is_idle and UpgradeId.WARPGATERESEARCH not in bot.researched:
                 gate.train(unit_type)
             else:
@@ -42,4 +40,3 @@ async def build_robo_units(bot:BotAI, unit_type:UnitTypeId):
         for robo in bot.structures(UnitTypeId.ROBOTICSFACILITY):
             if robo.is_idle:
                 robo.train(unit_type)
-
