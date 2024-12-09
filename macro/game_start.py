@@ -19,6 +19,10 @@ async def game_start(bot:BotAI, worker) -> None:
             worker.patrol(build_pos)
         else:
             await set_nexus_rally(bot, nexus, minerals.closest_to(nexus))
+    elif bot.structures(UnitTypeId.GATEWAY):
+        worker = bot.workers.closest_to(bot.enemy_start_locations[0])
+        if not bot.scout_probe_tag:
+            bot.scout_probe_tag = worker.tag
  
     if len(bot.structures(UnitTypeId.NEXUS)) == 1 and bot.minerals > 300:
         next_expantion = await bot.get_next_expansion()

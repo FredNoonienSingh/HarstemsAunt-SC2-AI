@@ -1,15 +1,17 @@
 """MainClass of the Bot handling"""
-import csv
 from __init__ import logger
 from random import choice
 from .common import MAP_LIST
+from typing import List
+from itertools import chain
 
 """SC2 Imports"""
 from sc2 import maps
 from sc2.bot_ai import BotAI
+from sc2.unit import Unit
 from sc2.main import run_game
-from sc2.position import Point2, Point3
 from sc2.data import Race, Difficulty
+from sc2.position import Point2, Point3
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
 
@@ -21,11 +23,12 @@ from macro.infrastructure import build_infrastructure
 
 """Actions"""
 from actions.expand import expand
-from actions.set_rally import set_rally, set_nexus_rally
 from actions.build_structure import build_gas
 from actions.build_supply import build_supply
 from actions.chronoboosting import chronoboosting
+from actions.set_rally import set_rally, set_nexus_rally
 from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
+from actions.speedmining import get_speedmining_positions, split_workers, micro_worker
 
 """Utils"""
 from utils.can_build import can_build_unit
@@ -39,9 +42,11 @@ class HarstemsAunt(BotAI):
         super().__init__()
         self.race:Race = Race.Protoss
         self.name:str = "HarstemsAunt"
-        self.version:str = "0.1"
+        self.version:str = "1.4"
         self.greeting:str = " "
         self.debug:bool = debug
+        self.game_step = None
+        self.speedmining_positions = None
         self.last_enemy_army_pos = Point3((0,0,0))
         self.pos_checked = False
         self.expand_locs = []
@@ -61,6 +66,7 @@ class HarstemsAunt(BotAI):
         self.chatter_counts = [1, 1, 1]
         self.last_tick = 0
         self.logger = logger
+        self.scout_probe_tag = None
  
     async def on_before_start(self) -> None:
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -72,13 +78,34 @@ class HarstemsAunt(BotAI):
  
     async def on_start(self):
         self.expand_locs = list(self.expansion_locations)
+        self.client.game_step = self.game_step
+        self.speedmining_positions = get_speedmining_positions(self)
+        split_workers(self)
 
     async def on_step(self, iteration):
         if self.townhalls and self.units:
+            self.transfer_from: List[Unit] = []
+            self.transfer_to: List[Unit] = list()
+            self.transfer_from_gas: List[Unit] = list()
+            self.transfer_to_gas: List[Unit] = list()
+            self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
+            
+            
+            for worker in self.workers:
+                micro_worker(self, worker)
+
             await chronoboosting(self)
+            
+            if self.scout_probe_tag:
+                scout:Unit = self.units.find_by_tag(self.scout_probe_tag)
+                if scout:
+                    if scout.distance_to(self.enemy_start_locations[0])<5:
+                        scout.move(self.structures(UnitTypeId.NEXUS).furthest_to(scout))
+                        self.scout_probe_tag = 69420666
+                    else:
+                        scout.move(self.enemy_start_locations[0], queue=True)
 
             for townhall in self.townhalls:
-
                 # maybe not sorting the minerals does not create this issue
                 minerals = self.expansion_locations_dict[townhall.position].mineral_field
 
@@ -120,15 +147,20 @@ class HarstemsAunt(BotAI):
                 self.temp = self.mined_out_bases
 
             #### Will get moved to Micro as soon as i get there ####
-            army_target = get_army_target(self)
+            if self.supply_army>self.enemy_supply:
+                army_target = get_army_target(self)
+            else:
+                threads = self.enemy_units.closer_than(15, self.structures(UnitTypeId.NEXUS).center)
+                if threads:
+                    army_target = threads.center
+                else:
+                    army_target = self.game_info.map_center
             z = self.get_terrain_z_height(army_target)+1
             x,y = army_target.x, army_target.y
             pos_3d = Point3((x,y,z))
 
             self.client.debug_sphere_out(pos_3d, 5, (255,255,255))
-            
 
-            
             await control_zealots(self)
             await control_stalkers(self, army_target)
             await control_phoenix(self)
