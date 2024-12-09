@@ -25,3 +25,5 @@ RACES = [
     Race.Terran,
     Race.Protoss
 ]
+
+SPEEDMINING_DISTANCE = 1.8
