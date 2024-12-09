@@ -15,8 +15,9 @@ from actions.stay_out_range import stay_out_of_range
 
 async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
     for stalker in bot.units(UnitTypeId.STALKER):
-        if bot.enemy_units:
-            visible_units = bot.enemy_units.closer_than(stalker.sight_range, stalker)
+        if bot.enemy_units.filter(lambda unit: unit.type_id not in [UnitTypeId.LARVA, UnitTypeId.EGG]):
+            visible_units = bot.enemy_units.filter(lambda unit: unit.type_id not in [UnitTypeId.LARVA, UnitTypeId.EGG])\
+                .closer_than(stalker.sight_range, stalker)
             enemy_structs = bot.enemy_structures.closer_than(20, stalker)
 
             if stalker.weapon_ready:
@@ -44,7 +45,7 @@ async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
             stalker.attack(target_pos)
             bot.logger.info(f" stalker moving to {target_pos}")
 
-async def control_zealots(bot:BotAI):
+async def control_zealots(bot:BotAI,zealot, target_pos):
     target_types:list = TOWNHALL_IDS
     if bot.enemy_units:
         targets = bot.enemy_structures.filter(lambda unit: unit.type_id in target_types)
@@ -52,14 +53,11 @@ async def control_zealots(bot:BotAI):
             target = targets.furthest_to(bot.enemy_units.center)
         else:
             target = bot.enemy_start_locations[0]
-        for zealot in bot.units(UnitTypeId.ZEALOT):
-            bot.logger.info(f"{zealot} attacking {target}")
-            zealot.attack(target.position.towards(bot.game_info.map_center, -5))
+        bot.logger.info(f"{zealot} attacking {target}")
+        zealot.attack(target.position.towards(bot.game_info.map_center, -5))
     else:
-        for zealot in bot.units(UnitTypeId.ZEALOT):
-            target = choice(bot.expand_locs)
-            bot.logger.info(f"{zealot} attacking {target}")
-            zealot.attack(target)
+        bot.logger.info(f"{zealot} attacking {target_pos}")
+        zealot.attack(target_pos)
 
 async def control_phoenix(bot:BotAI):
     targets = bot.enemy_units.filter(lambda unit: unit.is_flying)

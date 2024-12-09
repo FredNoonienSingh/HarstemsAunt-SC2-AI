@@ -1,7 +1,6 @@
 """MainClass of the Bot handling"""
 from __init__ import logger
-from random import choice
-from .common import MAP_LIST
+from .common import MAP_LIST, GATEWAY_UNTIS
 from typing import List
 from itertools import chain
 
@@ -15,26 +14,18 @@ from sc2.position import Point2, Point3
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.player import Bot, Computer, Human
 
-"""MACRO"""
-from macro.upgrade import get_upgrades
-from macro.game_start import game_start
-from macro.build_army import build_army
-from macro.infrastructure import build_infrastructure
+from HarstemsAunt.macro import marco
+
 
 """Actions"""
-from actions.expand import expand
-from actions.build_structure import build_gas
-from actions.build_supply import build_supply
-from actions.chronoboosting import chronoboosting
 from actions.set_rally import set_rally, set_nexus_rally
 from actions.unit_controll import control_stalkers, control_phoenix, control_zealots
 from actions.speedmining import get_speedmining_positions, split_workers, micro_worker
 
 """Utils"""
-from utils.can_build import can_build_unit
-from utils.handle_alerts import handle_alerts
 from utils.get_build_pos import get_build_pos
 from utils.get_army_target import get_army_target, check_position
+from utils.in_proximity import in_proximity_to_point
 
 class HarstemsAunt(BotAI):
 
@@ -42,7 +33,7 @@ class HarstemsAunt(BotAI):
         super().__init__()
         self.race:Race = Race.Protoss
         self.name:str = "HarstemsAunt"
-        self.version:str = "1.4"
+        self.version:str = "1.5"
         self.greeting:str = " "
         self.debug:bool = debug
         self.game_step = None
@@ -67,6 +58,7 @@ class HarstemsAunt(BotAI):
         self.last_tick = 0
         self.logger = logger
         self.scout_probe_tag = None
+        self.last_gateway_units = []
  
     async def on_before_start(self) -> None:
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -89,13 +81,30 @@ class HarstemsAunt(BotAI):
             self.transfer_from_gas: List[Unit] = list()
             self.transfer_to_gas: List[Unit] = list()
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
-            
-            
+
+
+            # Deal with Cannon rushes
+            if self.time < 300:
+                for th in self.townhalls:
+                    if self.enemy_structures.closer_than(30, th):
+                        for struct in self.enemy_structures.closer_than(30, th):
+                            workers = self.workers.closest_n_units(4, struct)
+                            for worker in workers:
+                                worker.attack(struct)
+                            if self.enemy_units.closer_than(30, th):
+                                enemy_builders = self.enemy_units.closer_than(30, th)
+                                for builder in enemy_builders:
+                                    attack_workers = self.workers.closest_n_units(2,builder)
+                                    for aw in attack_workers:
+                                        aw.attack(builder)
+
+            for el in self.last_gateway_units:
+                self.client.debug_text_simple(str(el))
+
             for worker in self.workers:
                 micro_worker(self, worker)
+            await self.distribute_workers(resource_ratio=2)
 
-            await chronoboosting(self)
-            
             if self.scout_probe_tag:
                 scout:Unit = self.units.find_by_tag(self.scout_probe_tag)
                 if scout:
@@ -105,67 +114,33 @@ class HarstemsAunt(BotAI):
                     else:
                         scout.move(self.enemy_start_locations[0], queue=True)
 
-            for townhall in self.townhalls:
-                # maybe not sorting the minerals does not create this issue
-                minerals = self.expansion_locations_dict[townhall.position].mineral_field
-
-                if not minerals:
-                    if not townhall in self.mined_out_bases:
-                        self.mined_out_bases.append(townhall)
-
-                if townhall.is_ready and self.structures(UnitTypeId.PYLON) \
-                    and self.structures(UnitTypeId.GATEWAY) and\
-                        len(self.structures(UnitTypeId.ASSIMILATOR)) < self.gas_count \
-                        and not self.already_pending(UnitTypeId.ASSIMILATOR):
-                    await build_gas(self, townhall)
-
-                # Build_Probes
-                probe_count:int = len(self.structures(UnitTypeId.NEXUS))*16 + len(self.structures(UnitTypeId.ASSIMILATOR))*3
-                if townhall.is_idle and can_build_unit(self, UnitTypeId.PROBE) and len(self.workers) < probe_count:
-                    townhall.train(UnitTypeId.PROBE)
-                await self.distribute_workers(resource_ratio=2)
-
             # Needs improvement
             build_pos = get_build_pos(self)
             if self.workers:
                 worker = self.workers.closest_to(build_pos)
-            else:
-                return
-            if self.time < 180:
-                await game_start(self, worker)
+            await marco(self, worker, build_pos)
   
-            await build_infrastructure(self,worker, build_pos)
-            get_upgrades(self)
-            await build_army(self)
-            await build_supply(self, build_pos)
-            await expand(self)
-
-            handle_alerts(self, self.alert)
-
-            if not len(self.mined_out_bases) == len(self.temp):
-                self.base_count += 1
-                self.temp = self.mined_out_bases
-
             #### Will get moved to Micro as soon as i get there ####
-            if self.supply_army>self.enemy_supply:
-                army_target = get_army_target(self)
-            else:
-                threads = self.enemy_units.closer_than(15, self.structures(UnitTypeId.NEXUS).center)
-                if threads:
-                    army_target = threads.center
-                else:
-                    army_target = self.game_info.map_center
+            army_target = get_army_target(self)
             z = self.get_terrain_z_height(army_target)+1
             x,y = army_target.x, army_target.y
             pos_3d = Point3((x,y,z))
 
-            self.client.debug_sphere_out(pos_3d, 5, (255,255,255))
+            self.client.debug_sphere_out(pos_3d, 3, (255,200,255))
 
-            await control_zealots(self)
+            for zealot in self.units(UnitTypeId.ZEALOT):
+                await control_zealots(self, zealot,army_target)
             await control_stalkers(self, army_target)
             await control_phoenix(self)
-            
+
             self.pos_checked = check_position(self)
+
+            # tie_breaker
+            if self.units.closer_than(10, self.enemy_start_locations[0]) and not self.enemy_units and not self.enemy_structures:
+                for loc in self.expand_locs:
+                    worker = self.workers.closest_to(loc)
+                    worker.move(loc)
+
             return
 
         if self.last_tick == 0:
@@ -186,7 +161,7 @@ class HarstemsAunt(BotAI):
         match unit.name:
             case "Nexus":
                 self.gateway_count += 3
-                if len(self.structures(UnitTypeId.NEXUS)) > 3:
+                if len(self.structures(UnitTypeId.NEXUS)) >= 3:
                     self.gas_count += 2
             case "Cyberneticscore":
                 self.gateway_count += 1
@@ -217,6 +192,9 @@ class HarstemsAunt(BotAI):
             self.pos_checked = False
 
     async def on_unit_created(self, unit):
+        if unit in GATEWAY_UNTIS:
+            print(unit)
+            self.last_gateway_units.append(unit.type_id)
         self.logger.info(f"{unit} created")
 
     async def on_unit_type_changed(self, unit, previous_type):
