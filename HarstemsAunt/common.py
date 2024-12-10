@@ -26,4 +26,11 @@ RACES = [
     Race.Protoss
 ]
 
+GATEWAY_UNTIS = [
+    UnitTypeId.ZEALOT,
+    UnitTypeId.STALKER,
+    UnitTypeId.SENTRY,
+    UnitTypeId.ADEPT
+]
+
 SPEEDMINING_DISTANCE = 1.8
