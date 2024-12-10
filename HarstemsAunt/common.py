@@ -33,4 +33,11 @@ GATEWAY_UNTIS = [
     UnitTypeId.ADEPT
 ]
 
+WORKER_IDS = [
+    UnitTypeId.PROBE,
+    UnitTypeId.DRONE,
+    UnitTypeId.DRONEBURROWED,
+    UnitTypeId.SCV
+]
+
 SPEEDMINING_DISTANCE = 1.8

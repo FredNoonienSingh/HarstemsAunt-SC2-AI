@@ -14,7 +14,7 @@ async def build_infrastructure(bot:BotAI, worker, build_pos) -> None:
             await bot.build(UnitTypeId.GATEWAY, build_worker=worker, near=build_pos)
         if not bot.structures(UnitTypeId.CYBERNETICSCORE) and len(bot.structures(UnitTypeId.NEXUS))==2:
             await build_structure(bot, UnitTypeId.CYBERNETICSCORE, build_pos, worker)
-        if not bot.structures(UnitTypeId.TWILIGHTCOUNCIL) and not bot.already_pending(UnitTypeId.TWILIGHTCOUNCIL):                
+        if not bot.structures(UnitTypeId.TWILIGHTCOUNCIL) and not bot.already_pending(UnitTypeId.TWILIGHTCOUNCIL) and len(bot.units(UnitTypeId.STALKER))>=2:
             await build_structure(bot, UnitTypeId.TWILIGHTCOUNCIL, build_pos, worker)
         if len(bot.structures(UnitTypeId.STARGATE))<bot.stargate_count and can_build_structure(bot, UnitTypeId.STARGATE):
             await build_structure(bot, UnitTypeId.STARGATE, build_pos, worker)
