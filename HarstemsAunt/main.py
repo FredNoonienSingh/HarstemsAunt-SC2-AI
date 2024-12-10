@@ -93,19 +93,23 @@ class HarstemsAunt(BotAI):
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
 
 
+
+            """
+                THIS NEED TO BE REWORKED 
+            """
             # Deal with Cannon rushes
             if self.time < 300:
                 for th in self.townhalls:
                     if self.enemy_structures.closer_than(30, th):
                         for struct in self.enemy_structures.closer_than(30, th):
-                            workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(struct.position, 4)
+                            workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(struct.position,4)
                             for worker in workers:
                                 self.fighting_probes.append(worker)
                                 worker.attack(struct)
                             if self.enemy_units.closer_than(30, th):
                                 enemy_builders = self.enemy_units.closer_than(30, th)
                                 for builder in enemy_builders:
-                                    attack_workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(builder, 2)
+                                    attack_workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(builder,2)
                                     for aw in attack_workers:
                                         self.fighting_probes.append(aw)
                                         aw.attack(builder)
