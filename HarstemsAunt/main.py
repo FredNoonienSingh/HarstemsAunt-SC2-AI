@@ -1,6 +1,6 @@
 """MainClass of the Bot handling"""
 from __init__ import logger
-from .common import MAP_LIST, GATEWAY_UNTIS
+from .common import MAP_LIST, GATEWAY_UNTIS, WORKER_IDS
 from typing import List
 from itertools import chain
 
@@ -16,6 +16,10 @@ from sc2.player import Bot, Computer, Human
 
 from HarstemsAunt.macro import marco
 
+
+"""DEBUG TOOLS"""
+from debugTools.gameinfo import draw_gameinfo
+from debugTools.unit_lable import unit_label
 
 """Actions"""
 from actions.set_rally import set_rally, set_nexus_rally
@@ -53,7 +57,7 @@ class HarstemsAunt(BotAI):
         self.robo_count = 0
         self.stargate_count = 1
         self.seen_enemys = []
-        self.enemy_supply = 12
+        self.enemy_supply = 0
         self.chatter_counts = [1, 1, 1]
         self.last_tick = 0
         self.logger = logger
@@ -76,6 +80,11 @@ class HarstemsAunt(BotAI):
         split_workers(self)
 
     async def on_step(self, iteration):
+        draw_gameinfo(self)
+        
+        for unit in self.units:
+            unit_label(self, unit)
+        
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
             self.transfer_to: List[Unit] = list()
@@ -154,11 +163,13 @@ class HarstemsAunt(BotAI):
             await self.client.leave()
 
     async def on_building_construction_started(self,unit):
-        if unit.type_id == UnitTypeId.PYLON and self.time < 60:
-            for nexus in self.structures(UnitTypeId.NEXUS):
-                minerals =  \
-                    self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
-                await set_nexus_rally(self, nexus, minerals.closest_to(nexus))
+        if self.time < 60:
+            if unit.type_id == UnitTypeId.PYLON:
+                for nexus in self.structures(UnitTypeId.NEXUS):
+                    minerals =  \
+                        self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
+                    await set_nexus_rally(self, nexus, minerals.closest_to(nexus))
+        await self.client.move_camera(unit)
 
     async def on_building_construction_complete(self, unit):
         match unit.name:
@@ -183,9 +194,10 @@ class HarstemsAunt(BotAI):
                     self.logger.info(f"can not set rally point due to {e} ")
 
     async def on_enemy_unit_entered_vision(self, unit):
-        if not unit.tag in self.seen_enemys:
+        if not unit.tag in self.seen_enemys and unit.type_id not in WORKER_IDS:
             self.seen_enemys.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
+            await self.client.move_camera(unit)
 
     async def on_enemy_unit_left_vision(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
@@ -199,11 +211,13 @@ class HarstemsAunt(BotAI):
             print(unit)
             self.last_gateway_units.append(unit.type_id)
         self.logger.info(f"{unit} created")
+        await self.client.move_camera(unit)
 
     async def on_unit_type_changed(self, unit, previous_type):
         self.logger.info(f"{unit} morphed from {previous_type}")
 
     async def on_unit_took_damage(self, unit, amount_damage_taken):
+        await self.client.move_camera(unit)
         self.logger.info(f"{unit} took {amount_damage_taken} damage")
 
     async def on_unit_destroyed(self, unit_tag):
