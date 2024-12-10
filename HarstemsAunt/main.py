@@ -59,6 +59,7 @@ class HarstemsAunt(BotAI):
         self.logger = logger
         self.scout_probe_tag = None
         self.last_gateway_units = []
+        self.fighting_probes = []
  
     async def on_before_start(self) -> None:
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -88,14 +89,16 @@ class HarstemsAunt(BotAI):
                 for th in self.townhalls:
                     if self.enemy_structures.closer_than(30, th):
                         for struct in self.enemy_structures.closer_than(30, th):
-                            workers = self.workers.closest_n_units(4, struct)
+                            workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(struct.position, 4)
                             for worker in workers:
+                                self.fighting_probes.append(worker)
                                 worker.attack(struct)
                             if self.enemy_units.closer_than(30, th):
                                 enemy_builders = self.enemy_units.closer_than(30, th)
                                 for builder in enemy_builders:
-                                    attack_workers = self.workers.closest_n_units(2,builder)
+                                    attack_workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(builder, 2)
                                     for aw in attack_workers:
+                                        self.fighting_probes.append(aw)
                                         aw.attack(builder)
 
             for el in self.last_gateway_units:
