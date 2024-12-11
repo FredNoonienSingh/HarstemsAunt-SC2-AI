@@ -1,8 +1,12 @@
 """MainClass of the Bot handling"""
 from __init__ import logger
-from .common import MAP_LIST, GATEWAY_UNTIS, WORKER_IDS, SECTORS
+
+import threading
+
 from typing import List
 from itertools import chain
+from .common import MAP_LIST,\
+    GATEWAY_UNTIS,WORKER_IDS, SECTORS
 
 """SC2 Imports"""
 from sc2 import maps
@@ -81,32 +85,38 @@ class HarstemsAunt(BotAI):
 
         for x in range(SECTORS):
             for y in range(SECTORS):
-                upper_left: Point2 = Point2((10+(sector_width*x), 10+bottom_right.y+(sector_width*(y))))
-                lower_right: Point2 = Point2((10+(sector_width*(x+1)),10+bottom_right.y+(sector_width*(y+1))))
+                upper_left: Point2 = Point2((0+(sector_width*x), 0+bottom_right.y+(sector_width*(y))))
+                lower_right: Point2 = Point2((0+(sector_width*(x+1)),0+bottom_right.y+(sector_width*(y+1))))
                 self.logger.info(f"upper_left {upper_left} lower_right {lower_right}")
                 sector: MapSector = MapSector(self, upper_left, lower_right)
                 self.map_sectors.append(sector)
-        
- 
+
     async def on_start(self):
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
         self.speedmining_positions = get_speedmining_positions(self)
 
         for sector in self.map_sectors:
+            self.logger.info("building sectors")
             sector.build_sector()
         split_workers(self)
 
     async def on_step(self, iteration):
+
         draw_gameinfo(self)
+
+        threads: list = []
+        for i,el in enumerate(self.map_sectors):
+            t_0 = threading.Thread(target=self.map_sectors[i].update())
+            threads.append(t_0)
+            t_1 = threading.Thread(target=self.map_sectors[i].render_sector())
+            threads.append(t_1)
+            t_0.start()
+            t_1.start()
         
-        for sector in self.map_sectors:
-            sector.render_sector()
-            sector.update()
-        
-        for unit in self.units:
-            unit_label(self, unit)
-        
+        for t in threads:
+            t.join()
+
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
             self.transfer_to: List[Unit] = list()
@@ -114,9 +124,7 @@ class HarstemsAunt(BotAI):
             self.transfer_to_gas: List[Unit] = list()
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
 
-            """
-                THIS NEED TO BE REWORKED 
-            """
+            """ THIS NEED TO BE REWORKED """
             # Deal with Cannon rushes
             if self.time < 300:
                 for th in self.townhalls:
@@ -133,9 +141,6 @@ class HarstemsAunt(BotAI):
                                     for aw in attack_workers:
                                         self.fighting_probes.append(aw)
                                         aw.attack(builder)
-
-            for el in self.last_gateway_units:
-                self.client.debug_text_simple(str(el))
 
             for worker in self.workers:
                 micro_worker(self, worker)
@@ -154,6 +159,8 @@ class HarstemsAunt(BotAI):
             build_pos = get_build_pos(self)
             if self.workers:
                 worker = self.workers.closest_to(build_pos)
+            
+            
             await marco(self, worker, build_pos)
   
             #### Will get moved to Micro as soon as i get there ####
