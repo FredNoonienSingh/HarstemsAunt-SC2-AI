@@ -1,6 +1,6 @@
 """MainClass of the Bot handling"""
 from __init__ import logger
-from .common import MAP_LIST, GATEWAY_UNTIS, WORKER_IDS
+from .common import MAP_LIST, GATEWAY_UNTIS, WORKER_IDS, SECTORS
 from typing import List
 from itertools import chain
 
@@ -20,6 +20,9 @@ from HarstemsAunt.macro import marco
 """DEBUG TOOLS"""
 from debugTools.gameinfo import draw_gameinfo
 from debugTools.unit_lable import unit_label
+
+"""MAP VISION"""
+from map_vision.map_sector import MapSector
 
 """Actions"""
 from actions.set_rally import set_rally, set_nexus_rally
@@ -49,12 +52,11 @@ class HarstemsAunt(BotAI):
         self.mined_out_bases = []
         self.tick_data = []
         self.map_corners = []
-        self.map_ramps = []
         self.researched = []
         self.base_count = 5
         self.gas_count = 1
         self.gateway_count = 1
-        self.robo_count = 0
+        self.robo_count = 1
         self.stargate_count = 1
         self.seen_enemys = []
         self.enemy_supply = 0
@@ -62,8 +64,9 @@ class HarstemsAunt(BotAI):
         self.last_tick = 0
         self.logger = logger
         self.scout_probe_tag = None
-        self.last_gateway_units = []
         self.fighting_probes = []
+        self.map_sectors = []
+        self.last_gateway_units = []
  
     async def on_before_start(self) -> None:
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -72,15 +75,34 @@ class HarstemsAunt(BotAI):
         top_left = Point2((0, self.game_info.playable_area.top))
         self.map_corners = [top_right, bottom_right, bottom_left, top_left]
         self.map_ramps = self.game_info.map_ramps
+
+        # Create Map_sectors
+        sector_width:int = abs(top_right.x - top_left.x)//SECTORS
+
+        for x in range(SECTORS):
+            for y in range(SECTORS):
+                upper_left: Point2 = Point2((10+(sector_width*x), 10+bottom_right.y+(sector_width*(y))))
+                lower_right: Point2 = Point2((10+(sector_width*(x+1)),10+bottom_right.y+(sector_width*(y+1))))
+                self.logger.info(f"upper_left {upper_left} lower_right {lower_right}")
+                sector: MapSector = MapSector(self, upper_left, lower_right)
+                self.map_sectors.append(sector)
+        
  
     async def on_start(self):
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
         self.speedmining_positions = get_speedmining_positions(self)
+
+        for sector in self.map_sectors:
+            sector.build_sector()
         split_workers(self)
 
     async def on_step(self, iteration):
         draw_gameinfo(self)
+        
+        for sector in self.map_sectors:
+            sector.render_sector()
+            sector.update()
         
         for unit in self.units:
             unit_label(self, unit)
@@ -91,8 +113,6 @@ class HarstemsAunt(BotAI):
             self.transfer_from_gas: List[Unit] = list()
             self.transfer_to_gas: List[Unit] = list()
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
-
-
 
             """
                 THIS NEED TO BE REWORKED 
