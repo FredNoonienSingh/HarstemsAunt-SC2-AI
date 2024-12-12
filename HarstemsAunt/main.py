@@ -27,6 +27,7 @@ from debugTools.unit_lable import unit_label
 
 """MAP VISION"""
 from map_vision.map_sector import MapSector
+from map_vision.thread_map import InfluenceMap
 
 """Actions"""
 from actions.set_rally import set_rally, set_nexus_rally
@@ -43,30 +44,42 @@ class HarstemsAunt(BotAI):
     def __init__(self, debug:bool=False) -> None:
         super().__init__()
         self.race:Race = Race.Protoss
+        
+        # Pull from config file, rather than hardcode it in 
         self.name:str = "HarstemsAunt"
         self.version:str = "1.5"
+        
         self.greeting:str = " "
         self.debug:bool = debug
         self.game_step = None
         self.speedmining_positions = None
+
+        # Remove 
         self.last_enemy_army_pos = Point3((0,0,0))
         self.pos_checked = False
+
         self.expand_locs = []
         self.temp = []
         self.mined_out_bases = []
         self.tick_data = []
-        self.map_corners = []
         self.researched = []
+
+        # Move in to one tuple
         self.base_count = 5
         self.gas_count = 1
+        
+        # Move into one tuple
         self.gateway_count = 1
         self.robo_count = 1
         self.stargate_count = 1
+        
         self.seen_enemys = []
         self.enemy_supply = 0
-        self.chatter_counts = [1, 1, 1]
         self.last_tick = 0
+
+        # Move into common
         self.logger = logger
+ 
         self.scout_probe_tag = None
         self.fighting_probes = []
         self.map_sectors = []
@@ -79,6 +92,7 @@ class HarstemsAunt(BotAI):
         top_left = Point2((0, self.game_info.playable_area.top))
         self.map_corners = [top_right, bottom_right, bottom_left, top_left]
         self.map_ramps = self.game_info.map_ramps
+
 
         # Create Map_sectors
         sector_width:int = abs(top_right.x - top_left.x)//SECTORS
@@ -97,7 +111,6 @@ class HarstemsAunt(BotAI):
         self.speedmining_positions = get_speedmining_positions(self)
 
         for sector in self.map_sectors:
-            self.logger.info("building sectors")
             sector.build_sector()
         split_workers(self)
 
@@ -105,8 +118,10 @@ class HarstemsAunt(BotAI):
 
         draw_gameinfo(self)
 
+        self.logger.info(self.thread_map.check_here())
+
         threads: list = []
-        for i,el in enumerate(self.map_sectors):
+        for i, el in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=self.map_sectors[i].update())
             threads.append(t_0)
             t_1 = threading.Thread(target=self.map_sectors[i].render_sector())
