@@ -23,5 +23,5 @@ if __name__ == "__main__":
         # Local game
         print("Starting local game...")
         run_game(maps.get(choice(MAP_LIST)), \
-            [bot, Computer(choice(RACES), Difficulty.Harder)], \
+            [bot, Computer(choice(RACES), Difficulty.Harder)],\
                 realtime=False, sc2_version="5.0.10")
