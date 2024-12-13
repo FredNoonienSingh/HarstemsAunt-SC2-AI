@@ -1,7 +1,9 @@
 """MainClass of the Bot handling"""
 from __init__ import logger
 
+import yaml
 import threading
+
 
 from typing import List
 from itertools import chain
@@ -45,18 +47,13 @@ class HarstemsAunt(BotAI):
         super().__init__()
         self.race:Race = Race.Protoss
         
-        # Pull from config file, rather than hardcode it in 
+        # Pull from config file, rather than hardcode it in
         self.name:str = "HarstemsAunt"
         self.version:str = "1.5"
-        
-        self.greeting:str = " "
+
         self.debug:bool = debug
         self.game_step = None
         self.speedmining_positions = None
-
-        # Remove 
-        self.last_enemy_army_pos = Point3((0,0,0))
-        self.pos_checked = False
 
         self.expand_locs = []
         self.temp = []
@@ -88,11 +85,7 @@ class HarstemsAunt(BotAI):
     async def on_before_start(self) -> None:
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
         bottom_right = Point2((self.game_info.playable_area.right, 0))
-        bottom_left = Point2((0, 0))
         top_left = Point2((0, self.game_info.playable_area.top))
-        self.map_corners = [top_right, bottom_right, bottom_left, top_left]
-        self.map_ramps = self.game_info.map_ramps
-
 
         # Create Map_sectors
         sector_width:int = abs(top_right.x - top_left.x)//SECTORS
@@ -118,8 +111,8 @@ class HarstemsAunt(BotAI):
 
         draw_gameinfo(self)
 
-        self.logger.info(self.thread_map.check_here())
 
+        # TODO: Validate that this is faster than doing it "normally"
         threads: list = []
         for i, el in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=self.map_sectors[i].update())
@@ -159,7 +152,7 @@ class HarstemsAunt(BotAI):
 
             for worker in self.workers:
                 micro_worker(self, worker)
-            await self.distribute_workers(resource_ratio=2)
+            #await self.distribute_workers(resource_ratio=2)
 
             if self.scout_probe_tag:
                 scout:Unit = self.units.find_by_tag(self.scout_probe_tag)
@@ -190,8 +183,6 @@ class HarstemsAunt(BotAI):
                 await control_zealots(self, zealot,army_target)
             await control_stalkers(self, army_target)
             await control_phoenix(self)
-
-            self.pos_checked = check_position(self)
 
             # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0]) and not self.enemy_units and not self.enemy_structures:
