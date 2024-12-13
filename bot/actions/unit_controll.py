@@ -24,26 +24,21 @@ async def control_stalkers(bot:BotAI, target_pos:Union[Point2, Point3]):
                 if visible_units:
                     target = visible_units.closest_to(stalker)
                     stalker.attack(target)
-                    bot.logger.info(f"stalker attacking {target}")
                 if not visible_units and enemy_structs:
                     target = enemy_structs.closest_to(stalker)
                     stalker.attack(target)
-                    bot.logger.info(f"stalker attacking {target}")
 
             elif not stalker.weapon_ready and visible_units:
                 threads = bot.enemy_units.filter(lambda Unit: Unit.distance_to(stalker) <= Unit.ground_range+2)
                 if threads:
                     target = stalker.position.towards(threads.closest_to(stalker), -5)
                     stalker.move(target)
-                    bot.logger.info(f"stalker retreating from {stalker.position} to {target}")
                 else:
                     return
             else:
                 stalker.attack(target_pos)
-                bot.logger.info(f" stalker moving to {target_pos}")
         else:
             stalker.attack(target_pos)
-            bot.logger.info(f" stalker moving to {target_pos}")
 
 async def control_zealots(bot:BotAI,zealot, target_pos):
     target_types:list = TOWNHALL_IDS
@@ -53,10 +48,8 @@ async def control_zealots(bot:BotAI,zealot, target_pos):
             target = targets.furthest_to(bot.enemy_units.center)
         else:
             target = bot.enemy_start_locations[0]
-        bot.logger.info(f"{zealot} attacking {target}")
         zealot.attack(target.position.towards(bot.game_info.map_center, -5))
     else:
-        bot.logger.info(f"{zealot} attacking {target_pos}")
         zealot.attack(target_pos)
 
 async def control_phoenix(bot:BotAI):
