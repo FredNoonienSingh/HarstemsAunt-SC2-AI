@@ -7,9 +7,7 @@ from utils.in_proximity import in_proximity_to_point
 
 def get_army_target(bot:BotAI) -> Union[Point2, Point3]:
 
-    if bot.last_enemy_army_pos and not bot.pos_checked:
-        return bot.last_enemy_army_pos
-    elif bot.enemy_units:
+    if bot.enemy_units:
         return bot.enemy_units.center
     else:
         return bot.enemy_start_locations[0]
