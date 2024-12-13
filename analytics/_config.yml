@@ -1,0 +1,7 @@
+# Book settings
+title                       : HarstemsAunt   # The title of the book. Will be placed in the left navbar.
+author                      : Fred.NoonienSingh()  # The author of the book
+copyright                   : "2024"  # Copyright year to be placed in the footer
+logo                        : _static/logo.png
+execute:
+  execute_notebooks: "auto"
