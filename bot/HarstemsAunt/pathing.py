@@ -9,14 +9,14 @@ And implement pathing methods our units can use
 from typing import Dict, List, Optional
 
 import numpy as np
-from bot.common import ALL_STRUCTURES
-from bot.influence_costs import INFLUENCE_COSTS
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.unit import Unit
 from scipy import spatial
 
 from map_analyzer import MapData
+from .common import ALL_STRUCTURES, INFLUENCE_COSTS
+
 
 # When adding enemies to the grids add a bit extra range
 # so our units stay out of trouble

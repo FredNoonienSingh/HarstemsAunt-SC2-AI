@@ -2,7 +2,8 @@
 import threading
 from typing import List
 from itertools import chain
-from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,logger
+from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
+    ATTACK_TARGET_IGNORE,logger
 
 from map_analyzer import MapData
 
@@ -12,6 +13,9 @@ from sc2.data import Race
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.ids.unit_typeid import UnitTypeId
+
+"""PATHING"""
+from HarstemsAunt.pathing import Pathing
 
 """MAP VISION"""
 from map_vision.map_sector import MapSector
@@ -24,10 +28,18 @@ from actions.speedmining import get_speedmining_positions, \
 """Utils"""
 from utils.get_build_pos import get_build_pos
 
+"""Unit Classes"""
+from Unit_Classes.Stalkers import Stalkers
+
 from HarstemsAunt.macro import marco
 from HarstemsAunt.micro import micro
 
+DEBUG = True
+
 class HarstemsAunt(BotAI):
+    pathing: Pathing
+    stalkers: Stalkers
+
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -82,6 +94,8 @@ class HarstemsAunt(BotAI):
                 self.map_sectors.append(sector)
 
     async def on_start(self):
+        self.pathing = Pathing(self, DEBUG)
+        self.stalkers = Stalkers(self, self.pathing)
         await self.chat_send(self.greeting)
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
@@ -104,11 +118,13 @@ class HarstemsAunt(BotAI):
         for t in threads:
             t.join()
 
+        self.pathing.update()
+
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
-            self.transfer_to: List[Unit] = list()
-            self.transfer_from_gas: List[Unit] = list()
-            self.transfer_to_gas: List[Unit] = list()
+            self.transfer_to: List[Unit] = []
+            self.transfer_from_gas: List[Unit] = []
+            self.transfer_to_gas: List[Unit] = []
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
 
             """ THIS NEED TO BE REWORKED """
@@ -131,7 +147,6 @@ class HarstemsAunt(BotAI):
 
             for worker in self.workers:
                 micro_worker(self, worker)
-            #await self.distribute_workers(resource_ratio=2)
 
             if self.scout_probe_tag:
                 scout:Unit = self.units.find_by_tag(self.scout_probe_tag)
@@ -142,11 +157,10 @@ class HarstemsAunt(BotAI):
                     else:
                         scout.move(self.enemy_start_locations[0], queue=True)
 
-            # Needs improvement
             build_pos = get_build_pos(self)
             if self.workers:
                 worker = self.workers.closest_to(build_pos)
-
+            await self.distribute_workers()
             await marco(self, worker, build_pos)
             await micro(self)
 
@@ -164,6 +178,21 @@ class HarstemsAunt(BotAI):
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
+
+    @property
+    def get_attack_target(self) -> Point2:
+        if self.time > 300.0:
+            if enemy_units := self.enemy_units.filter(
+                lambda u: u.type_id not in ATTACK_TARGET_IGNORE
+                and not u.is_flying
+                and not u.is_cloaked
+                and not u.is_hallucination
+            ):
+                return enemy_units.closest_to(self.start_location).position
+            elif enemy_structures := self.enemy_structures:
+                return enemy_structures.closest_to(self.start_location).position
+
+        return self.enemy_start_locations[0]
 
     async def on_building_construction_started(self,unit):
         if self.time < 60:
