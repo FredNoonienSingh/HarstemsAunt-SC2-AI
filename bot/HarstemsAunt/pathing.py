@@ -203,3 +203,7 @@ class Pathing:
     def add_positional_costs(self):
         """ Goes over the map and adds cost to the grids"""
         pass
+
+    #TODO: Add function to save plots periodical to /data/...
+    def save_plot(self, iteration):
+        pass

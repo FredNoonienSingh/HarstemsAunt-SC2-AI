@@ -4,6 +4,26 @@ from typing import Set, Dict
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
+UNIT_COMPOSIOTION:Dict = {
+    Race.Protoss: [UnitTypeId.STALKER,
+                  UnitTypeId.ZEALOT,
+                  UnitTypeId.IMMORTAL
+                  ],
+    Race.Terran: [UnitTypeId.ZEALOT,
+                  UnitTypeId.STALKER,
+                  UnitTypeId.HIGHTEMPLAR,
+                  ],
+    Race.Zerg: [UnitTypeId.ZEALOT,
+                UnitTypeId.IMMORTAL,
+                UnitTypeId.ARCHON]
+}
+
+INITIAL_TECH:Dict = {
+    Race.Protoss: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY],
+    Race.Terran: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.TEMPLARARCHIVE],
+    Race.Zerg: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY]
+}
+
 MAP_LIST: list = [
     "Equilibrium512V2AIE",
     "Goldenaura512V2AIE",

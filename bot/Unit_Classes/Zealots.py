@@ -1,27 +1,21 @@
+
 from typing import Optional
 
 import numpy as np
 
 from sc2.unit import Unit
 from sc2.units import Units
-from sc2.bot_ai import BotAI
 from sc2.position import Point2
 
-from HarstemsAunt.pathing import Pathing
-from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
-    ALL_STRUCTURES, logger
+from Unit_Classes.baseClassGround import BaseClassGround
+from HarstemsAunt.common import ATTACK_TARGET_IGNORE
 
-class BaseClassGround:
-    def __init__(self, bot:BotAI, pathing:Pathing):
-        self.bot:BotAI=bot
-        self.pathing:Pathing=pathing
+MIN_SHIELD_AMOUNT = 0.5
 
-    @property
-    def get_recharge_spot(self) -> Point2:
-        return self.pathing.find_closest_safe_spot(
-            self.bot.game_info.map_center, self.pathing.ground_grid
-        )
-    
+class Zealot(BaseClassGround):
+    """Extention of BaseClassGround"""
+
+    # Overwritten from BaseClassGround
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
         grid: np.ndarray = self.pathing.ground_grid
         for unit in units:
@@ -44,11 +38,11 @@ class BaseClassGround:
             if close_enemies:
                 in_attack_range: Units = close_enemies.in_attack_range_of(unit)
                 if in_attack_range:
-                    target = self.pick_enemy_target(in_attack_range)
+                    target = self.pick_enemy_target(in_attack_range, unit)
                 else:
-                    target = self.pick_enemy_target(close_enemies)
+                    target = self.pick_enemy_target(close_enemies, unit)
 
-            if target and unit.weapon_cooldown == 0:
+            if target:
                 unit.attack(target)
                 continue
 
@@ -67,22 +61,13 @@ class BaseClassGround:
                     unit.move(attack_target)
             else:
                 unit.attack(attack_target)
-
-    def move_to_safety(self, unit: Unit, grid: np.ndarray):
-        """
-        Find a close safe spot on our grid
-        Then path to it
-        """
-        safe_spot: Point2 = self.pathing.find_closest_safe_spot(unit.position, grid)
-        move_to: Point2 = self.pathing.find_path_next_point(
-            unit.position, safe_spot, grid
-        )
-        unit.move(move_to)
-
+    
+    
+    
+    
     @staticmethod
-    def pick_enemy_target(enemies: Units) -> Unit:
-        #TODO: REWORK, to avoid overkill
-        return min(
-            enemies,
-            key=lambda e: (e.health + e.shield, e.tag),
-        )
+    def pick_enemy_target(enemies: Units, unit: Unit) -> Unit:
+        fighting_units: Units = enemies.filter(lambda unit: unit.ground_dps > 5)
+        if fighting_units:
+            return fighting_units.closest_to(unit)
+        return enemies.closest_to(unit)

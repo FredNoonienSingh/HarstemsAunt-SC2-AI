@@ -5,8 +5,6 @@ from itertools import chain
 from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
     ATTACK_TARGET_IGNORE,logger
 
-from map_analyzer import MapData
-
 """SC2 Imports"""
 from sc2.unit import Unit
 from sc2.data import Race
@@ -29,7 +27,14 @@ from actions.speedmining import get_speedmining_positions, \
 from utils.get_build_pos import get_build_pos
 
 """Unit Classes"""
+# Ground
+from Unit_Classes.Archon import Archons
+from Unit_Classes.Zealots import Zealot
 from Unit_Classes.Stalkers import Stalkers
+from Unit_Classes.Immortal import Immortals
+from Unit_Classes.HighTemplar import HighTemplar
+from Unit_Classes.DarkTemplar import DarkTemplar
+
 
 from HarstemsAunt.macro import marco
 from HarstemsAunt.micro import micro
@@ -38,8 +43,14 @@ DEBUG = True
 
 class HarstemsAunt(BotAI):
     pathing: Pathing
-    stalkers: Stalkers
 
+    # Ground Units
+    zealots: Zealot
+    archons: Archons
+    stalkers: Stalkers
+    immortals: Immortals
+    high_templar: HighTemplar
+    dark_templar: DarkTemplar
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -96,6 +107,7 @@ class HarstemsAunt(BotAI):
     async def on_start(self):
         self.pathing = Pathing(self, DEBUG)
         self.stalkers = Stalkers(self, self.pathing)
+        self.zealots = Zealot(self, self.pathing)
         await self.chat_send(self.greeting)
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
@@ -106,7 +118,6 @@ class HarstemsAunt(BotAI):
         split_workers(self)
 
     async def on_step(self, iteration):
-        #TODO: Validate that this is faster than doing it "normally"
         threads: list = []
         for i, sector in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=sector.update())
@@ -127,8 +138,7 @@ class HarstemsAunt(BotAI):
             self.transfer_to_gas: List[Unit] = []
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
 
-            """ THIS NEED TO BE REWORKED """
-            # Deal with Cannon rushes
+            #TODO: Write a cannon rush response, that actually works
             if self.time < 300:
                 for th in self.townhalls:
                     if self.enemy_structures.closer_than(30, th):
@@ -163,9 +173,6 @@ class HarstemsAunt(BotAI):
             await self.distribute_workers()
             await marco(self, worker, build_pos)
             await micro(self)
-
-#            if not self.time%60:
-                #self.pathing.save_plots(f"bot/data/test_map/plot_at_t+{self.time}")
 
             # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0]) and not self.enemy_units and not self.enemy_structures:
@@ -204,7 +211,6 @@ class HarstemsAunt(BotAI):
                     minerals =  \
                         self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
                     await set_nexus_rally(self, nexus, minerals.closest_to(nexus))
-        await self.client.move_camera(unit)
 
     async def on_building_construction_complete(self, unit):
         match unit.name:
@@ -232,7 +238,6 @@ class HarstemsAunt(BotAI):
         if not unit.tag in self.seen_enemys and unit.type_id not in WORKER_IDS:
             self.seen_enemys.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
-            await self.client.move_camera(unit)
 
     async def on_enemy_unit_left_vision(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
@@ -243,13 +248,11 @@ class HarstemsAunt(BotAI):
             print(unit)
             self.last_gateway_units.append(unit.type_id)
         logger.info(f"{unit} created")
-        await self.client.move_camera(unit)
 
     async def on_unit_type_changed(self, unit, previous_type):
         logger.info(f"{unit} morphed from {previous_type}")
 
     async def on_unit_took_damage(self, unit, amount_damage_taken):
-        await self.client.move_camera(unit)
         logger.info(f"{unit} took {amount_damage_taken} damage")
 
     async def on_unit_destroyed(self, unit_tag):
