@@ -4,7 +4,7 @@ from typing import Set, Dict
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
-MAP_LIST:list = [
+MAP_LIST: list = [
     "Equilibrium512V2AIE",
     "Goldenaura512V2AIE",
     "Gresvan512AIEV2",
@@ -13,7 +13,7 @@ MAP_LIST:list = [
     "SiteDelta512V2AIE"
 ]
 
-TOWNHALL_IDS:Set[UnitTypeId] = {
+TOWNHALL_IDS: Set[UnitTypeId] = {
     UnitTypeId.NEXUS,
     UnitTypeId.LAIR,
     UnitTypeId.HIVE,
@@ -21,15 +21,15 @@ TOWNHALL_IDS:Set[UnitTypeId] = {
     UnitTypeId.COMMANDCENTER,
     UnitTypeId.ORBITALCOMMAND,
     UnitTypeId.PLANETARYFORTRESS,
-    }
+}
 
-RACES:Set[Race] = {
+RACES: Set[Race] = {
     Race.Zerg,
     Race.Terran,
     Race.Protoss
-    }
+}
 
-ATTACK_TARGET_IGNORE:Set[UnitTypeId] = {
+ATTACK_TARGET_IGNORE: Set[UnitTypeId] = {
     UnitTypeId.LARVA,
     UnitTypeId.EGG,
     UnitTypeId.CHANGELING,
@@ -38,40 +38,39 @@ ATTACK_TARGET_IGNORE:Set[UnitTypeId] = {
     UnitTypeId.CHANGELINGZEALOT,
     UnitTypeId.CHANGELINGZERGLING,
     UnitTypeId.CHANGELINGZERGLINGWINGS,
-    }
+}
 
-GATEWAY_UNTIS:Set[UnitTypeId] = {
+GATEWAY_UNTIS: Set[UnitTypeId] = {
     UnitTypeId.ZEALOT,
     UnitTypeId.STALKER,
     UnitTypeId.SENTRY,
     UnitTypeId.ADEPT,
     UnitTypeId.HIGHTEMPLAR,
     UnitTypeId.DARKTEMPLAR
-    }
+}
 
-ROBO_UNITS:Set[UnitTypeId] = {
+ROBO_UNITS: Set[UnitTypeId] = {
     UnitTypeId.OBSERVER,
     UnitTypeId.WARPPRISM,
     UnitTypeId.IMMORTAL,
     UnitTypeId.DISRUPTOR,
     UnitTypeId.COLOSSUS
-    }
+}
 
-STARGATE_UNITS:Set[UnitTypeId] = {
+STARGATE_UNITS: Set[UnitTypeId] = {
     UnitTypeId.PHOENIX,
     UnitTypeId.VOIDRAY,
     UnitTypeId.ORACLE,
     UnitTypeId.CARRIER,
     UnitTypeId.TEMPEST
-    }
+}
 
-WORKER_IDS:Set[UnitTypeId] = {
+WORKER_IDS: Set[UnitTypeId] = {
     UnitTypeId.PROBE,
     UnitTypeId.DRONE,
     UnitTypeId.DRONEBURROWED,
     UnitTypeId.SCV
-    }
-
+}
 
 ALL_STRUCTURES: Set[UnitTypeId] = {
     UnitTypeId.ARMORY,
@@ -158,7 +157,12 @@ ALL_STRUCTURES: Set[UnitTypeId] = {
 }
 
 INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
-    UnitTypeId.ADEPT: {"AirCost": 0, "GroundCost": 9, "AirRange": 0, "GroundRange": 5},
+    UnitTypeId.ADEPT: {
+        "AirCost": 0, 
+        "GroundCost": 9, 
+        "AirRange": 0, 
+        "GroundRange": 5
+    },
     UnitTypeId.ADEPTPHASESHIFT: {
         "AirCost": 0,
         "GroundCost": 9,
@@ -347,6 +351,8 @@ INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
     },
 }
 
+SECTORS: int = 3
+SPEEDMINING_DISTANCE: float = 1.8
 
-SECTORS:int = 3
-SPEEDMINING_DISTANCE:float = 1.8
+# Should be testet, what works the best
+MIN_SHIELD_AMOUNT: float = 0.22

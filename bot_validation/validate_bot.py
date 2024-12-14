@@ -1,6 +1,6 @@
 import sys
 from random import choice
-from HarstemsAunt.main import HarstemsAunt
+from bot.HarstemsAunt.main import HarstemsAunt
 from HarstemsAunt.common import MAP_LIST, RACES
 
 from training_bots.lift_hide import Lift

@@ -164,6 +164,9 @@ class HarstemsAunt(BotAI):
             await marco(self, worker, build_pos)
             await micro(self)
 
+#            if not self.time%60:
+                #self.pathing.save_plots(f"bot/data/test_map/plot_at_t+{self.time}")
+
             # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0]) and not self.enemy_units and not self.enemy_structures:
                 for loc in self.expand_locs:
