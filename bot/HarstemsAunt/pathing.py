@@ -1,11 +1,3 @@
-"""
-This provides a wrapper for the MapAnalyzer library
-Here we are only using the Pathing module in MapAnalyzer,
-there are more features to explore!
-We add enemy influence to the pathing grids
-And implement pathing methods our units can use
-"""
-
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -17,48 +9,27 @@ from scipy import spatial
 from map_analyzer import MapData
 from .common import ALL_STRUCTURES, INFLUENCE_COSTS
 
-
-# When adding enemies to the grids add a bit extra range
-# so our units stay out of trouble
 RANGE_BUFFER: float = 3.0
 
-
 class Pathing:
-    def __init__(self, ai: BotAI, debug: bool) -> None:
-        self.ai: BotAI = ai
+    def __init__(self, bot: BotAI, debug: bool) -> None:
+        self.bot: BotAI = bot
         self.debug: bool = debug
 
-        # initialize MapAnalyzer library
-        self.map_data: MapData = MapData(ai)
-
-        # we will need fresh grids every step, to update the enemy positions
-
-        # for reapers / colossus we need a special grid to use the cliffs
-        self.reaper_grid: np.ndarray = self.map_data.get_climber_grid()
-
-        # ground grid not actually used in this example,
-        # but is setup ready to go for other ground units
+        self.map_data: MapData = MapData(bot)
+        self.climber_grid: np.ndarray = self.map_data.get_climber_grid()
         self.ground_grid: np.ndarray = self.map_data.get_pyastar_grid()
-
-        # air grid if needed, would need to add enemy influence
-        # self.air_grid: np.ndarray = self.map_data.get_clean_air_grid()
+        self.air_grid: np.ndarray = self.map_data.get_clean_air_grid()
 
     def update(self) -> None:
         self.ground_grid = self.map_data.get_pyastar_grid()
-        self.reaper_grid = self.map_data.get_climber_grid()
-        for unit in self.ai.all_enemy_units:
-            # checking if a unit is a structure this way is
-            # faster than using `if unit.is_structure` :)
+        self.air_grid = self.map_data.get_clean_air_grid()
+        
+        for unit in self.bot.all_enemy_units:
             if unit.type_id in ALL_STRUCTURES:
                 self._add_structure_influence(unit)
             else:
                 self._add_unit_influence(unit)
-
-        # TODO: Add effect influence like storm, ravager biles, nukes etc
-        #   `for effect in self.ai.state.effects: ...`
-
-        if self.debug:
-            self.map_data.draw_influence_in_game(self.reaper_grid, lower_threshold=1)
 
     def find_closest_safe_spot(
         self, from_pos: Point2, grid: np.ndarray, radius: int = 15
@@ -86,7 +57,7 @@ class Pathing:
         grid: np.ndarray,
         sensitivity: int = 2,
         smoothing: bool = False,
-    ) -> Point2:
+        ) -> Point2:
         """
         Most commonly used, we need to calculate the right path for a unit
         But only the first element of the path is required
@@ -126,36 +97,41 @@ class Pathing:
         return weight == np.inf or weight <= weight_safety_limit
 
     def _add_unit_influence(self, enemy: Unit) -> None:
-        """
-        Add influence to the relevant grid.
-        TODO:
-            Add spell castors
-            Add units that have no weapon in the API such as BCs, sentries and voids
-            Extend this to add influence to an air grid
-        @return:
-        """
-        # this unit is in our dictionary where we define custom weights and ranges
-        # it could be this unit doesn't have a weapon in the API
-        # or we just want to use custom values
+
         if enemy.type_id in INFLUENCE_COSTS:
             values: Dict = INFLUENCE_COSTS[enemy.type_id]
-            (self.ground_grid, self.reaper_grid) = self._add_cost_to_multiple_grids(
+            (self.climber_grid,self.ground_grid, self.air_grid) = self._add_cost_to_multiple_grids(
                 enemy.position,
                 values["GroundCost"],
                 values["GroundRange"] + RANGE_BUFFER,
-                [self.ground_grid, self.reaper_grid],
+                [self.climber_grid,self.ground_grid,self.air_grid],
             )
-        # this unit has values in the API and is not in our custom dictionary,
-        # take them from there
-        elif enemy.can_attack_ground:
-            (self.ground_grid, self.reaper_grid) = self._add_cost_to_multiple_grids(
+
+        elif enemy.can_attack_ground and not enemy.can_attack_air:
+            (self.climber_grid,self.ground_grid) = self._add_cost_to_multiple_grids(
                 enemy.position,
                 enemy.ground_dps,
                 enemy.ground_range + RANGE_BUFFER,
-                [self.ground_grid, self.reaper_grid],
+                [self.climber_grid,self.ground_grid],
             )
 
-    def _add_structure_influence(self, enemy: Unit) -> None:
+        elif enemy.can_attack_air and not enemy.can_attack_ground:
+            (self.air_grid) = self._add_cost_to_multiple_grids(
+                enemy.position,
+                enemy.ground_dps,
+                enemy.ground_range + RANGE_BUFFER,
+                [self.air_grid]
+            )
+
+        elif enemy.can_attack_both:
+            (self.climber_grid,self.ground_grid, self.air_grid) = self._add_cost_to_multiple_grids(
+                enemy.position,
+                enemy.ground_dps,
+                enemy.ground_range + RANGE_BUFFER,
+                [self.climber_grid,self.ground_grid, self.air_grid]
+            )
+
+    def _add_structure_influence(self, structure: Unit) -> None:
         """
         Add structure influence to the relevant grid.
         TODO:
@@ -163,17 +139,24 @@ class Pathing:
         @param enemy:
         @return:
         """
-        if not enemy.is_ready:
+        if not structure.is_ready:
             return
 
-        if enemy.type_id in INFLUENCE_COSTS:
-            values: Dict = INFLUENCE_COSTS[enemy.type_id]
-            (self.ground_grid, self.reaper_grid) = self._add_cost_to_multiple_grids(
-                enemy.position,
+        if structure.type_id in INFLUENCE_COSTS:
+            values: Dict = INFLUENCE_COSTS[structure.type_id]
+            self.ground_grid = self._add_cost(
+                structure.position,
                 values["GroundCost"],
                 values["GroundRange"] + RANGE_BUFFER,
-                [self.ground_grid, self.reaper_grid],
+                [self.ground_grid],
             )
+            if structure.can_attack_air:
+                self.air_grid = self._add_cost(
+                    structure.position,
+                    values["AirCost"],
+                    values["AirRange"] + RANGE_BUFFER,
+                    [self.air_grid]
+                )
 
     def _add_cost(
         self,
@@ -215,3 +198,12 @@ class Pathing:
             initial_default_weights=initial_default_weights,
         )
         return grids
+
+    # TODO: Add weights to points close to the edges, and points on Ramps
+    def add_positional_costs(self):
+        """ Goes over the map and adds cost to the grids"""
+        pass
+
+    #TODO: Add function to save plots periodical to /data/...
+    def save_plot(self, iteration):
+        pass

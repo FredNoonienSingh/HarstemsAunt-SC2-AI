@@ -11,7 +11,7 @@ async def micro(bot: BotAI) -> None:
     Args:
         bot (BotAI): Instance of HarstemsAunt
     """
-
+    #TODO: Set Multiple Targets for different ArmyGroups
     army_target = bot.get_attack_target
     z = bot.get_terrain_z_height(army_target)+1
     x,y = army_target.x, army_target.y
@@ -19,7 +19,9 @@ async def micro(bot: BotAI) -> None:
 
     bot.client.debug_sphere_out(pos_3d, 3, (255,200,255))
 
-    # call attack method in our reaper class
     await bot.stalkers.handle_attackers(
             bot.units(UnitTypeId.STALKER), army_target
+    )
+    await bot.zealots.handle_attackers(
+        bot.units(UnitTypeId.ZEALOT), army_target
     )

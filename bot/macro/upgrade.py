@@ -30,8 +30,6 @@ def get_upgrades(bot:BotAI) -> None:
         if not UpgradeId.WARPGATERESEARCH in bot.researched:
             upgrade(bot, UnitTypeId.CYBERNETICSCORE, UpgradeId.WARPGATERESEARCH)
     if bot.structures(UnitTypeId.TWILIGHTCOUNCIL):
-        if not UpgradeId.BLINKTECH in bot.researched:
-            upgrade(bot, UnitTypeId.TWILIGHTCOUNCIL, UpgradeId.BLINKTECH)
         if not UpgradeId.CHARGE in bot.researched:
             upgrade(bot, UnitTypeId.TWILIGHTCOUNCIL, UpgradeId.CHARGE)
 
