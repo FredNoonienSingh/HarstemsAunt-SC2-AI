@@ -7,6 +7,7 @@ from utils.get_army_target import get_army_target
 from actions.unit_controll import control_stalkers,\
     control_phoenix, control_zealots
 
+
 async def micro(bot: BotAI) -> None:
     """Handles Micro of Fighting Units
 
