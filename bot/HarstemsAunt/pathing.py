@@ -9,7 +9,7 @@ from scipy import spatial
 from map_analyzer import MapData
 from .common import ALL_STRUCTURES, INFLUENCE_COSTS
 
-RANGE_BUFFER: float = 3.0
+RANGE_BUFFER: float = 2.22
 
 class Pathing:
     def __init__(self, bot: BotAI, debug: bool) -> None:
@@ -20,10 +20,19 @@ class Pathing:
         self.climber_grid: np.ndarray = self.map_data.get_climber_grid()
         self.ground_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.air_grid: np.ndarray = self.map_data.get_clean_air_grid()
+        
+        self.influence_fade_rate: float = 0.5
 
     def update(self) -> None:
-        self.ground_grid = self.map_data.get_pyastar_grid()
-        self.air_grid = self.map_data.get_clean_air_grid()
+
+        last_ground_grid:np.ndarray = self.ground_grid
+        last_air_grid:np.ndarray = self.air_grid
+        
+        last_ground_grid[last_ground_grid != 0] *= self.influence_fade_rate
+        last_air_grid[last_air_grid != 0] *= self.influence_fade_rate
+        
+        self.ground_grid = self.map_data.get_pyastar_grid() + last_ground_grid
+        self.air_grid = self.map_data.get_clean_air_grid() + last_air_grid
         
         for unit in self.bot.all_enemy_units:
             if unit.type_id in ALL_STRUCTURES:

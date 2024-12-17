@@ -35,7 +35,7 @@ from Unit_Classes.Immortal import Immortals
 from Unit_Classes.HighTemplar import HighTemplar
 from Unit_Classes.DarkTemplar import DarkTemplar
 
-
+"""Wrappers"""
 from HarstemsAunt.macro import marco
 from HarstemsAunt.micro import micro
 
@@ -82,7 +82,7 @@ class HarstemsAunt(BotAI):
         self.scout_probe_tag:int = None
         self.fighting_probes:list = []
         self.map_sectors:list = []
-        self.last_gateway_units:list = []
+        self.army_groups:list = []
 
     @property
     def greeting(self):
@@ -116,8 +116,21 @@ class HarstemsAunt(BotAI):
         for sector in self.map_sectors:
             sector.build_sector()
         split_workers(self)
+        
+        self._client.debug_create_unit([[UnitTypeId.STALKER, 5, self._game_info.map_center, 1]])
 
     async def on_step(self, iteration):
+        
+        labels = ["min_step","avg_step","max_step","last_step"]
+
+        for i, value in enumerate(self.step_time):
+            if value > 34:
+                color = (0, 0, 255)
+            else:
+                color = (0, 255, 0)
+            self.client.debug_text_screen(f"{labels[i]}: {value}", (0, 0.025+(i*0.025)), color=color, size=20)
+        
+        
         threads: list = []
         for i, sector in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=sector.update())
@@ -179,7 +192,9 @@ class HarstemsAunt(BotAI):
                 for loc in self.expand_locs:
                     worker = self.workers.closest_to(loc)
                     worker.move(loc)
+            
 
+            
             return
 
         if self.last_tick == 0:

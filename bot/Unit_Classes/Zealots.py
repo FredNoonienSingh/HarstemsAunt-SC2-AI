@@ -13,8 +13,6 @@ from HarstemsAunt.common import ATTACK_TARGET_IGNORE
 MIN_SHIELD_AMOUNT = 0.5
 
 class Zealot(BaseClassGround):
-    """Extention of BaseClassGround"""
-
     # Overwritten from BaseClassGround
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
         grid: np.ndarray = self.pathing.ground_grid
@@ -61,10 +59,7 @@ class Zealot(BaseClassGround):
                     unit.move(attack_target)
             else:
                 unit.attack(attack_target)
-    
-    
-    
-    
+
     @staticmethod
     def pick_enemy_target(enemies: Units, unit: Unit) -> Unit:
         fighting_units: Units = enemies.filter(lambda unit: unit.ground_dps > 5)
