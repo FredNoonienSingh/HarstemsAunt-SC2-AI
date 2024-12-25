@@ -11,6 +11,7 @@ from HarstemsAunt.pathing import Pathing
 from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
     ALL_STRUCTURES, PRIO_ATTACK_TARGET, logger
 
+#TODO: Change it be a useful BaseClass
 class BaseClassGround:
     def __init__(self, bot:BotAI, pathing:Pathing):
         self.bot:BotAI=bot
@@ -19,11 +20,11 @@ class BaseClassGround:
     @property
     def get_recharge_spot(self) -> Point2:
         # Thats stupid, unless the recharge rate is insane
-        
+
         return self.pathing.find_closest_safe_spot(
             self.bot.game_info.map_center, self.pathing.ground_grid
         )
-    
+
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
         grid: np.ndarray = self.pathing.ground_grid
         for stalker in units:
@@ -37,7 +38,7 @@ class BaseClassGround:
 
             # When enemy_units are visible
             if self.bot.enemy_units:
-                visible_units = self.bot.enemy_units.closer_than(stalker.ground_range+2, stalker)
+                visible_units = self.bot.enemy_units.closer_than(stalker.ground_range+10, stalker)
                 enemy_structs = self.bot.enemy_structures.closer_than(20, stalker)
 
                 # Attack if Possible

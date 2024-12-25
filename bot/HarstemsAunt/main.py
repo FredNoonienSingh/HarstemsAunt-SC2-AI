@@ -1,5 +1,9 @@
 """MainClass of the Bot handling"""
+import os
+import csv
+import pickle
 import threading
+from datetime import datetime
 from typing import List
 from itertools import chain
 from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
@@ -14,6 +18,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 """PATHING"""
 from HarstemsAunt.pathing import Pathing
+from map_analyzer import MapData
 
 """MAP VISION"""
 from map_vision.map_sector import MapSector
@@ -26,6 +31,9 @@ from actions.speedmining import get_speedmining_positions, \
 """Utils"""
 from utils.get_build_pos import get_build_pos
 
+"""Army Groups"""
+from army_group.army_group import ArmyGroup
+
 """Unit Classes"""
 # Ground
 from Unit_Classes.Archon import Archons
@@ -37,13 +45,14 @@ from Unit_Classes.DarkTemplar import DarkTemplar
 
 """Wrappers"""
 from HarstemsAunt.macro import marco
+# This could either be removed or the Army_group Control could be moved in here
 from HarstemsAunt.micro import micro
 
 DEBUG = True
 
 class HarstemsAunt(BotAI):
     pathing: Pathing
-
+    map_data: MapData
     # Ground Units
     zealots: Zealot
     archons: Archons
@@ -55,9 +64,10 @@ class HarstemsAunt(BotAI):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.name = "HarstemsAunt"
-        self.version = "1.5.1"
+        self.version = "1.6 alpha"
         self.race:Race = Race.Protoss
 
+        self.start_time = None
         self.game_step = None
         self.speedmining_positions = None
 
@@ -86,16 +96,46 @@ class HarstemsAunt(BotAI):
 
     @property
     def greeting(self):
-        return f"I am {self.name} on Version{self.version}"
+        return f"Hey {self.opponent_id}\n \
+            i am {self.name} on Version {self.version}\n\
+                GL HF"
+
+    @property
+    def match_id(self):
+        map_name:str = self.game_info.map_name
+        return f"{self.start_time}_{self.name}_{self.opponent_id}_{map_name}"
+
+    @property
+    def data_path(self):
+        return f"data/match/{self.match_id}/"
+
+    @property
+    def map_data_path(self):
+        map_name:str = self.game_info.map_name
+        return f"data/map_data/{map_name}"
+
+    @property
+    def opponent_data_path(self):
+        opponent:str = self.opponent_id
+        return f"data/opponent/{opponent}"
+
+    def create_folders(self):
+        for path in [self.data_path,self.map_data_path, self.opponent_data_path]:
+            if not os.path.exists(path):
+                os.makedirs(path)
 
     async def on_before_start(self) -> None:
+        self.start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Create Folders to save data for analysis
+        self.create_folders()
+
+        # set Edge Points
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
         bottom_right = Point2((self.game_info.playable_area.right, 0))
         top_left = Point2((0, self.game_info.playable_area.top))
 
         # Create Map_sectors
         sector_width:int = abs(top_right.x - top_left.x)//SECTORS
-
         for x in range(SECTORS):
             for y in range(SECTORS):
                 upper_left: Point2 = Point2((0+(sector_width*x), 0+bottom_right.y+(sector_width*(y))))
@@ -105,22 +145,49 @@ class HarstemsAunt(BotAI):
                 self.map_sectors.append(sector)
 
     async def on_start(self):
+        
+        # Here to Debug the Unit Micro:
+        await self.client.debug_upgrade()
+        await self.client.debug_show_map()
+
+        await self.client.debug_create_unit([[UnitTypeId.ZEALOT,
+                                              5,
+                                              self._game_info.map_center.towards(self.start_location, 1),
+                                              1]])
+        await self.client.debug_create_unit([[UnitTypeId.STALKER,
+                                              3,
+                                              self._game_info.map_center.towards(self.start_location, -1),
+                                              1]])
+
+        await self.client.debug_create_unit([[UnitTypeId.MARINE,
+                                              15,
+                                              self.enemy_start_locations[0].towards(self._game_info.map_center, 3),
+                                              2]])
+
+
         self.pathing = Pathing(self, DEBUG)
         self.stalkers = Stalkers(self, self.pathing)
         self.zealots = Zealot(self, self.pathing)
-        await self.chat_send(self.greeting)
+        
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
         self.speedmining_positions = get_speedmining_positions(self)
+        
+        await self.chat_send(self.greeting)
+
 
         for sector in self.map_sectors:
             sector.build_sector()
         split_workers(self)
-        
-        self._client.debug_create_unit([[UnitTypeId.STALKER, 5, self._game_info.map_center, 1]])
+
+        initial_army_group:ArmyGroup = ArmyGroup(self, [],[],self.pathing)
+        self.army_groups.append(initial_army_group)
 
     async def on_step(self, iteration):
-        
+
+        if self.units(UnitTypeId.ZEALOT):
+            await self.client.move_camera(self.units(UnitTypeId.ZEALOT).closest_to(self.enemy_start_locations[0]))
+
         labels = ["min_step","avg_step","max_step","last_step"]
 
         for i, value in enumerate(self.step_time):
@@ -129,8 +196,7 @@ class HarstemsAunt(BotAI):
             else:
                 color = (0, 255, 0)
             self.client.debug_text_screen(f"{labels[i]}: {value}", (0, 0.025+(i*0.025)), color=color, size=20)
-        
-        
+
         threads: list = []
         for i, sector in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=sector.update())
@@ -142,7 +208,14 @@ class HarstemsAunt(BotAI):
         for t in threads:
             t.join()
 
-        self.pathing.update()
+        self.pathing.update(iteration)
+
+        for group in self.army_groups:
+            await group.update()
+            self.client.debug_text_screen(f"{group.name}: {group.attack_pos}", (.25, 0.025), color=(255,255,255), size=20)
+        
+        self.client.debug_text_screen(f"Supply:{self.supply_army} Enemysupply:{self.enemy_supply}", (.25, 0.05), color=(255,255,255), size=20)
+
 
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
@@ -185,18 +258,17 @@ class HarstemsAunt(BotAI):
                 worker = self.workers.closest_to(build_pos)
             await self.distribute_workers()
             await marco(self, worker, build_pos)
-            await micro(self)
 
             # tie_breaker
-            if self.units.closer_than(10, self.enemy_start_locations[0]) and not self.enemy_units and not self.enemy_structures:
+            if self.units.closer_than(10, self.enemy_start_locations[0])\
+                and not self.enemy_units and not self.enemy_structures:
                 for loc in self.expand_locs:
                     worker = self.workers.closest_to(loc)
                     worker.move(loc)
-            
 
-            
             return
 
+        # If the Game is lost, but i want to insult the Opponent before i leave
         if self.last_tick == 0:
             await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also \
                 {self.enemy_race} is IMBA")
@@ -206,6 +278,7 @@ class HarstemsAunt(BotAI):
 
     @property
     def get_attack_target(self) -> Point2:
+        # Why the 5 Minute wait time
         if self.time > 300.0:
             if enemy_units := self.enemy_units.filter(
                 lambda u: u.type_id not in ATTACK_TARGET_IGNORE
@@ -216,7 +289,6 @@ class HarstemsAunt(BotAI):
                 return enemy_units.closest_to(self.start_location).position
             elif enemy_structures := self.enemy_structures:
                 return enemy_structures.closest_to(self.start_location).position
-
         return self.enemy_start_locations[0]
 
     async def on_building_construction_started(self,unit):
@@ -255,20 +327,17 @@ class HarstemsAunt(BotAI):
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
 
     async def on_enemy_unit_left_vision(self, unit_tag):
-        unit = self.enemy_units.find_by_tag(unit_tag)
-        logger.info(f"{unit} left vision")
+        pass
 
     async def on_unit_created(self, unit):
-        if unit in GATEWAY_UNTIS:
-            print(unit)
-            self.last_gateway_units.append(unit.type_id)
-        logger.info(f"{unit} created")
+        if unit.type_id in GATEWAY_UNTIS:
+            self.army_groups[0].unit_list.append(unit.tag)
 
     async def on_unit_type_changed(self, unit, previous_type):
-        logger.info(f"{unit} morphed from {previous_type}")
+        pass
 
     async def on_unit_took_damage(self, unit, amount_damage_taken):
-        logger.info(f"{unit} took {amount_damage_taken} damage")
+        pass
 
     async def on_unit_destroyed(self, unit_tag):
         unit = self.enemy_units.find_by_tag(unit_tag)
@@ -276,9 +345,20 @@ class HarstemsAunt(BotAI):
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
 
     async def on_upgrade_complete(self, upgrade):
-        logger.info(f"researched {upgrade}")
         self.researched.append(upgrade)
 
     async def on_end(self,game_result):
-        logger.info(f"game ended with result {game_result}")
+        logger.error("I get Called")
+        data:list = [self.match_id, game_result, self.version, self.time]
+        filename = f"{self.opponent_data_path}/results.csv"
+
+        if not os.path.exists(filename):
+            with open(filename, 'w', newline='') as csvfile:
+                csv_writer = csv.writer(csvfile)
+                csv_writer.writerow(data)
+        else:
+            with open(filename, 'a', newline='') as csvfile:
+                csv_writer = csv.writer(csvfile)
+                csv_writer.writerow(data)
+
         await self.client.leave()
