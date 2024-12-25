@@ -60,6 +60,20 @@ ATTACK_TARGET_IGNORE: Set[UnitTypeId] = {
     UnitTypeId.CHANGELINGZERGLINGWINGS,
 }
 
+PRIO_ATTACK_TARGET: Set[UnitTypeId] = {
+    # Terran
+    UnitTypeId.SIEGETANK,
+    UnitTypeId.SIEGETANKSIEGED,
+    UnitTypeId.BATTLECRUISER,
+
+    # Zerg
+    UnitTypeId.QUEEN,
+
+    # Protoss
+    UnitTypeId.COLOSSUS,
+    UnitTypeId.CARRIER
+}
+
 GATEWAY_UNTIS: Set[UnitTypeId] = {
     UnitTypeId.ZEALOT,
     UnitTypeId.STALKER,
@@ -372,7 +386,5 @@ INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
 }
 
 SECTORS: int = 3
+MIN_SHIELD_AMOUNT: float = 0.5
 SPEEDMINING_DISTANCE: float = 1.8
-
-# Should be testet, what works the best
-MIN_SHIELD_AMOUNT: float = 0.22

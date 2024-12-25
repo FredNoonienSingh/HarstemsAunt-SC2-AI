@@ -9,8 +9,12 @@ async def build_army(bot:BotAI) -> None:
     #TODO: Find a better way to control Army composition
     #TODO: Implement a Check for detectors in Enemy Comp, if not at DTs
 
-    if True:
-        await build_gateway_units(bot, UnitTypeId.ZEALOT)
+    stalkers:int = len(bot.units(UnitTypeId.STALKER))
+    # +1 to avoid ZeroDivision exception
+    zealots:int = len(bot.units(UnitTypeId.ZEALOT)) +1
+    
+    if not stalkers or stalkers/zealots < 3:
+        await build_gateway_units(bot, UnitTypeId.STALKER)
     else:
         await build_gateway_units(bot, UnitTypeId.ZEALOT)
-        await build_stargate_units(bot, UnitTypeId.PHOENIX)
+       # await build_stargate_units(bot, UnitTypeId.PHOENIX)

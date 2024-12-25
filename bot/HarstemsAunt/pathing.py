@@ -6,10 +6,12 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from scipy import spatial
 
-from map_analyzer import MapData
-from .common import ALL_STRUCTURES, INFLUENCE_COSTS
+import matplotlib.pyplot as plt
 
-RANGE_BUFFER: float = 3.0
+from map_analyzer import MapData
+from .common import ALL_STRUCTURES, INFLUENCE_COSTS, logger
+
+RANGE_BUFFER: float = 2.00
 
 class Pathing:
     def __init__(self, bot: BotAI, debug: bool) -> None:
@@ -18,22 +20,36 @@ class Pathing:
 
         self.map_data: MapData = MapData(bot)
         self.climber_grid: np.ndarray = self.map_data.get_climber_grid()
+        self.units_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.ground_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.air_grid: np.ndarray = self.map_data.get_clean_air_grid()
+        self.influence_fade_rate: float = 3
 
-    def update(self) -> None:
-        self.ground_grid = self.map_data.get_pyastar_grid()
-        self.air_grid = self.map_data.get_clean_air_grid()
-        
+    def update(self, iteration) -> None:
+
+        last_ground_grid:np.ndarray = self.ground_grid
+        last_air_grid:np.ndarray = self.air_grid
+
+        last_ground_grid[last_ground_grid != 0] /= self.influence_fade_rate
+        last_air_grid[last_air_grid != 0] /= self.influence_fade_rate
+
+        self.ground_grid = self.map_data.get_pyastar_grid() + last_ground_grid
+        self.air_grid = self.map_data.get_clean_air_grid() + last_air_grid
+
         for unit in self.bot.all_enemy_units:
             if unit.type_id in ALL_STRUCTURES:
                 self._add_structure_influence(unit)
             else:
                 self._add_unit_influence(unit)
+        
+        self.add_positional_costs()
+        
+        #if not iteration%100:
+            #self.save_plot(iteration)
 
     def find_closest_safe_spot(
-        self, from_pos: Point2, grid: np.ndarray, radius: int = 15
-    ) -> Point2:
+            self, from_pos: Point2, grid: np.ndarray, radius: int = 15
+        ) -> Point2:
         """
         @param from_pos:
         @param grid:
@@ -51,12 +67,12 @@ class Pathing:
         return Point2(all_safe[min_index])
 
     def find_path_next_point(
-        self,
-        start: Point2,
-        target: Point2,
-        grid: np.ndarray,
-        sensitivity: int = 2,
-        smoothing: bool = False,
+            self,
+            start: Point2,
+            target: Point2,
+            grid: np.ndarray,
+            sensitivity: int = 2,
+            smoothing: bool = False,
         ) -> Point2:
         """
         Most commonly used, we need to calculate the right path for a unit
@@ -79,10 +95,10 @@ class Pathing:
 
     @staticmethod
     def is_position_safe(
-        grid: np.ndarray,
-        position: Point2,
-        weight_safety_limit: float = 1.0,
-    ) -> bool:
+            grid: np.ndarray,
+            position: Point2,
+            weight_safety_limit: float = 1.0,
+        ) -> bool:
         """
         Checks if the current position is dangerous by
         comparing against default_grid_weights
@@ -134,11 +150,8 @@ class Pathing:
     def _add_structure_influence(self, structure: Unit) -> None:
         """
         Add structure influence to the relevant grid.
-        TODO:
-            Extend this to add influence to an air grid
-        @param enemy:
-        @return:
         """
+
         if not structure.is_ready:
             return
 
@@ -159,14 +172,13 @@ class Pathing:
                 )
 
     def _add_cost(
-        self,
-        pos: Point2,
-        weight: float,
-        unit_range: float,
-        grid: np.ndarray,
-        initial_default_weights: int = 0,
-    ) -> np.ndarray:
-        """Or add "influence", mostly used to add enemies to a grid"""
+            self,
+            pos: Point2,
+            weight: float,
+            unit_range: float,
+            grid: np.ndarray,
+            initial_default_weights: int = 0,
+        ) -> np.ndarray:
 
         grid = self.map_data.add_cost(
             position=(int(pos.x), int(pos.y)),
@@ -178,13 +190,13 @@ class Pathing:
         return grid
 
     def _add_cost_to_multiple_grids(
-        self,
-        pos: Point2,
-        weight: float,
-        unit_range: float,
-        grids: List[np.ndarray],
-        initial_default_weights: int = 0,
-    ) -> List[np.ndarray]:
+            self,
+            pos: Point2,
+            weight: float,
+            unit_range: float,
+            grids: List[np.ndarray],
+            initial_default_weights: int = 0,
+        ) -> List[np.ndarray]:
         """
         Similar to method above, but add cost to multiple grids at once
         This is much faster then doing it one at a time
@@ -199,11 +211,20 @@ class Pathing:
         )
         return grids
 
-    # TODO: Add weights to points close to the edges, and points on Ramps
+    #TODO: Add weights to points close to the edges, and points on Ramps
     def add_positional_costs(self):
-        """ Goes over the map and adds cost to the grids"""
         pass
 
-    #TODO: Add function to save plots periodical to /data/...
-    def save_plot(self, iteration):
-        pass
+    def save_plot(self, iteration:int):
+        unit_postions = [unit.position_tuple for unit in self.bot.units]
+        y_positions, x_positions = zip(*unit_postions)
+        influence_map = self.ground_grid
+        fig, ax = plt.subplots()
+        plt.imshow(influence_map, cmap='jet')
+        plt.scatter(x_positions, y_positions, color='green', marker='x', s=10)
+        plt.grid(True)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_title('Influence Map')
+        plt.plot()
+        plt.savefig(f"{self.bot.data_path}/influence_map_at_{iteration}.png")

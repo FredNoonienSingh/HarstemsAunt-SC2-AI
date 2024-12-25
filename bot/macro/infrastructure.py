@@ -10,7 +10,7 @@ async def build_infrastructure(bot:BotAI, worker, build_pos) -> None:
     # TODO: This needs to be reworked so it allows reactions to Enemy Comp
         if not bot.structures(UnitTypeId.PYLON) and can_build_structure(bot, UnitTypeId.PYLON):
             await bot.build(UnitTypeId.PYLON, build_worker=worker, near=build_pos, max_distance=0)
-        if (len(bot.structures(UnitTypeId.GATEWAY))+len(bot.structures(UnitTypeId.WARPGATE)))<bot.gateway_count\
+        if (len(bot.structures(UnitTypeId.GATEWAY))+len(bot.structures(UnitTypeId.WARPGATE)))<4\
             and can_build_structure(bot, UnitTypeId.GATEWAY):
             await bot.build(UnitTypeId.GATEWAY, build_worker=worker, near=build_pos)
         if not bot.structures(UnitTypeId.CYBERNETICSCORE) and len(bot.structures(UnitTypeId.NEXUS))==2:

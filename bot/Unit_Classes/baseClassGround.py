@@ -9,8 +9,9 @@ from sc2.position import Point2
 
 from HarstemsAunt.pathing import Pathing
 from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
-    ALL_STRUCTURES, logger
+    ALL_STRUCTURES, PRIO_ATTACK_TARGET, logger
 
+#TODO: Change it be a useful BaseClass
 class BaseClassGround:
     def __init__(self, bot:BotAI, pathing:Pathing):
         self.bot:BotAI=bot
@@ -18,55 +19,63 @@ class BaseClassGround:
 
     @property
     def get_recharge_spot(self) -> Point2:
+        # Thats stupid, unless the recharge rate is insane
+
         return self.pathing.find_closest_safe_spot(
             self.bot.game_info.map_center, self.pathing.ground_grid
         )
-    
+
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
         grid: np.ndarray = self.pathing.ground_grid
-        for unit in units:
-            if unit.shield_percentage < MIN_SHIELD_AMOUNT \
-                and not self.pathing.is_position_safe(grid, unit.position):
-                unit.move(
-                    self.pathing.find_path_next_point(
-                        unit.position, self.get_recharge_spot, grid
+        for stalker in units:
+            
+            
+            # Keep out of Range, if Shields are low, removes to much supply from fights to fast
+            if stalker.shield_percentage < MIN_SHIELD_AMOUNT \
+                and not self.pathing.is_position_safe(grid, stalker.position):
+                self.move_to_safety(stalker, grid)
+                continue
+
+            # When enemy_units are visible
+            if self.bot.enemy_units:
+                visible_units = self.bot.enemy_units.closer_than(stalker.ground_range+10, stalker)
+                enemy_structs = self.bot.enemy_structures.closer_than(20, stalker)
+
+                # Attack if Possible
+                if stalker.weapon_ready:
+                    if visible_units:
+                        target = self.pick_enemy_target(visible_units, stalker)
+                        stalker.attack(target)
+                    if not visible_units and enemy_structs:
+                        target = enemy_structs.closest_to(stalker)
+                        stalker.attack(target)
+                    if not visible_units and not enemy_structs:
+                        stalker.attack(
+                            self.pathing.find_path_next_point(
+                            stalker.position, attack_target, grid
+                            )
+                        )
+
+                # Move out of range if attacking is not possible
+                elif not stalker.weapon_ready and visible_units:
+                    threads = self.bot.enemy_units.filter(lambda Unit: Unit.distance_to(stalker) <= Unit.ground_range+1)
+                    if threads:
+                        if not self.pathing.is_position_safe(grid, stalker.position):
+                            self.move_to_safety(stalker, grid)
+                        else:
+                            continue
+                else:
+                    stalker.attack(
+                         self.pathing.find_path_next_point(
+                        stalker.position, attack_target, grid
+                    )
+                    )
+            else:
+                stalker.attack(
+                     self.pathing.find_path_next_point(
+                        stalker.position, attack_target, grid
                     )
                 )
-                continue
-
-            close_enemies: Units = self.bot.enemy_units.filter(
-                lambda u: u.position.distance_to(unit) < 15.0
-                and not u.is_flying
-                and unit.type_id not in ATTACK_TARGET_IGNORE
-            )
-
-            target: Optional[Unit] = None
-            if close_enemies:
-                in_attack_range: Units = close_enemies.in_attack_range_of(unit)
-                if in_attack_range:
-                    target = self.pick_enemy_target(in_attack_range)
-                else:
-                    target = self.pick_enemy_target(close_enemies)
-
-            if target and unit.weapon_cooldown == 0:
-                unit.attack(target)
-                continue
-
-            if not self.pathing.is_position_safe(grid, unit.position):
-                self.move_to_safety(unit, grid)
-                continue
-
-            if unit.distance_to(attack_target) > 5:
-                if close_enemies:
-                    unit.move(
-                        self.pathing.find_path_next_point(
-                            unit.position, attack_target, grid
-                        )
-                    )
-                else:
-                    unit.move(attack_target)
-            else:
-                unit.attack(attack_target)
 
     def move_to_safety(self, unit: Unit, grid: np.ndarray):
         """
@@ -80,8 +89,11 @@ class BaseClassGround:
         unit.move(move_to)
 
     @staticmethod
-    def pick_enemy_target(enemies: Units) -> Unit:
-        #TODO: REWORK, to avoid overkill
+    def pick_enemy_target(enemies: Units, attacker:Unit) -> Unit:
+        #TODO: This should not be tinkered with any further, TARGETING will take care of it
+        prio_targets = enemies.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
+        if prio_targets:
+            return prio_targets.closest_to(attacker)
         return min(
             enemies,
             key=lambda e: (e.health + e.shield, e.tag),
