@@ -30,7 +30,7 @@ class Pathing:
 
         last_ground_grid:np.ndarray = self.ground_grid
         last_air_grid:np.ndarray = self.air_grid
-        last_detection_grid: np.ndarray = self.detection_grid()
+        last_detection_grid: np.ndarray = self.detection_grid
 
         last_ground_grid[last_ground_grid != 0] /= self.influence_fade_rate
         last_air_grid[last_air_grid != 0] /= self.influence_fade_rate
