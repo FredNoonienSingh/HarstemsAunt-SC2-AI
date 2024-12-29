@@ -9,9 +9,9 @@ from sc2.position import Point2
 
 from HarstemsAunt.pathing import Pathing
 from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
-    ALL_STRUCTURES, PRIO_ATTACK_TARGET, logger
+    ALL_STRUCTURES, PRIO_ATTACK_TARGET, WORKER_IDS,logger
 
-#TODO: Change it be a useful BaseClass
+#TODO: #34 Change it be a useful BaseClass
 class BaseClassGround:
     def __init__(self, bot:BotAI, pathing:Pathing):
         self.bot:BotAI=bot
@@ -31,14 +31,15 @@ class BaseClassGround:
             
             
             # Keep out of Range, if Shields are low, removes to much supply from fights to fast
-            if stalker.shield_percentage < MIN_SHIELD_AMOUNT \
-                and not self.pathing.is_position_safe(grid, stalker.position):
-                self.move_to_safety(stalker, grid)
-                continue
+            #if stalker.shield_percentage < MIN_SHIELD_AMOUNT \
+             #   and not self.pathing.is_position_safe(grid, stalker.position):
+              #  self.move_to_safety(stalker, grid)
+               # continue
 
             # When enemy_units are visible
             if self.bot.enemy_units:
-                visible_units = self.bot.enemy_units.closer_than(stalker.ground_range+10, stalker)
+                visible_units = self.bot.enemy_units.closer_than(stalker.ground_range+2, stalker)\
+                    .filter(lambda unit: unit.type_id not in WORKER_IDS)
                 enemy_structs = self.bot.enemy_structures.closer_than(20, stalker)
 
                 # Attack if Possible
@@ -90,7 +91,7 @@ class BaseClassGround:
 
     @staticmethod
     def pick_enemy_target(enemies: Units, attacker:Unit) -> Unit:
-        #TODO: This should not be tinkered with any further, TARGETING will take care of it
+        #TODO: #35 This should not be tinkered with any further, TARGETING will take care of it
         prio_targets = enemies.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
         if prio_targets:
             return prio_targets.closest_to(attacker)

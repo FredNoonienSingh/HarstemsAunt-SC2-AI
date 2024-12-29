@@ -385,6 +385,6 @@ INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
     },
 }
 
-SECTORS: int = 3
+SECTORS: int = 10
 MIN_SHIELD_AMOUNT: float = 0.5
 SPEEDMINING_DISTANCE: float = 1.8

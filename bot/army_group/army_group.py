@@ -16,7 +16,7 @@ from utils.and_or import and_or
 from utils.can_build import can_build_unit
 from utils.in_proximity import in_proximity_to_point
 from HarstemsAunt.pathing import Pathing
-from HarstemsAunt.common import logger
+from HarstemsAunt.common import WORKER_IDS,logger
 
 class GroupStatus(Enum):
     ATTACKING = 1
@@ -37,6 +37,28 @@ class ArmyGroup:
     @property
     def units(self) -> Units:
         return self.bot.units.filter(lambda unit: unit.tag in self.unit_list)
+
+    @property
+    def supply(self) -> int:
+        if self.units:
+            return sum([self.bot.calculate_supply_cost(unit.type_id) \
+                for unit in self.units if unit.can_attack])
+        return 0
+
+    @property
+    def enemy_supply_in_proximity(self) -> int:
+        enemy_units = self.bot.enemy_units.closer_than(25, self.position).filter(lambda unit: unit.type_id not in WORKER_IDS)
+        if enemy_units:
+            return sum([self.bot.calculate_supply_cost(unit.type_id) for unit in enemy_units])
+        return 0
+
+    @property
+    def supply_delta(self) -> int:
+        return self.supply-self.enemy_supply_in_proximity
+
+    @property
+    def reinforcements(self) -> Units:
+        return self.bot.units.filter(lambda unit: unit.tag in self.units_in_transit)
 
     @property
     def position(self) -> Point2:
@@ -72,7 +94,7 @@ class ArmyGroup:
 
     @property
     def attack_target(self) -> Union[Point2, Unit]:
-        #TODO Rework when regrouping is working as it is supposed to
+        #TODO #30 Rework when regrouping is working as it is supposed to
         return self.bot.enemy_start_locations[0]
 
     @property
@@ -91,6 +113,7 @@ class ArmyGroup:
     def retreat_pos(self, new_retreat_pos:Union[Point2,Point3,Unit]):
         self.retreat_pos = new_retreat_pos
 
+    # TODO: #32 Implement Logic to Allocate production capacity to army_groups
     def request_unit(self, structure_type: UnitTypeId) -> UnitTypeId:
         """ 
 
@@ -133,6 +156,8 @@ class ArmyGroup:
     async def attack(self) -> None:
         stalkers: Units = self.units(UnitTypeId.STALKER)
         zealots: Units = self.units(UnitTypeId.ZEALOT)
+        #TODO #28 create observer class
+        observer: Units = self.units(UnitTypeId.OBSERVER)
 
         if stalkers:
             await self.bot.stalkers.handle_attackers(
@@ -142,6 +167,10 @@ class ArmyGroup:
             await self.bot.zealots.handle_attackers(
                 self.units(UnitTypeId.ZEALOT), self.attack_target
             )
+        # TODO: #27 ADD detection Grid to pathing
+        if observer:
+            for obs in observer:
+                obs.move(self.position.towards(self.attack_pos, 5))
 
     def move(self,target_pos:Union[Point2, Point3, Unit]) -> None:
         """ Moves Army towards position
@@ -168,10 +197,13 @@ class ArmyGroup:
 
         #Early return if units are safe
         if all(self.pathing.is_position_safe(grid, unit.position,2) for unit in self.units):
+            self.regroup()
             return
 
         for unit in self.units:
             # This could be handled more efficient if i could overwrite the Unit move command
+            if self.pathing.is_position_safe(grid, unit.position):
+               continue
             if not in_proximity_to_point(self.bot, unit, self.retreat_pos, 15):
                     unit.move(
                            self.pathing.find_path_next_point(
@@ -179,20 +211,52 @@ class ArmyGroup:
                             )
                         )
 
-    def check_regroup_state(self) -> bool:
-        return True
-
+    #TODO: #31 Regroup Units by Range
     def regroup(self) -> None:
-        pass
 
-    # TODO: very basic, needs to be Adjusted to account for different, Unit types
+        if not self.units.filter(lambda unit: unit.distance_to(self.position) > 15):
+            return
+
+        self.units.furthest_to(self.position).move(self.position)
+
+
+        """" This is not working like i would like ot to 
+        stalkers: Units = self.units(UnitTypeId.STALKER)
+        zealots: Units = self.units(UnitTypeId.ZEALOT)
+
+        # Needs a better anchor Point
+        x,y = self.position
+        # Need to take direction and Level Geometry into Account
+        # All Positions need a safety check
+        # Could be created by a generator
+        zealot_positions = [Point2((x+i, y)) for i in range(len(zealots))]
+        stalker_positions = [Point2((x-i, y+1+i)) for i in range(len(stalkers))]
+
+
+        # Could be Abstracted into an inner function
+        for stalker_position in stalker_positions:
+            #if stalker_position in [stalker.position for stalker in stalkers]:
+             #   continue
+            nearest_unit = stalkers.filter(lambda unit: unit.position not in stalker_positions).\
+                closest_to(stalker_position)
+            if nearest_unit:
+                nearest_unit.move(stalker_position)
+
+        for zealot_position in zealot_positions:
+#            if zealot_position in [zealot.position for zealot in zealots]:
+ #               continue
+            nearest_unit = zealots.filter(lambda unit: unit.position not in zealot_positions).\
+                closest_to(zealot_position)
+            if nearest_unit:
+                nearest_unit.move(zealot_position)
+        """
+
+    # TODO: #29 very basic, needs to be Adjusted to account for different, Unit types
     def defend(self, position:Union[Point2,Point3,Unit]) -> None:
-        grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
-                else self.pathing.ground_grid
-
         enemy_units = self.bot.enemy_units.closer_than(25, position)
-        
         for unit in self.units:
+            grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
+                else self.pathing.ground_grid
             if not in_proximity_to_point(self.bot, unit, position, 20):
                 unit.move(
                     self.pathing.find_path_next_point(
@@ -204,18 +268,30 @@ class ArmyGroup:
                 unit.attack(enemy_units.closest_to(unit))
 
     async def update(self):
-        """ Method controlling the Behavior of the Group, \
+        """ Method controlling the Behavior of the Group,\
             shall be called every tick in main.py 
         """
-        
-        # SAVING last Status in var
+
         last_status: GroupStatus = self.status
+
+        # Move Units in Transit to Army_group:
+        for unit in self.reinforcements:
+            grid: np.ndarray = self.pathing.ground_grid
+            unit.attack(
+                self.pathing.find_path_next_point(
+                    unit.position, self.position, grid
+                )
+            )
+            if in_proximity_to_point(self.bot, unit, self.position, 10):
+                self.units_in_transit.remove(unit.tag)
+                self.unit_list.append(unit.tag)
+                await self.bot.chat_send(f"Army Group: {self.name} got reinforced by {unit.type_id}")
 
         # CHECK DEFEND POSITION
         for townhall in self.bot.townhalls:
             enemys_in_area = self.bot.enemy_units.closer_than(30, townhall)
             if enemys_in_area:
-                supply_in_area = sum([self.bot.calculate_supply_cost(unit) for unit in enemys_in_area])
+                supply_in_area = sum([self.bot.calculate_supply_cost(unit.type_id) for unit in enemys_in_area])
                 if supply_in_area > 10:
                     self.defend(townhall)
                     self.status = GroupStatus.DEFENDING
@@ -223,18 +299,13 @@ class ArmyGroup:
 
         # TODO add check if enemy_supply in Target_area > self.supply
         # CHECK RETREAT CONDITIONS
-        shield_condition = self.average_shield_precentage < .33
-        supply_condition = self.bot.supply_army <= self.bot.enemy_supply
+        shield_condition = self.average_shield_precentage < .45
+        supply_condition = self.supply <= self.enemy_supply_in_proximity
         if and_or(shield_condition, supply_condition):
             self.retreat()
             self.status = GroupStatus.RETREATING
             return
 
-        # ELSE ATTACK !!!
-        if last_status in [GroupStatus.REGROUPING]:
-            if not self.check_regroup_state():
-                self.regroup()
-                return
-
+        #self.regroup()
         await self.attack()
         self.status = GroupStatus.ATTACKING

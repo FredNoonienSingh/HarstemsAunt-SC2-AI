@@ -79,16 +79,17 @@ class HarstemsAunt(BotAI):
         # Move in to one tuple
         self.base_count:int = 5
         self.gas_count:int = 1
-        
+
         # Rework build order so that is not necessary anymore
         self.gateway_count:int = 1
         self.robo_count:int = 1
         self.stargate_count:int = 1
-        
+
         self.seen_enemys:list = []
+        self.enemies_lt_list: list = []     #Units in the last tick 
         self.enemy_supply:int = 0
         self.last_tick:int = 0
- 
+
         self.scout_probe_tag:int = None
         self.fighting_probes:list = []
         self.map_sectors:list = []
@@ -119,6 +120,21 @@ class HarstemsAunt(BotAI):
         opponent:str = self.opponent_id
         return f"data/opponent/{opponent}"
 
+    @property
+    def get_attack_target(self) -> Point2:
+        # Why the 5 Minute wait time
+        if self.time > 300.0:
+            if enemy_units := self.enemy_units.filter(
+                lambda u: u.type_id not in ATTACK_TARGET_IGNORE
+                and not u.is_flying
+                and not u.is_cloaked
+                and not u.is_hallucination
+            ):
+                return enemy_units.closest_to(self.start_location).position
+            elif enemy_structures := self.enemy_structures:
+                return enemy_structures.closest_to(self.start_location).position
+        return self.enemy_start_locations[0]
+
     def create_folders(self):
         for path in [self.data_path,self.map_data_path, self.opponent_data_path]:
             if not os.path.exists(path):
@@ -145,36 +161,50 @@ class HarstemsAunt(BotAI):
                 self.map_sectors.append(sector)
 
     async def on_start(self):
-        
-        # Here to Debug the Unit Micro:
-        await self.client.debug_upgrade()
-        await self.client.debug_show_map()
 
+        # Here to Debug the Unit Micro
+        await self.client.debug_upgrade()
+        #await self.client.debug_show_map()
+        #await self.client.debug_food()
+        #await self.client.debug_fast_build()
+        #await self.client.debug_all_resources()
+
+        # Create Units for Testing
         await self.client.debug_create_unit([[UnitTypeId.ZEALOT,
-                                              5,
+                                              1,
                                               self._game_info.map_center.towards(self.start_location, 1),
                                               1]])
+
         await self.client.debug_create_unit([[UnitTypeId.STALKER,
-                                              3,
+                                              10,
                                               self._game_info.map_center.towards(self.start_location, -1),
                                               1]])
 
+        await self.client.debug_create_unit([[UnitTypeId.OBSERVER,
+                                              1,
+                                              self._game_info.map_center.towards(self.start_location, -1),
+                                              1]])
+
+        # Create Enemy Units for testing
         await self.client.debug_create_unit([[UnitTypeId.MARINE,
-                                              15,
+                                              6,
                                               self.enemy_start_locations[0].towards(self._game_info.map_center, 3),
                                               2]])
 
+        await self.client.debug_create_unit([[UnitTypeId.MARAUDER,
+                                              1,
+                                              self.enemy_start_locations[0].towards(self._game_info.map_center, 3),
+                                              2]])
 
         self.pathing = Pathing(self, DEBUG)
         self.stalkers = Stalkers(self, self.pathing)
         self.zealots = Zealot(self, self.pathing)
-        
+
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
         self.speedmining_positions = get_speedmining_positions(self)
-        
-        await self.chat_send(self.greeting)
 
+        await self.chat_send(self.greeting)
 
         for sector in self.map_sectors:
             sector.build_sector()
@@ -185,8 +215,8 @@ class HarstemsAunt(BotAI):
 
     async def on_step(self, iteration):
 
-        if self.units(UnitTypeId.ZEALOT):
-            await self.client.move_camera(self.units(UnitTypeId.ZEALOT).closest_to(self.enemy_start_locations[0]))
+        #if self.units:
+            #await self.client.move_camera(self.units.closest_to(self.enemy_start_locations[0]))
 
         labels = ["min_step","avg_step","max_step","last_step"]
 
@@ -201,10 +231,10 @@ class HarstemsAunt(BotAI):
         for i, sector in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=sector.update())
             threads.append(t_0)
-            t_1 = threading.Thread(target=sector.render_sector())
-            threads.append(t_1)
+            #t_1 = threading.Thread(target=sector.render_sector())
+            #threads.append(t_1)
             t_0.start()
-            t_1.start()
+            #t_1.start()
         for t in threads:
             t.join()
 
@@ -213,9 +243,7 @@ class HarstemsAunt(BotAI):
         for group in self.army_groups:
             await group.update()
             self.client.debug_text_screen(f"{group.name}: {group.attack_pos}", (.25, 0.025), color=(255,255,255), size=20)
-        
-        self.client.debug_text_screen(f"Supply:{self.supply_army} Enemysupply:{self.enemy_supply}", (.25, 0.05), color=(255,255,255), size=20)
-
+            self.client.debug_text_screen(f"Supply:{group.supply} Enemysupply:{group.enemy_supply_in_proximity}", (.25, 0.05), color=(255,255,255), size=20)
 
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
@@ -224,19 +252,21 @@ class HarstemsAunt(BotAI):
             self.transfer_to_gas: List[Unit] = []
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
 
-            #TODO: Write a cannon rush response, that actually works
+            #TODO: #33 Write a cannon rush response, that actually works
             if self.time < 300:
                 for th in self.townhalls:
                     if self.enemy_structures.closer_than(30, th):
                         for struct in self.enemy_structures.closer_than(30, th):
-                            workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(struct.position,4)
+                            workers = self.workers.filter(lambda unit: \
+                                unit not in self.fighting_probes).closest_n_units(struct.position,4)
                             for worker in workers:
                                 self.fighting_probes.append(worker)
                                 worker.attack(struct)
                             if self.enemy_units.closer_than(30, th):
                                 enemy_builders = self.enemy_units.closer_than(30, th)
                                 for builder in enemy_builders:
-                                    attack_workers = self.workers.filter(lambda unit: unit not in self.fighting_probes).closest_n_units(builder,2)
+                                    attack_workers = self.workers.filter(lambda unit: \
+                                        unit not in self.fighting_probes).closest_n_units(builder,2)
                                     for aw in attack_workers:
                                         self.fighting_probes.append(aw)
                                         aw.attack(builder)
@@ -275,21 +305,6 @@ class HarstemsAunt(BotAI):
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
-
-    @property
-    def get_attack_target(self) -> Point2:
-        # Why the 5 Minute wait time
-        if self.time > 300.0:
-            if enemy_units := self.enemy_units.filter(
-                lambda u: u.type_id not in ATTACK_TARGET_IGNORE
-                and not u.is_flying
-                and not u.is_cloaked
-                and not u.is_hallucination
-            ):
-                return enemy_units.closest_to(self.start_location).position
-            elif enemy_structures := self.enemy_structures:
-                return enemy_structures.closest_to(self.start_location).position
-        return self.enemy_start_locations[0]
 
     async def on_building_construction_started(self,unit):
         if self.time < 60:
@@ -331,7 +346,9 @@ class HarstemsAunt(BotAI):
 
     async def on_unit_created(self, unit):
         if unit.type_id in GATEWAY_UNTIS:
-            self.army_groups[0].unit_list.append(unit.tag)
+            self.army_groups[0].units_in_transit.append(unit.tag)
+        if unit.type_id == UnitTypeId.OBSERVER:
+            self.army_groups[0].units_in_transit.append(unit.tag)
 
     async def on_unit_type_changed(self, unit, previous_type):
         pass
@@ -340,6 +357,10 @@ class HarstemsAunt(BotAI):
         pass
 
     async def on_unit_destroyed(self, unit_tag):
+        # Keeps the List as short as possible
+        if unit_tag in self.seen_enemys:
+            self.seen_enemys.remove(unit_tag)
+
         unit = self.enemy_units.find_by_tag(unit_tag)
         if unit:
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)

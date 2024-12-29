@@ -64,7 +64,6 @@ class MapSector:
         top_x, top_y = ramp.top_center.x, ramp.top_center.y
         return min_x <= top_x <= max_x and min_y <= top_y <= max_y
 
-
     def in_sector(self,unit:Unit) -> bool:
         min_x, max_x = self.upper_left.x, self.lower_right.x
         min_y, max_y = self.upper_left.y,self.lower_right.y

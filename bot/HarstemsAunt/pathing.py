@@ -14,7 +14,7 @@ from .common import ALL_STRUCTURES, INFLUENCE_COSTS, logger
 RANGE_BUFFER: float = 2.00
 
 class Pathing:
-    def __init__(self, bot: BotAI, debug: bool) -> None:
+    def __init__(self, bot:BotAI, debug:bool, fade_rate:float = 3.0) -> None:
         self.bot: BotAI = bot
         self.debug: bool = debug
 
@@ -22,19 +22,23 @@ class Pathing:
         self.climber_grid: np.ndarray = self.map_data.get_climber_grid()
         self.units_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.ground_grid: np.ndarray = self.map_data.get_pyastar_grid()
+        self.detection_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.air_grid: np.ndarray = self.map_data.get_clean_air_grid()
-        self.influence_fade_rate: float = 3
+        self.influence_fade_rate: float = fade_rate
 
     def update(self, iteration) -> None:
 
         last_ground_grid:np.ndarray = self.ground_grid
         last_air_grid:np.ndarray = self.air_grid
+        last_detection_grid: np.ndarray = self.detection_grid()
 
         last_ground_grid[last_ground_grid != 0] /= self.influence_fade_rate
         last_air_grid[last_air_grid != 0] /= self.influence_fade_rate
+        last_detection_grid[last_detection_grid != 0] /=self.influence_fade_rate
 
         self.ground_grid = self.map_data.get_pyastar_grid() + last_ground_grid
         self.air_grid = self.map_data.get_clean_air_grid() + last_air_grid
+        self.detection_grid = self.map_data.get_pyastar_grid() + last_detection_grid
 
         for unit in self.bot.all_enemy_units:
             if unit.type_id in ALL_STRUCTURES:
@@ -147,6 +151,14 @@ class Pathing:
                 [self.climber_grid,self.ground_grid, self.air_grid]
             )
 
+        if enemy.is_detector:
+            (self.detection_grid) = self._add_cost_to_multiple_grids(
+                enemy.position,
+                12,
+                enemy.detect_range + RANGE_BUFFER,
+                [self.detection_grid]
+            )
+
     def _add_structure_influence(self, structure: Unit) -> None:
         """
         Add structure influence to the relevant grid.
@@ -170,6 +182,14 @@ class Pathing:
                     values["AirRange"] + RANGE_BUFFER,
                     [self.air_grid]
                 )
+
+        if structure.is_detector:
+            self.detection_grid = self._add_cost(
+                structure.position,
+                12,
+                structure.detect_range + RANGE_BUFFER,
+                [self.detection_grid]
+            )
 
     def _add_cost(
             self,
@@ -211,7 +231,7 @@ class Pathing:
         )
         return grids
 
-    #TODO: Add weights to points close to the edges, and points on Ramps
+    #TODO: #36 Add weights to points close to the edges, and points on Ramps
     def add_positional_costs(self):
         pass
 
