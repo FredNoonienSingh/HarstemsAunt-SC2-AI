@@ -1,14 +1,9 @@
-from typing import Union
-from random import randint
-
-from numpy import linspace
-from math import sin, pi, cos, radians
+from math import sin, pi, cos
 
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.position import Point3, Point2
-from sc2.ids.unit_typeid import UnitTypeId
 
 def render_unit_vision(bot: BotAI, unit:Unit):
     terrain_height = bot.get_terrain_z_height(unit)+1
