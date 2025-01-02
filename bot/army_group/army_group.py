@@ -167,10 +167,10 @@ class ArmyGroup:
             await self.bot.zealots.handle_attackers(
                 self.units(UnitTypeId.ZEALOT), self.attack_target
             )
-        # TODO: #27 ADD detection Grid to pathing
         if observer:
-            for obs in observer:
-                obs.move(self.position.towards(self.attack_pos, 5))
+            await self.bot.observers.move(
+                observer, self.attack_target
+            )
 
     def move(self,target_pos:Union[Point2, Point3, Unit]) -> None:
         """ Moves Army towards position
@@ -210,6 +210,7 @@ class ArmyGroup:
                                unit.position, self.retreat_pos, grid
                             )
                         )
+        #self.observer.retreat(self.units(UnitTypeId.OBSERVER), self.retreat_pos)
 
     #TODO: #31 Regroup Units by Range
     def regroup(self) -> None:

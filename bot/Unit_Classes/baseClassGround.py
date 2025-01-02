@@ -11,7 +11,6 @@ from HarstemsAunt.pathing import Pathing
 from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
     ALL_STRUCTURES, PRIO_ATTACK_TARGET, WORKER_IDS,logger
 
-#TODO: #34 Change it be a useful BaseClass
 class BaseClassGround:
     def __init__(self, bot:BotAI, pathing:Pathing):
         self.bot:BotAI=bot

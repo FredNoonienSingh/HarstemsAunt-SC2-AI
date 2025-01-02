@@ -40,6 +40,7 @@ from Unit_Classes.Archon import Archons
 from Unit_Classes.Zealots import Zealot
 from Unit_Classes.Stalkers import Stalkers
 from Unit_Classes.Immortal import Immortals
+from Unit_Classes.observer import Observer
 from Unit_Classes.HighTemplar import HighTemplar
 from Unit_Classes.DarkTemplar import DarkTemplar
 
@@ -60,6 +61,8 @@ class HarstemsAunt(BotAI):
     immortals: Immortals
     high_templar: HighTemplar
     dark_templar: DarkTemplar
+    # Scouting Units
+    observer : Observer
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -199,6 +202,7 @@ class HarstemsAunt(BotAI):
         self.pathing = Pathing(self, DEBUG)
         self.stalkers = Stalkers(self, self.pathing)
         self.zealots = Zealot(self, self.pathing)
+        self.observers = Observer(self, self.pathing)
 
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
