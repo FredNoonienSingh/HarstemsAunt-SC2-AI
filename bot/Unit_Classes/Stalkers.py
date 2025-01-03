@@ -10,7 +10,7 @@ from sc2.position import Point2
 
 from HarstemsAunt.pathing import Pathing
 from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
-    ALL_STRUCTURES, PRIO_ATTACK_TARGET, WORKER_IDS,logger
+    ALL_STRUCTURES, PRIO_ATTACK_TARGET, WORKER_IDS
 
 
 class Stalkers(BaseClassGround):

@@ -47,7 +47,8 @@ class ArmyGroup:
 
     @property
     def enemy_supply_in_proximity(self) -> int:
-        enemy_units = self.bot.enemy_units.closer_than(25, self.position).filter(lambda unit: unit.type_id not in WORKER_IDS)
+        enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
+            .filter(lambda unit: unit.type_id not in WORKER_IDS)
         if enemy_units:
             return sum([self.bot.calculate_supply_cost(unit.type_id) for unit in enemy_units])
         return 0
@@ -103,7 +104,7 @@ class ArmyGroup:
 
     @attack_target.setter
     def attack_target(self, new_attack_pos:Union[Point2,Point3,Unit]):
-        self.attack_pos = new_attack_pos
+        self.attack_target = new_attack_pos
 
     @property
     def retreat_pos(self) -> Union[Point2,Point3,Unit]:
@@ -153,24 +154,23 @@ class ArmyGroup:
             return True
         return False
 
-    async def attack(self) -> None:
+    async def attack(self, attack_target:Union[Point2, Point3, Unit]) -> None:
         stalkers: Units = self.units(UnitTypeId.STALKER)
         zealots: Units = self.units(UnitTypeId.ZEALOT)
-        #TODO #28 create observer class
         observer: Units = self.units(UnitTypeId.OBSERVER)
 
         if stalkers:
             await self.bot.stalkers.handle_attackers(
-                self.units(UnitTypeId.STALKER), self.attack_target
+                self.units(UnitTypeId.STALKER), attack_target
             )
         if zealots:
             await self.bot.zealots.handle_attackers(
-                self.units(UnitTypeId.ZEALOT), self.attack_target
+                self.units(UnitTypeId.ZEALOT), attack_target
             )
-        # TODO: #27 ADD detection Grid to pathing
         if observer:
-            for obs in observer:
-                obs.move(self.position.towards(self.attack_pos, 5))
+            await self.bot.observers.move(
+                observer, attack_target
+            )
 
     def move(self,target_pos:Union[Point2, Point3, Unit]) -> None:
         """ Moves Army towards position
@@ -210,6 +210,7 @@ class ArmyGroup:
                                unit.position, self.retreat_pos, grid
                             )
                         )
+        #self.observer.retreat(self.units(UnitTypeId.OBSERVER), self.retreat_pos)
 
     #TODO: #31 Regroup Units by Range
     def regroup(self) -> None:
@@ -219,37 +220,6 @@ class ArmyGroup:
 
         self.units.furthest_to(self.position).move(self.position)
 
-
-        """" This is not working like i would like ot to 
-        stalkers: Units = self.units(UnitTypeId.STALKER)
-        zealots: Units = self.units(UnitTypeId.ZEALOT)
-
-        # Needs a better anchor Point
-        x,y = self.position
-        # Need to take direction and Level Geometry into Account
-        # All Positions need a safety check
-        # Could be created by a generator
-        zealot_positions = [Point2((x+i, y)) for i in range(len(zealots))]
-        stalker_positions = [Point2((x-i, y+1+i)) for i in range(len(stalkers))]
-
-
-        # Could be Abstracted into an inner function
-        for stalker_position in stalker_positions:
-            #if stalker_position in [stalker.position for stalker in stalkers]:
-             #   continue
-            nearest_unit = stalkers.filter(lambda unit: unit.position not in stalker_positions).\
-                closest_to(stalker_position)
-            if nearest_unit:
-                nearest_unit.move(stalker_position)
-
-        for zealot_position in zealot_positions:
-#            if zealot_position in [zealot.position for zealot in zealots]:
- #               continue
-            nearest_unit = zealots.filter(lambda unit: unit.position not in zealot_positions).\
-                closest_to(zealot_position)
-            if nearest_unit:
-                nearest_unit.move(zealot_position)
-        """
 
     # TODO: #29 very basic, needs to be Adjusted to account for different, Unit types
     def defend(self, position:Union[Point2,Point3,Unit]) -> None:
@@ -267,7 +237,7 @@ class ArmyGroup:
             if enemy_units:
                 unit.attack(enemy_units.closest_to(unit))
 
-    async def update(self):
+    async def update(self, target:Union[Point2, Point3, Unit]):
         """ Method controlling the Behavior of the Group,\
             shall be called every tick in main.py 
         """
@@ -307,5 +277,5 @@ class ArmyGroup:
             return
 
         #self.regroup()
-        await self.attack()
+        await self.attack(target)
         self.status = GroupStatus.ATTACKING

@@ -40,6 +40,7 @@ from Unit_Classes.Archon import Archons
 from Unit_Classes.Zealots import Zealot
 from Unit_Classes.Stalkers import Stalkers
 from Unit_Classes.Immortal import Immortals
+from Unit_Classes.observer import Observer
 from Unit_Classes.HighTemplar import HighTemplar
 from Unit_Classes.DarkTemplar import DarkTemplar
 
@@ -53,6 +54,7 @@ DEBUG = True
 class HarstemsAunt(BotAI):
     pathing: Pathing
     map_data: MapData
+
     # Ground Units
     zealots: Zealot
     archons: Archons
@@ -60,6 +62,9 @@ class HarstemsAunt(BotAI):
     immortals: Immortals
     high_templar: HighTemplar
     dark_templar: DarkTemplar
+
+    # Scouting Units
+    observer : Observer
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -161,44 +166,10 @@ class HarstemsAunt(BotAI):
                 self.map_sectors.append(sector)
 
     async def on_start(self):
-
-        # Here to Debug the Unit Micro
-        await self.client.debug_upgrade()
-        #await self.client.debug_show_map()
-        #await self.client.debug_food()
-        #await self.client.debug_fast_build()
-        #await self.client.debug_all_resources()
-
-        # Create Units for Testing
-        await self.client.debug_create_unit([[UnitTypeId.ZEALOT,
-                                              1,
-                                              self._game_info.map_center.towards(self.start_location, 1),
-                                              1]])
-
-        await self.client.debug_create_unit([[UnitTypeId.STALKER,
-                                              10,
-                                              self._game_info.map_center.towards(self.start_location, -1),
-                                              1]])
-
-        await self.client.debug_create_unit([[UnitTypeId.OBSERVER,
-                                              1,
-                                              self._game_info.map_center.towards(self.start_location, -1),
-                                              1]])
-
-        # Create Enemy Units for testing
-        await self.client.debug_create_unit([[UnitTypeId.MARINE,
-                                              6,
-                                              self.enemy_start_locations[0].towards(self._game_info.map_center, 3),
-                                              2]])
-
-        await self.client.debug_create_unit([[UnitTypeId.MARAUDER,
-                                              1,
-                                              self.enemy_start_locations[0].towards(self._game_info.map_center, 3),
-                                              2]])
-
         self.pathing = Pathing(self, DEBUG)
         self.stalkers = Stalkers(self, self.pathing)
         self.zealots = Zealot(self, self.pathing)
+        self.observers = Observer(self, self.pathing)
 
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
@@ -231,19 +202,19 @@ class HarstemsAunt(BotAI):
         for i, sector in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=sector.update())
             threads.append(t_0)
-            #t_1 = threading.Thread(target=sector.render_sector())
-            #threads.append(t_1)
             t_0.start()
-            #t_1.start()
         for t in threads:
             t.join()
 
         self.pathing.update(iteration)
 
         for group in self.army_groups:
-            await group.update()
-            self.client.debug_text_screen(f"{group.name}: {group.attack_pos}", (.25, 0.025), color=(255,255,255), size=20)
-            self.client.debug_text_screen(f"Supply:{group.supply} Enemysupply:{group.enemy_supply_in_proximity}", (.25, 0.05), color=(255,255,255), size=20)
+            await group.update(self.get_attack_target)
+            self.client.debug_text_screen(f"{group.name}: {group.attack_pos}", \
+                (.25, 0.025), color=(255,255,255), size=20)
+            self.client.debug_text_screen(f"Supply:{group.supply} \
+                Enemysupply:{group.enemy_supply_in_proximity}", \
+                    (.25, 0.05), color=(255,255,255), size=20)
 
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
@@ -253,35 +224,15 @@ class HarstemsAunt(BotAI):
             self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
 
             #TODO: #33 Write a cannon rush response, that actually works
-            if self.time < 300:
-                for th in self.townhalls:
-                    if self.enemy_structures.closer_than(30, th):
-                        for struct in self.enemy_structures.closer_than(30, th):
-                            workers = self.workers.filter(lambda unit: \
-                                unit not in self.fighting_probes).closest_n_units(struct.position,4)
-                            for worker in workers:
-                                self.fighting_probes.append(worker)
-                                worker.attack(struct)
-                            if self.enemy_units.closer_than(30, th):
-                                enemy_builders = self.enemy_units.closer_than(30, th)
-                                for builder in enemy_builders:
-                                    attack_workers = self.workers.filter(lambda unit: \
-                                        unit not in self.fighting_probes).closest_n_units(builder,2)
-                                    for aw in attack_workers:
-                                        self.fighting_probes.append(aw)
-                                        aw.attack(builder)
+            for townhall in self.townhalls:
+                workers_in_base = self.enemy_units.closer_than(15, townhall)\
+                    .filter(lambda unit: unit.type_id in WORKER_IDS)
+                for worker in workers_in_base:
+                    close_worker = self.workers.closest_to(worker)
+                    close_worker.attack(worker)
 
             for worker in self.workers:
                 micro_worker(self, worker)
-
-            if self.scout_probe_tag:
-                scout:Unit = self.units.find_by_tag(self.scout_probe_tag)
-                if scout:
-                    if scout.distance_to(self.enemy_start_locations[0])<5:
-                        scout.move(self.structures(UnitTypeId.NEXUS).furthest_to(scout))
-                        self.scout_probe_tag = 69420666
-                    else:
-                        scout.move(self.enemy_start_locations[0], queue=True)
 
             build_pos = get_build_pos(self)
             if self.workers:

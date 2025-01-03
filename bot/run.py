@@ -21,7 +21,8 @@ if __name__ == "__main__":
         print(result, " against opponent ", opponentid)
     else:
         # Local game
-        print("Starting local game...")
-        run_game(maps.get(choice(MAP_LIST)), \
-            [bot, Computer(Race.Terran, Difficulty.Harder)],\
-                realtime=False, sc2_version="5.0.10")
+        print("Starting local games...")
+        for game_map in MAP_LIST:
+            run_game(maps.get(game_map), \
+                [bot, Computer(choice(list(RACES)), Difficulty.Harder)],\
+                    realtime=False, sc2_version="5.0.10")
