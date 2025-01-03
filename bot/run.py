@@ -22,7 +22,6 @@ if __name__ == "__main__":
     else:
         # Local game
         print("Starting local games...")
-        for game_map in MAP_LIST:
-            run_game(maps.get(game_map), \
-                [bot, Computer(choice(list(RACES)), Difficulty.Harder)],\
-                    realtime=False, sc2_version="5.0.10")
+        run_game(maps.get(choice(MAP_LIST)), \
+            [bot, Computer(choice(list(RACES)), Difficulty.Harder)],\
+            realtime=False, sc2_version="5.0.10")

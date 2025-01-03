@@ -6,9 +6,28 @@ from sc2.ids.buff_id import BuffId
 from actions.abilliies import chronoboost
 
 async def chronoboosting(bot:BotAI) -> None:
-    structures = bot.structures.filter(lambda struct: not struct.is_idle and \
-        not struct.has_buff(BuffId.CHRONOBOOSTENERGYCOST))
-    chrono_nexus = bot.structures(UnitTypeId.NEXUS).filter(lambda nexus: nexus.energy > 50)
-    if structures:
-        for nexus in chrono_nexus:
-            await chronoboost(bot, nexus,structures[0])
+
+    prios:list = [
+        [UnitTypeId.ROBOTICSBAY,
+                  UnitTypeId.FLEETBEACON,
+                  UnitTypeId.TWILIGHTCOUNCIL,
+                  UnitTypeId.FORGE,
+                  UnitTypeId.CYBERNETICSCORE,
+                  UnitTypeId.DARKSHRINE,
+                  UnitTypeId.TEMPLARARCHIVE,
+                  ],
+        [UnitTypeId.GATEWAY,
+                  UnitTypeId.ROBOTICSFACILITY,
+                  UnitTypeId.STARGATE,
+                  ],
+        [UnitTypeId.NEXUS]
+    ]
+
+    for prio in prios:
+        structures = bot.structures.filter(lambda struct: not struct.is_idle and \
+            not struct.has_buff(BuffId.CHRONOBOOSTENERGYCOST) and struct.type_id in prio)\
+                .sorted(lambda struct: struct.orders[0].progress)
+        chrono_nexus = bot.structures(UnitTypeId.NEXUS).filter(lambda nexus: nexus.energy > 50)
+        if structures:
+            for nexus in chrono_nexus:
+                await chronoboost(bot, nexus,structures[0])

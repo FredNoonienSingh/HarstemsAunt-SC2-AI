@@ -48,6 +48,7 @@ async def marco(bot:BotAI, worker, build_pos) -> None:
             len(bot.structures(UnitTypeId.ASSIMILATOR)) < bot.gas_count \
             and not bot.already_pending(UnitTypeId.ASSIMILATOR):
                 await build_gas(bot, townhall)
+
         # Build_Probes
         probe_count:int = len(bot.structures(UnitTypeId.NEXUS))*16 + len(bot.structures(UnitTypeId.ASSIMILATOR))*3
         if townhall.is_idle and can_build_unit(bot, UnitTypeId.PROBE) and len(bot.workers) < probe_count:
