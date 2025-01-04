@@ -25,11 +25,13 @@ async def marco(bot:BotAI, worker, build_pos) -> None:
     get_upgrades(bot)
     await build_army(bot)
     await build_supply(bot, build_pos)
-    await expand(bot)
+    if bot.units(UnitTypeId.CYBERNETICSCORE) \
+        or bot.already_pending(UnitTypeId.CYBERNETICSCORE):
+        await expand(bot)
     handle_alerts(bot, bot.alert)
 
-    if bot.time < 180:
-        await game_start(bot, worker)
+    #if bot.time < 180:
+     #   await game_start(bot, worker)
 
     for townhall in bot.townhalls:
         minerals = bot.expansion_locations_dict[townhall.position].mineral_field
@@ -45,11 +47,12 @@ async def marco(bot:BotAI, worker, build_pos) -> None:
 
         if townhall.is_ready and bot.structures(UnitTypeId.PYLON) \
             and bot.structures(UnitTypeId.GATEWAY) and\
-            len(bot.structures(UnitTypeId.ASSIMILATOR)) < bot.gas_count \
+            len(bot.structures(UnitTypeId.ASSIMILATOR)) < len(bot.structures(UnitTypeId.NEXUS).ready)*2 \
             and not bot.already_pending(UnitTypeId.ASSIMILATOR):
                 await build_gas(bot, townhall)
 
         # Build_Probes
         probe_count:int = len(bot.structures(UnitTypeId.NEXUS))*16 + len(bot.structures(UnitTypeId.ASSIMILATOR))*3
-        if townhall.is_idle and can_build_unit(bot, UnitTypeId.PROBE) and len(bot.workers) < probe_count:
-            townhall.train(UnitTypeId.PROBE)
+        if bot.structures(UnitTypeId.PYLON):
+            if townhall.is_idle and can_build_unit(bot, UnitTypeId.PROBE) and len(bot.workers) < probe_count:
+                townhall.train(UnitTypeId.PROBE)

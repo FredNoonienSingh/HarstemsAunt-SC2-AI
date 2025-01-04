@@ -295,7 +295,7 @@ class HarstemsAunt(BotAI):
     async def on_unit_created(self, unit):
         if unit.type_id in GATEWAY_UNTIS:
             self.army_groups[0].units_in_transit.append(unit.tag)
-        if unit.type_id == UnitTypeId.OBSERVER:
+        if unit.type_id == UnitTypeId.OBSERVER or unit.type_id == UnitTypeId.IMMORTAL:
             self.army_groups[0].units_in_transit.append(unit.tag)
 
     async def on_unit_type_changed(self, unit, previous_type):
