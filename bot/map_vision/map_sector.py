@@ -1,3 +1,5 @@
+#TODO: #55 Rewrite MapSector Classes int Something Useful or remove it
+
 from typing import List
 
 from sc2.unit import Unit

@@ -1,4 +1,7 @@
 """MainClass of the Bot handling"""
+
+#TODO: #51 NEEDS to be cleaned up !
+
 import os
 import csv
 import threading

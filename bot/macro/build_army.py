@@ -6,8 +6,8 @@ from actions.build_army import \
 from HarstemsAunt.common import UNIT_COMPOSIOTION
 
 async def build_army(bot:BotAI) -> None:
-    #TODO: Find a better way to control Army composition
-    #TODO: Implement a Check for detectors in Enemy Comp, if not at DTs
+    #TODO: #53 Find a better way to control Army composition
+    #TODO: #54 Implement a Check for detectors in Enemy Comp, if not at DTs
 
     stalkers:int = len(bot.units(UnitTypeId.STALKER))
     # +1 to avoid ZeroDivision exception
