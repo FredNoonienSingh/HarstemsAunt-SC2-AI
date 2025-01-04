@@ -1,3 +1,8 @@
+"""
+    Should be rewritten into a class
+"""
+# TODO: #50 Rewirte Function into a Class
+
 """SC2 Imports"""
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId

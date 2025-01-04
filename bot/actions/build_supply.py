@@ -1,3 +1,5 @@
+""" Holds functions to build supply structures"""
+
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from utils.can_build import can_build_structure

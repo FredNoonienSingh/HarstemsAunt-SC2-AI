@@ -1,9 +1,10 @@
+""" Should be rewritten into a Class and should control Army Groups """
+#TODO: Rewrite Micro into a Class 
+
 from sc2.unit import Unit
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 from sc2.ids.unit_typeid import UnitTypeId
-
-
 
 async def micro(bot: BotAI) -> None:
     """Handles Micro of Fighting Units

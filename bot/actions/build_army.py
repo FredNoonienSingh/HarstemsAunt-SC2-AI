@@ -1,6 +1,8 @@
+""" Holds functions to produce Units """
+
+#TODO: #48 This should be reworked completely  
 
 from typing import Union
-
 from sc2.unit import Unit
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
@@ -11,8 +13,8 @@ from utils.can_build import can_build_unit
 
 from utils.get_warp_in_pos import get_warp_in_pos
 
-async def warp_in_unit(bot: BotAI, unit:UnitTypeId, warp_in_position:Union[Point3, Unit]) -> bool:
-    pos = warp_in_position.position.to2.random_on_distance(4)
+async def warp_in_unit(bot: BotAI,unit:UnitTypeId,warp_in_position:Union[Point2,Point3,Unit]) -> bool:
+    pos:Point2= warp_in_position.position.to2.random_on_distance(4)
     placement = await bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
 
     for gate in bot.structures(UnitTypeId.WARPGATE).idle:
@@ -20,7 +22,7 @@ async def warp_in_unit(bot: BotAI, unit:UnitTypeId, warp_in_position:Union[Point
             gate.warp_in(unit, placement)
 
 async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
-    gate_aliases: list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
+    gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
     if can_build_unit(bot, unit_type):
         for gate in bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
             if gate.is_idle and UpgradeId.WARPGATERESEARCH not in bot.researched:

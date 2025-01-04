@@ -1,3 +1,6 @@
+#TODO: #49 Write own speedmining Implentation
+""" Stolen Code needs to be reviewed and rewritten for my bot """
+
 import numpy as np
 import math
 from sc2.ids.unit_typeid import UnitTypeId

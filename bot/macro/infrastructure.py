@@ -1,3 +1,5 @@
+""" SHOULD BE PART of Macro class """
+
 from typing import Union
 
 from sc2.bot_ai import BotAI

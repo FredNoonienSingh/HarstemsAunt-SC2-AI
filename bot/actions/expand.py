@@ -1,3 +1,5 @@
+""" Holds Function to Expand """
+
 from typing import Union
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3

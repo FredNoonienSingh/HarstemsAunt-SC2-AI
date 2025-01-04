@@ -1,5 +1,7 @@
-from typing import Dict, List, Optional
+""" Class Handling Pathing, needs to be cleaned up."""
+#TODO: #52 clean up Pathing Class
 
+from typing import Dict, List, Optional
 import numpy as np
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
