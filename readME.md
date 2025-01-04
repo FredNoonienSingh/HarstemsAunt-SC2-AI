@@ -4,7 +4,6 @@
 
 We tried to get a bot to play like Harstem by scanning the brain of his Aunt - sadly the ability to play SC2 is not genetic. 
 
-
 #### Find me on [AI-Arena](https://aiarena.net/bots/808/)
 #### Watch me on [Youtube](https://www.youtube.com/channel/UCdnBJFMuxMgG0ZHOhxdIJmA)
 ---
