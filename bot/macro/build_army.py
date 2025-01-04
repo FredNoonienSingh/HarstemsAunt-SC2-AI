@@ -1,7 +1,7 @@
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from actions.build_army import \
-    build_gateway_units, build_stargate_units
+    build_gateway_units, build_stargate_units, build_robo_units
 
 from HarstemsAunt.common import UNIT_COMPOSIOTION
 
@@ -18,3 +18,8 @@ async def build_army(bot:BotAI) -> None:
     else:
         await build_gateway_units(bot, UnitTypeId.ZEALOT)
        # await build_stargate_units(bot, UnitTypeId.PHOENIX)
+
+    if not bot.units(UnitTypeId.OBSERVER):
+        await build_robo_units(bot, UnitTypeId.OBSERVER)
+    else:
+        await build_robo_units(bot, UnitTypeId.IMMORTAL)

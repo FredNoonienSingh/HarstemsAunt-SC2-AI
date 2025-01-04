@@ -18,8 +18,6 @@ class BaseClassGround:
 
     @property
     def get_recharge_spot(self) -> Point2:
-        # Thats stupid, unless the recharge rate is insane
-
         return self.pathing.find_closest_safe_spot(
             self.bot.game_info.map_center, self.pathing.ground_grid
         )
@@ -28,10 +26,8 @@ class BaseClassGround:
         grid: np.ndarray = self.pathing.ground_grid
 
         for unit in units:
-
-            # Does not throw an error, if "self.bot.enemy_units" is empty
-            enemies = self.bot.enemy_units.filter(lambda enemy: enemy.distance_to(unit) > unit.range+12)
-
+            enemies = self.bot.enemy_units.\
+                filter(lambda enemy: enemy.distance_to(unit) > unit.range+12)
             if enemies:
                 attack_pos = self.pick_enemy_target(enemies, unit)
             else:
@@ -39,7 +35,6 @@ class BaseClassGround:
                     unit.position, attack_target, grid
                 )
             unit.attack(attack_pos)
-      
 
     def move_to_safety(self, unit: Unit, grid: np.ndarray):
         """

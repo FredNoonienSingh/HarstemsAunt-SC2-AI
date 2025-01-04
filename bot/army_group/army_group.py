@@ -157,15 +157,20 @@ class ArmyGroup:
     async def attack(self, attack_target:Union[Point2, Point3, Unit]) -> None:
         stalkers: Units = self.units(UnitTypeId.STALKER)
         zealots: Units = self.units(UnitTypeId.ZEALOT)
+        Immortals: Units = self.units(UnitTypeId.IMMORTAL)
         observer: Units = self.units(UnitTypeId.OBSERVER)
 
         if stalkers:
             await self.bot.stalkers.handle_attackers(
-                self.units(UnitTypeId.STALKER), attack_target
+                stalkers, attack_target
+            )
+        if Immortals:
+            await self.bot.stalkers.handle_attackers(
+                Immortals, attack_target
             )
         if zealots:
             await self.bot.zealots.handle_attackers(
-                self.units(UnitTypeId.ZEALOT), attack_target
+                zealots, attack_target
             )
         if observer:
             await self.bot.observers.move(

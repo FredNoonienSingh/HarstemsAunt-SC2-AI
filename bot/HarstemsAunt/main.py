@@ -1,7 +1,6 @@
 """MainClass of the Bot handling"""
 import os
 import csv
-import pickle
 import threading
 from datetime import datetime
 from typing import List
@@ -47,7 +46,7 @@ from Unit_Classes.DarkTemplar import DarkTemplar
 """Wrappers"""
 from HarstemsAunt.macro import marco
 # This could either be removed or the Army_group Control could be moved in here
-from HarstemsAunt.micro import micro
+#from HarstemsAunt.micro import micro
 
 DEBUG = True
 
@@ -91,7 +90,7 @@ class HarstemsAunt(BotAI):
         self.stargate_count:int = 1
 
         self.seen_enemys:list = []
-        self.enemies_lt_list: list = []     #Units in the last tick 
+        self.enemies_lt_list: list = []     #Units in the last tick
         self.enemy_supply:int = 0
         self.last_tick:int = 0
 
@@ -185,12 +184,7 @@ class HarstemsAunt(BotAI):
         self.army_groups.append(initial_army_group)
 
     async def on_step(self, iteration):
-
-        #if self.units:
-            #await self.client.move_camera(self.units.closest_to(self.enemy_start_locations[0]))
-
         labels = ["min_step","avg_step","max_step","last_step"]
-
         for i, value in enumerate(self.step_time):
             if value > 34:
                 color = (0, 0, 255)
@@ -221,20 +215,23 @@ class HarstemsAunt(BotAI):
             self.transfer_to: List[Unit] = []
             self.transfer_from_gas: List[Unit] = []
             self.transfer_to_gas: List[Unit] = []
-            self.resource_by_tag = {unit.tag: unit for unit in chain(self.mineral_field, self.gas_buildings)}
+            self.resource_by_tag = {unit.tag: unit for unit in \
+                chain(self.mineral_field, self.gas_buildings)}
 
             #TODO: #33 Write a cannon rush response, that actually works
             for townhall in self.townhalls:
                 workers_in_base = self.enemy_units.closer_than(15, townhall)\
                     .filter(lambda unit: unit.type_id in WORKER_IDS)
                 for worker in workers_in_base:
-                    close_worker = self.workers.closest_to(worker)
+                    close_worker = self.workers.prefer_idle.closest_to(worker)
                     close_worker.attack(worker)
 
             for worker in self.workers:
                 micro_worker(self, worker)
 
+            # THIS IS NEXT 
             build_pos = get_build_pos(self)
+
             if self.workers:
                 worker = self.workers.closest_to(build_pos)
             await self.distribute_workers()
@@ -298,7 +295,7 @@ class HarstemsAunt(BotAI):
     async def on_unit_created(self, unit):
         if unit.type_id in GATEWAY_UNTIS:
             self.army_groups[0].units_in_transit.append(unit.tag)
-        if unit.type_id == UnitTypeId.OBSERVER:
+        if unit.type_id == UnitTypeId.OBSERVER or unit.type_id == UnitTypeId.IMMORTAL:
             self.army_groups[0].units_in_transit.append(unit.tag)
 
     async def on_unit_type_changed(self, unit, previous_type):
