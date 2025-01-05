@@ -1,7 +1,4 @@
 from typing import Union
-from utils import Utils
-from common import INITIAL_TECH,UNIT_COMPOSIOTION
-
 
 from sc2.data import Alert
 from sc2.unit import Unit
@@ -14,6 +11,8 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 
+from .utils import Utils
+from .common import INITIAL_TECH,UNIT_COMPOSIOTION
 
 async def warp_in_unit(bot: BotAI,unit:UnitTypeId,warp_in_position:Union[Point2,Point3,Unit]) -> bool:
     pos:Point2= warp_in_position.position.to2.random_on_distance(4)

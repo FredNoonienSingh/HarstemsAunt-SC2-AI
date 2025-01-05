@@ -42,7 +42,7 @@ class Utils:
         return False
 
     @staticmethod
-    def get_intersection(p0: Point2, r0: float, p1:Point2, r1:float) -> Iterable[Point2]:
+    def get_intersections(p0: Point2, r0: float, p1:Point2, r1:float) -> Iterable[Point2]:
         p01 = p1 - p0
         d = np.linalg.norm(p01)
         if d == 0:

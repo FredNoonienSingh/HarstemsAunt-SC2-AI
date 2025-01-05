@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import numpy as np
 from enum import Enum
-from utils import Utils
+
 from typing import Union
 
 from sc2.unit import Unit
@@ -14,8 +14,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 
-from pathing import Pathing
-from common import WORKER_IDS
+from .utils import Utils
+from .pathing import Pathing
+from .common import WORKER_IDS
 
 class GroupStatus(Enum):
     ATTACKING = 1
