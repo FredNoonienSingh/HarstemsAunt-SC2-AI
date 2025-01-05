@@ -47,8 +47,7 @@ async def morph_transport(bot:BotAI, prism:Unit):
 
 """Structures"""
 
-async def chronoboost(bot:BotAI, nexus:Unit, target:Unit):
-    bot.do(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, target))
+
 
 async def shield_battery(bot:BotAI, battery:Unit, target:Unit):
     bot.do(battery(AbilityId.EFFECT_RESTORE, target))
