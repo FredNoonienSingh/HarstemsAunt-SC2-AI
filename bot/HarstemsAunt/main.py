@@ -27,14 +27,14 @@ from map_vision.map_sector import MapSector
 
 """Actions"""
 from actions.set_rally import set_rally, set_nexus_rally
-from actions.speedmining import get_speedmining_positions, \
+from bot.HarstemsAunt.speedmining import get_speedmining_positions, \
     split_workers, micro_worker
 
 """Utils"""
 from utils.get_build_pos import get_build_pos
 
 """Army Groups"""
-from army_group.army_group import ArmyGroup
+from bot.HarstemsAunt.army_group import ArmyGroup
 
 """Unit Classes"""
 # Ground

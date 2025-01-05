@@ -1,33 +1,27 @@
 """
     Army Group class
 """
-
 from __future__ import annotations
-from functools import cached_property
-from typing import Union
+
 import numpy as np
 from enum import Enum
+from utils import Utils
+from typing import Union
 
-"""SC2 Imports"""
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 
-"""Utils"""
-from utils.and_or import and_or
-from utils.can_build import can_build_unit
-from utils.in_proximity import in_proximity_to_point
-from HarstemsAunt.pathing import Pathing
-from HarstemsAunt.common import WORKER_IDS,logger
+from pathing import Pathing
+from common import WORKER_IDS
 
 class GroupStatus(Enum):
     ATTACKING = 1
     DEFENDING = 2
     RETREATING = 3
     REGROUPING = 4
-
 
 class ArmyGroup:
     def __init__(self, bot:BotAI, unit_list:list,units_in_transit:list,pathing:Pathing):
@@ -213,7 +207,7 @@ class ArmyGroup:
             # This could be handled more efficient if i could overwrite the Unit move command
             if self.pathing.is_position_safe(grid, unit.position):
                continue
-            if not in_proximity_to_point(self.bot, unit, self.retreat_pos, 15):
+            if not Utils.in_proximity_to_point(self.bot, unit, self.retreat_pos, 15):
                     unit.move(
                            self.pathing.find_path_next_point(
                                unit.position, self.retreat_pos, grid
@@ -236,7 +230,7 @@ class ArmyGroup:
         for unit in self.units:
             grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
                 else self.pathing.ground_grid
-            if not in_proximity_to_point(self.bot, unit, position, 20):
+            if not Utils.in_proximity_to_point(self.bot, unit, position, 20):
                 unit.move(
                     self.pathing.find_path_next_point(
                         unit.position, self.retreat_pos, grid
@@ -261,7 +255,7 @@ class ArmyGroup:
                     unit.position, self.position, grid
                 )
             )
-            if in_proximity_to_point(self.bot, unit, self.position, 10):
+            if Utils.in_proximity_to_point(self.bot, unit, self.position, 10):
                 self.units_in_transit.remove(unit.tag)
                 self.unit_list.append(unit.tag)
                 await self.bot.chat_send(f"Army Group: {self.name} got reinforced by {unit.type_id}")
@@ -280,7 +274,7 @@ class ArmyGroup:
         # CHECK RETREAT CONDITIONS
         shield_condition = self.average_shield_precentage < .45
         supply_condition = self.supply <= self.enemy_supply_in_proximity
-        if and_or(shield_condition, supply_condition):
+        if Utils.and_or(shield_condition, supply_condition):
             self.retreat()
             self.status = GroupStatus.RETREATING
             return

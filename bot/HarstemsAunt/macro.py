@@ -1,32 +1,49 @@
-"""SC2 Imports"""
-from sc2.bot_ai import BotAI
-from sc2.ids.unit_typeid import UnitTypeId
-
-from actions.expand import expand
-from actions.build_structure import build_gas
-
-"""Utils"""
-from utils.can_build import can_build_unit
-
-
-""" Rewrite """
 from typing import Union
-from actions.build_army import build_gateway_units, build_stargate_units, build_robo_units
-from .common import INITIAL_TECH,UNIT_COMPOSIOTION
+from utils import Utils
+from common import INITIAL_TECH,UNIT_COMPOSIOTION
+
 
 from sc2.data import Alert
 from sc2.unit import Unit
 from sc2.data import Race
+from sc2.units import Units
+from sc2.bot_ai import BotAI
 from sc2.ids.buff_id import BuffId
 from sc2.position import Point2, Point3
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.ids.unit_typeid import UnitTypeId
 
 
-# This needs to be taken out of their own files and be moved here
-from utils.can_build import can_research_upgrade
-from utils.can_build import can_build_structure
+async def warp_in_unit(bot: BotAI,unit:UnitTypeId,warp_in_position:Union[Point2,Point3,Unit]) -> bool:
+    pos:Point2= warp_in_position.position.to2.random_on_distance(4)
+    placement = await bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
 
+    for gate in bot.structures(UnitTypeId.WARPGATE).idle:
+        if Utils.can_build_unit(bot, unit):
+            gate.warp_in(unit, placement)
+
+async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
+    gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
+    if Utils.can_build_unit(bot, unit_type):
+        for gate in bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
+            if gate.is_idle and UpgradeId.WARPGATERESEARCH not in bot.researched:
+                gate.train(unit_type)
+            else:
+                warp_in_pos = Utils.get_warp_in_pos(bot)
+                await warp_in_unit(bot, unit_type, warp_in_pos)
+
+async def build_stargate_units(bot:BotAI, unit_type:UnitTypeId):
+    if Utils.can_build_unit(bot, unit_type):
+        for gate in bot.structures(UnitTypeId.STARGATE):
+            if gate.is_idle:
+                gate.train(unit_type)
+
+async def build_robo_units(bot:BotAI, unit_type:UnitTypeId):
+    if Utils.can_build_unit(bot, unit_type):
+        for robo in bot.structures(UnitTypeId.ROBOTICSFACILITY):
+            if robo.is_idle:
+                robo.train(unit_type)
 
 class Macro:
 
@@ -177,7 +194,7 @@ class Macro:
         else:
             await build_robo_units(self.bot, UnitTypeId.IMMORTAL)
 
-    async def build_supply(self) -> None: 
+    async def build_supply(self) -> None:
         if not self.bot.can_afford(UnitTypeId.PYLON) or self.bot.supply_cap == 200:
             return
         if can_build_structure(self.bot,UnitTypeId.PYLON) and not \
@@ -186,8 +203,22 @@ class Macro:
             worker:Unit = self.bot.workers.prefer_idle.closest_to(self.get_build_pos())
             await self.bot.build(UnitTypeId.PYLON, build_worker=worker, near=self.get_build_pos())
 
+    async def build_structure(self,structure:UnitTypeId,build_pos:Union[Point2,Point3,Unit],worker:Unit) -> None:
+        bot:BotAI = self.bot
+        if can_build_structure(bot, structure):
+            await bot.build(structure,near=build_pos,build_worker=worker)
+
+    async def build_gas(self,nexus:Unit) -> None:
+        bot:BotAI = self.bot
+        vespene: Units = bot.vespene_geyser.closer_than(12, nexus)[0]
+        if await bot.can_place_single(UnitTypeId.ASSIMILATOR, vespene.position):
+            workers: Units = bot.workers.gathering
+            if workers:
+                worker: Unit = workers.closest_to(vespene)
+                worker.build_gas(vespene)
+
     async def take_gas(self) -> None:
-        if self.townhall.is_ready and self.bot.structures(UnitTypeId.PYLON) \
+        if self.bot.townhall.is_ready and self.bot.structures(UnitTypeId.PYLON) \
             and self.bot.structures(UnitTypeId.GATEWAY) and\
             len(self.bot.structures(UnitTypeId.ASSIMILATOR)) < len(self.bot.structures(UnitTypeId.NEXUS).ready)*2 \
             and not self.bot.already_pending(UnitTypeId.ASSIMILATOR):
@@ -237,7 +268,19 @@ class Macro:
                 not struct.has_buff(BuffId.CHRONOBOOSTENERGYCOST) and struct.type_id in prio)\
                     .sorted(lambda struct: struct.orders[0].progress, reverse=True)
 
-            chrono_nexus = self.bot.structures(UnitTypeId.NEXUS).filter(lambda nexus: nexus.energy > 50)
             for struct in structures:
+                chrono_nexus = self.bot.structures(UnitTypeId.NEXUS).filter(lambda nexus: nexus.energy > 50)
                 if chrono_nexus:
-                    self.bot.do(chrono_nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, struct))
+                    chrono_nexus[0](AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, struct)
+
+    async def expand(self) -> None:
+        bot:BotAI = self.bot
+        if not bot.already_pending(UnitTypeId.NEXUS) and len(bot.structures(UnitTypeId.NEXUS))<bot.base_count:
+            location:Union[Point2,Point3] = await bot.get_next_expansion()
+            if location:
+                if not bot.enemy_units.filter(lambda unit: unit.distance_to(location) < 2.75):
+                    # Misplacing townhalls causes the Bot to crash, therefore it must be checked if the
+                    # Area is free to build
+                    # 2.75 is the radius of a nexus -
+                    # if a unit is closer than this a nexus would be build away from the location
+                    await bot.build(UnitTypeId.NEXUS, near=location, max_distance=0)
