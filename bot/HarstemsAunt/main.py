@@ -8,29 +8,23 @@ import threading
 from datetime import datetime
 from typing import List
 from itertools import chain
-from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
-    ATTACK_TARGET_IGNORE,logger
 
-"""SC2 Imports"""
 from sc2.unit import Unit
 from sc2.data import Race
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.ids.unit_typeid import UnitTypeId
 
-from HarstemsAunt.pathing import Pathing
 from map_analyzer import MapData
-
-
 from map_vision.map_sector import MapSector
-
 
 from .speedmining import get_speedmining_positions, \
     split_workers, micro_worker
-
-
+from .pathing import Pathing
+from .macro import Macro
 from .army_group import ArmyGroup
-
+from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
+    ATTACK_TARGET_IGNORE,logger
 
 from Unit_Classes.Archon import Archons
 from Unit_Classes.Zealots import Zealot
@@ -40,8 +34,6 @@ from Unit_Classes.observer import Observer
 from Unit_Classes.HighTemplar import HighTemplar
 from Unit_Classes.DarkTemplar import DarkTemplar
 
-"""Wrappers"""
-from .macro import Macro
 
 DEBUG = True
 
