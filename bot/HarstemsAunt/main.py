@@ -8,36 +8,24 @@ import threading
 from datetime import datetime
 from typing import List
 from itertools import chain
-from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
-    ATTACK_TARGET_IGNORE,logger
 
-"""SC2 Imports"""
 from sc2.unit import Unit
 from sc2.data import Race
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.ids.unit_typeid import UnitTypeId
 
-"""PATHING"""
-from HarstemsAunt.pathing import Pathing
 from map_analyzer import MapData
-
-"""MAP VISION"""
 from map_vision.map_sector import MapSector
 
-"""Actions"""
-from actions.set_rally import set_rally, set_nexus_rally
-from bot.HarstemsAunt.speedmining import get_speedmining_positions, \
+from .speedmining import get_speedmining_positions, \
     split_workers, micro_worker
+from .pathing import Pathing
+from .macro import Macro
+from .army_group import ArmyGroup
+from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
+    ATTACK_TARGET_IGNORE,logger
 
-"""Utils"""
-from utils.get_build_pos import get_build_pos
-
-"""Army Groups"""
-from bot.HarstemsAunt.army_group import ArmyGroup
-
-"""Unit Classes"""
-# Ground
 from Unit_Classes.Archon import Archons
 from Unit_Classes.Zealots import Zealot
 from Unit_Classes.Stalkers import Stalkers
@@ -46,14 +34,11 @@ from Unit_Classes.observer import Observer
 from Unit_Classes.HighTemplar import HighTemplar
 from Unit_Classes.DarkTemplar import DarkTemplar
 
-"""Wrappers"""
-from HarstemsAunt.macro import marco
-# This could either be removed or the Army_group Control could be moved in here
-#from HarstemsAunt.micro import micro
 
 DEBUG = True
 
 class HarstemsAunt(BotAI):
+    macro: Macro
     pathing: Pathing
     map_data: MapData
 
@@ -169,6 +154,7 @@ class HarstemsAunt(BotAI):
 
     async def on_start(self):
         self.pathing = Pathing(self, DEBUG)
+        self.macro = Macro(self)
         self.stalkers = Stalkers(self, self.pathing)
         self.zealots = Zealot(self, self.pathing)
         self.observers = Observer(self, self.pathing)
@@ -231,14 +217,8 @@ class HarstemsAunt(BotAI):
 
             for worker in self.workers:
                 micro_worker(self, worker)
-
-            # THIS IS NEXT 
-            build_pos = get_build_pos(self)
-
-            if self.workers:
-                worker = self.workers.closest_to(build_pos)
             await self.distribute_workers()
-            await marco(self, worker, build_pos)
+            await self.macro()
 
             # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0])\
@@ -258,12 +238,7 @@ class HarstemsAunt(BotAI):
             await self.client.leave()
 
     async def on_building_construction_started(self,unit):
-        if self.time < 60:
-            if unit.type_id == UnitTypeId.PYLON:
-                for nexus in self.structures(UnitTypeId.NEXUS):
-                    minerals =  \
-                        self.expansion_locations_dict[nexus.position].mineral_field.sorted_by_distance_to(nexus)
-                    await set_nexus_rally(self, nexus, minerals.closest_to(nexus))
+        pass
 
     async def on_building_construction_complete(self, unit):
         match unit.name:
@@ -276,16 +251,6 @@ class HarstemsAunt(BotAI):
             case "Assimilator":
                 if self.gas_count < 2:
                     self.gas_count += 1
-            case "Gateway":
-                try:
-                    await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
-                except Exception as e:
-                    logger.info(f"can not set rally point due to {e} ")
-            case "RoboticsFacility":
-                try:
-                    await set_rally(self,unit, self.structures(UnitTypeId.NEXUS).center)
-                except Exception as e:
-                    logger.info(f"can not set rally point due to {e} ")
 
     async def on_enemy_unit_entered_vision(self, unit):
         if not unit.tag in self.seen_enemys and unit.type_id not in WORKER_IDS:
@@ -320,7 +285,6 @@ class HarstemsAunt(BotAI):
         self.researched.append(upgrade)
 
     async def on_end(self,game_result):
-        logger.error("I get Called")
         data:list = [self.match_id, game_result, self.version, self.time]
         filename = f"{self.opponent_data_path}/results.csv"
 

@@ -1,19 +1,15 @@
 #TODO: #49 Write own speedmining Implentation
 """ Stolen Code needs to be reviewed and rewritten for my bot """
 
-import numpy as np
-import math
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.ability_id import AbilityId
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.position import Point2
-from sc2.bot_ai import BotAI
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Dict, Set
 
-from HarstemsAunt.common import SPEEDMINING_DISTANCE
-from utils.find_intersection import get_intersections
-
+from .common import SPEEDMINING_DISTANCE
+from .utils import Utils
 
 # fix workers bumping into adjacent minerals by slightly shifting the move commands
 def get_speedmining_positions(self) -> Dict[Point2, Point2]:
@@ -25,7 +21,7 @@ def get_speedmining_positions(self) -> Dict[Point2, Point2]:
             mining_radius = resource.radius + worker_radius
             target = resource.position.towards(base, mining_radius)
             for resource2 in resources.closer_than(mining_radius, target):
-                points = get_intersections(resource.position, mining_radius, resource2.position,
+                points = Utils.get_intersections(resource.position, mining_radius, resource2.position,
                                             resource2.radius + worker_radius)
                 target = min(points, key=lambda p: p.distance_to(self.start_location), default=target)
             targets[resource.position] = target
