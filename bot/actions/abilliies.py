@@ -48,6 +48,5 @@ async def morph_transport(bot:BotAI, prism:Unit):
 """Structures"""
 
 
-
 async def shield_battery(bot:BotAI, battery:Unit, target:Unit):
     bot.do(battery(AbilityId.EFFECT_RESTORE, target))

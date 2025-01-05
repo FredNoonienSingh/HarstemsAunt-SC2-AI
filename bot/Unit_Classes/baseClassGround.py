@@ -12,6 +12,7 @@ from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
     ALL_STRUCTURES, PRIO_ATTACK_TARGET, WORKER_IDS,logger
 
 class BaseClassGround:
+
     def __init__(self, bot:BotAI, pathing:Pathing):
         self.bot:BotAI=bot
         self.pathing:Pathing=pathing
@@ -46,6 +47,24 @@ class BaseClassGround:
             unit.position, safe_spot, grid
         )
         unit.move(move_to)
+
+    async def stay_out_of_range(self, unit:Unit):
+        enemy_units:Units = self.bot.enemy_units.closer_than(15, unit)
+        # 15 is the hightest attack range in the Game / any unit further away cant be in range 
+        enemy_structures:Units = self.bot.enemy_structures.closer_than(8, unit)
+        # 8 is the range of a turret with range upgrade - no structure has a higher range 
+        possible_threads: list = [unit for unit in enemy_units]
+        for structure in enemy_structures:
+            possible_threads.append(structure)
+        for enemy in possible_threads:
+            if not enemy.can_attack:
+                continue
+            if unit.is_flying:
+                if enemy.can_attack_air and enemy.distance_to(unit)< enemy.air_range+2:
+                    unit.move(unit.position.towards(enemy, -1))
+                    continue
+            if enemy.can_attack_ground and enemy.distance_to(unit)<enemy.ground_range+2:
+                unit.move(unit.position.towards(enemy, -5))
 
     @staticmethod
     def pick_enemy_target(enemies: Units, attacker:Unit) -> Unit:
