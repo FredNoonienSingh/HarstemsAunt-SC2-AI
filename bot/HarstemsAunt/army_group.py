@@ -224,7 +224,6 @@ class ArmyGroup:
 
         self.units.furthest_to(self.position).move(self.position)
 
-
     # TODO: #29 very basic, needs to be Adjusted to account for different, Unit types
     def defend(self, position:Union[Point2,Point3,Unit]) -> None:
         enemy_units = self.bot.enemy_units.closer_than(25, position)
