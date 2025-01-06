@@ -1,7 +1,18 @@
-# HARSTEM'S AUNT STAR-CRAFT 2 BOT AI
- 
 <div align="center">
-<img src="https://i.ibb.co/fMDpVx6/Add-a-heading.png"/>
+
+ # HARSTEM'S AUNT STAR-CRAFT 2 BOT AI
+
+</div>
+
+![Static Badge](https://img.shields.io/badge/race-protoss-green?style=for-the-badge&logo=alienware)
+![Static Badge](https://img.shields.io/badge/Name-HarstemsAunt-green?style=for-the-badge&link=https%3A%2F%2Faiarena.net%2Fbots%2F808%2F)
+![Static Badge](https://img.shields.io/badge/python-3.12.5-blue?style=for-the-badge&logo=python&logoColor=yellow&link=https%3A%2F%2Fstarcraft.fandom.com%2Fwiki%2FProtoss)
+![Static Badge](https://img.shields.io/badge/Youtube-HarstemsAunt-red?style=for-the-badge&cacheSeconds=https%3A%2F%2Fwww.youtube.com%2F%40HarstemsAunt)
+
+
+
+<div align="center">
+<img src="https://i.ibb.co/fMDpVx6/Add-a-heading.png" width="100%"/>
 </div>
 
 We tried to get a bot to play like Harstem by scanning the brain of his Aunt - sadly the ability to play SC2 is not genetic. 
