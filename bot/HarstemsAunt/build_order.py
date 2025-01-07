@@ -1,4 +1,7 @@
-from typing import Union, List, Enum
+from enum import Enum
+from typing import Union, List
+
+from .common import ALL_STRUCTURES
 
 from sc2.unit import Unit
 from sc2.units import Units
@@ -6,7 +9,7 @@ from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 from sc2.ids.unit_typeid import UnitTypeId
 
-from .common import ALL_STRUCTURES, logger
+
 
 class InstructionType(Enum):
     UNIT_PRODUCTION = 1
@@ -18,10 +21,10 @@ class BuildInstruction:
     including upgrades and unit production. 
     """
 
-    def __init__(self, type_id:UnitTypeId, position:Union[Point2,Point3,Unit], accuracy:float) -> None:
+    def __init__(self, type_id:UnitTypeId, position:Union[Point2,Point3,Unit]) -> None:
         self.type_id = type_id
         self.position = position
-        self.accuracy = accuracy
+        #self.accuracy = accuracy
 
     @property
     def instruction_type(self) -> InstructionType:
@@ -44,6 +47,10 @@ class BuildOrder:
     def step(self) -> int:
         return 0
 
+    @step.setter
+    def step(self, new_value:int) -> None:
+       self.step = new_value
+    
     @property
     def constructed_structures(self) -> List[UnitTypeId]:
         return []
@@ -72,36 +79,44 @@ class BuildOrder:
 
     def get_build_pos(self) -> Union[Point2, Point3, Unit]:
         # First Pylon Position
+
+        start_pos: Point2 = self.bot.start_location
+
         if not self.bot.structures(UnitTypeId.PYLON):
             return self.bot.main_base_ramp.protoss_wall_pylon
-        if self.bot.structures(UnitTypeId.PYLON):
+        if len(self.bot.structures(UnitTypeId.PYLON)) == 1:
             minerals:Units = self.bot.expansion_locations_dict[self.bot.start_location].mineral_field
             return self.bot.start_location.towards(self.bot.start_location.furthest(minerals).position, 10)
-        return self.bot.start_location.towards(self.bot.game_info.map_center,2)
+        if len(self.bot.structures(UnitTypeId.PYLON)) == 2:
+            return start_pos.towards(self.bot.game_info.map_center, 6.5)
+        return self.bot.start_location.towards(self.bot.game_info.map_center,10)
 
     async def update(self):
         # Does only be set once
-        if not self.opponent_builds_air:
-            if self.bot.enemy_units.filter(lambda unit: unit.is_flying \
-                and not unit.can_attack):
-                self.opponent_builds_air = True
-                await self.bot.chat_send("I see you got an AirForce, i can do that too")
+        """ THIS WILL BE MANAGED BY THE BOT CLASS
+        if self.bot.enemy_units:
+            if not self.opponent_builds_air:
+                if self.bot.enemy_units.filter(lambda unit: unit.is_flying \
+                    and not unit.can_attack):
+                    self.opponent_builds_air = True
+                    await self.bot.chat_send("I see you got an AirForce, i can do that too")
 
-        # Does only be set once
-        if not self.opponent_uses_cloak:
-            if self.bot.enemy_units\
-                .filter(lambda unit: unit.is_cloaked and unit.can_attack \
-                    or unit.is_burrowed and unit.can_attack):
-                self.opponent_uses_cloak = True
-                await self.bot.chat_send("Stop hiding and fight like a honorable ... ähm... Robot?\ndo computers have honor ?")
-
+            # Does only be set once
+            if not self.opponent_uses_cloak:
+                if self.bot.enemy_units\
+                    .filter(lambda unit: unit.is_cloaked and unit.can_attack \
+                        or unit.is_burrowed and unit.can_attack):
+                    self.opponent_uses_cloak = True
+                    await self.bot.chat_send("Stop hiding and fight like a honorable ... \
+                        ähm... Robot?\ndo computers have honor ?")
+        """
         self.debug_build_pos(self.get_build_pos())
 
     def debug_build_pos(self, pos:Union[Point2, Point3]):
         z = self.bot.get_terrain_z_height(pos)+1
         x,y = pos.x, pos.y
         pos_3d = Point3((x,y,z))
-        self.bot.client.debug_sphere_out(pos_3d ,2, (255,255,0))
+        self.bot.client.debug_sphere_out(pos_3d ,.2, (255,255,0))
 
     def next_instruction(self) -> BuildInstruction:
         return BuildInstruction(UnitTypeId.PYLON, self.get_build_pos())
