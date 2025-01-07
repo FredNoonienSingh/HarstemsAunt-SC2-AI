@@ -52,9 +52,9 @@ class Macro:
         self.bot = bot
         self.temp:list = []
         self.mined_out_bases: list = []
-
+        self.build_order = self.bot.build_order
         # Move to Bot_class
-        self.build_order:BuildOrder = BuildOrder(self.bot)
+   
 
     @property
     def unit_composition(self) -> list:
@@ -87,9 +87,10 @@ class Macro:
     async def build_infrastructure(self):
 
         next_step: BuildInstruction = self.build_order.next_instruction()
-        logger.info(next_step)
-        if Utils.can_build_structure(self.bot, next_step.structure):
-            await self.bot.build(next_step.structure,near=next_step.position,max_distance=0,build_worker=self.get_build_worker())
+        #logger.info(next_step)
+        if Utils.can_build_structure(self.bot, next_step.type_id):
+            await self.bot.build(next_step.type_id,near=next_step.position,\
+                max_distance=0,build_worker=self.get_build_worker())
 
     def get_upgrades(self) -> None:
         attack = [

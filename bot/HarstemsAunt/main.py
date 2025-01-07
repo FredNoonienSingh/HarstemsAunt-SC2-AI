@@ -1,7 +1,5 @@
 """MainClass of the Bot handling"""
 
-#TODO: #51 NEEDS to be cleaned up !
-
 import os
 import csv
 import threading
@@ -18,14 +16,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from map_analyzer import MapData
 from map_vision.map_sector import MapSector
 
-from .speedmining import get_speedmining_positions, \
-    split_workers, micro_worker
-from .pathing import Pathing
-from .macro import Macro
-from .army_group import ArmyGroup
-from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,\
-    ATTACK_TARGET_IGNORE,logger
-
+#TODO: #63 Move UnitClasses into Micro class when ready
 from Unit_Classes.Archon import Archons
 from Unit_Classes.Zealots import Zealot
 from Unit_Classes.Stalkers import Stalkers
@@ -34,6 +25,12 @@ from Unit_Classes.observer import Observer
 from Unit_Classes.HighTemplar import HighTemplar
 from Unit_Classes.DarkTemplar import DarkTemplar
 
+from .macro import Macro
+from .pathing import Pathing
+from .army_group import ArmyGroup
+from .build_order import BuildOrder
+from .speedmining import get_speedmining_positions,split_workers, micro_worker
+from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,ALL_STRUCTURES,logger
 
 DEBUG = True
 
@@ -86,6 +83,10 @@ class HarstemsAunt(BotAI):
         self.fighting_probes:list = []
         self.map_sectors:list = []
         self.army_groups:list = []
+
+    @property
+    def build_order(self) -> BuildOrder:
+        return BuildOrder(self)
 
     @property
     def greeting(self):
@@ -169,10 +170,17 @@ class HarstemsAunt(BotAI):
             sector.build_sector()
         split_workers(self)
 
+        await self.client.debug_all_resources()
+        await self.client.debug_fast_build()
+        
         initial_army_group:ArmyGroup = ArmyGroup(self, [],[],self.pathing)
         self.army_groups.append(initial_army_group)
 
     async def on_step(self, iteration):
+        
+        if self.minerals < 1000 or self.vespene < 1000:
+            await self.client.debug_all_resources()
+        
         labels = ["min_step","avg_step","max_step","last_step"]
         for i, value in enumerate(self.step_time):
             if value > 34:
@@ -238,7 +246,8 @@ class HarstemsAunt(BotAI):
             await self.client.leave()
 
     async def on_building_construction_started(self,unit):
-        pass
+        if unit in ALL_STRUCTURES:
+            self.build_order.increment_step()
 
     async def on_building_construction_complete(self, unit):
         match unit.name:
@@ -256,6 +265,18 @@ class HarstemsAunt(BotAI):
         if not unit.tag in self.seen_enemys and unit.type_id not in WORKER_IDS:
             self.seen_enemys.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
+
+        if not self.build_order.opponent_builds_air:
+            if unit.is_flying and not unit.can_attack:
+                self.build_order.opponent_builds_air = True
+                await self.chat_send("I see you got an AirForce, i can do that too")
+
+        if not self.build_order.opponent_uses_cloak:
+            if (unit.is_cloaked and unit.can_attack) \
+                or (unit.is_burrowed and unit.can_attack):
+                self.build_order.opponent_uses_cloak = True
+                await self.chat_send("Stop hiding and fight like a honorable ... \
+                        ähm... Robot?\ndo computers have honor ?")
 
     async def on_enemy_unit_left_vision(self, unit_tag):
         pass
