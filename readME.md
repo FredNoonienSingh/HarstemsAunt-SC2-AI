@@ -21,7 +21,11 @@ We tried to get a bot to play like Harstem by scanning the brain of his Aunt - s
 #### Watch me on [Youtube](https://www.youtube.com/channel/UCdnBJFMuxMgG0ZHOhxdIJmA)
 ---
 
-## Version 1.0
+## Version Histroy
+<details>
+  <summary>Version 1.0.x</summary>
+
+### Version 1.0
 - Initial deployment, builds blink Stalkers, Chargelots and a few Phoenixes. 
 
 #### Version 1.0.1
@@ -47,10 +51,16 @@ We tried to get a bot to play like Harstem by scanning the brain of his Aunt - s
 - Fixed bug that caused stalkers to get stuck
 
 #### Version 1.0.6 
-- reworked Army Movement 
+- reworked Army Movement
+  
+</details>
 
-### Currently working on version 1.1 
+<details>
+  <summary>Version 1.1.x</summary>
 
+### Currently under development
+
+</details>
 ---
 
 <div align="center">
