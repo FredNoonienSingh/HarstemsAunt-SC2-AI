@@ -19,6 +19,7 @@ We tried to get a bot to play like Harstem by scanning the brain of his Aunt - s
 
 #### Find me on [AI-Arena](https://aiarena.net/bots/808/)
 #### Watch me on [Youtube](https://www.youtube.com/channel/UCdnBJFMuxMgG0ZHOhxdIJmA)
+
 ---
 
 ## Version Histroy
@@ -61,6 +62,7 @@ We tried to get a bot to play like Harstem by scanning the brain of his Aunt - s
 ### Currently under development
 
 </details>
+
 ---
 
 <div align="center">
