@@ -24,7 +24,7 @@ We tried to get a bot to play like Harstem by scanning the brain of his Aunt - s
 
 ## Version Histroy
 <details>
-  <summary>Version 1.0.x</summary>
+  <summary>Version 1.0</summary>
 
 ### Version 1.0
 - Initial deployment, builds blink Stalkers, Chargelots and a few Phoenixes. 
@@ -57,7 +57,7 @@ We tried to get a bot to play like Harstem by scanning the brain of his Aunt - s
 </details>
 
 <details>
-  <summary>Version 1.1.x</summary>
+  <summary>Version 1.1</summary>
 
 ### Currently under development
 
