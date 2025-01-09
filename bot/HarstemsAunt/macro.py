@@ -83,13 +83,21 @@ class Macro:
         return self.bot.workers.closest_to(self.build_order.get_build_pos())
 
     async def build_infrastructure(self) -> None:
-        next_step: BuildInstruction = self.build_order.next_instruction()
-        logger.info(next_step)
-        if next_step:
-            if Utils.can_build_structure(self.bot, next_step.type_id)and\
+
+        # Inner function because i am very Lazy
+        async def construct_building(next_step:BuildInstruction):
+              if Utils.can_build_structure(self.bot, next_step.type_id)and\
                 not self.bot.already_pending(next_step.type_id):
                 await self.bot.build(next_step.type_id,near=next_step.position,\
                     max_distance=next_step.accuracy,build_worker=self.get_build_worker())
+
+        next_step: BuildInstruction = self.build_order.next_instruction()
+        if next_step:
+            await construct_building(next_step)
+        if not next_step and self.build_order.buffer:
+            next_step = self.build_order.get_instruction_from_buffer()
+            await construct_building(next_step)
+
 
     def get_upgrades(self) -> None:
         attack = [
