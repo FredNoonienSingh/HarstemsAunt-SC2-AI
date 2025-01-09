@@ -28,7 +28,7 @@ MAP_LIST: list = [
     "AbyssalReefAIE",
     "AcropolisAIE",
     "AutomatonAIE",
-    "EphemeronAIE",
+    #"EphemeronAIE",
     "InterloperAIE",
     "ThunderbirdAIE"
 ]

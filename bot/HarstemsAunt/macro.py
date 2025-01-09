@@ -52,9 +52,7 @@ class Macro:
         self.bot = bot
         self.temp:list = []
         self.mined_out_bases: list = []
-        self.build_order = self.bot.build_order
-        # Move to Bot_class
-   
+        self.build_order = BuildOrder(self.bot)
 
     @property
     def unit_composition(self) -> list:
@@ -74,23 +72,24 @@ class Macro:
         await self.build_infrastructure()
 
         await self.build_order.update()
-
+        self.build_probes()
         if self.bot.alert:
             self.handle_alerts(self.bot.alert)
-        if self.bot.units(UnitTypeId.CYBERNETICSCORE) or self.bot.already_pending(UnitTypeId.CYBERNETICSCORE):
+        if self.bot.units(UnitTypeId.CYBERNETICSCORE) \
+            or self.bot.already_pending(UnitTypeId.CYBERNETICSCORE):
             await self.expand()
-        self.build_probes()
 
     def get_build_worker(self) -> Unit:
         return self.bot.workers.closest_to(self.build_order.get_build_pos())
 
-    async def build_infrastructure(self):
-
+    async def build_infrastructure(self) -> None:
         next_step: BuildInstruction = self.build_order.next_instruction()
-        #logger.info(next_step)
-        if Utils.can_build_structure(self.bot, next_step.type_id):
-            await self.bot.build(next_step.type_id,near=next_step.position,\
-                max_distance=0,build_worker=self.get_build_worker())
+        logger.info(next_step)
+        if next_step:
+            if Utils.can_build_structure(self.bot, next_step.type_id)and\
+                not self.bot.already_pending(next_step.type_id):
+                await self.bot.build(next_step.type_id,near=next_step.position,\
+                    max_distance=next_step.accuracy,build_worker=self.get_build_worker())
 
     def get_upgrades(self) -> None:
         attack = [
