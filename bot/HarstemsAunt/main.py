@@ -53,40 +53,25 @@ class HarstemsAunt(BotAI):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.name = "HarstemsAunt"
-        self.version = "1.6 alpha"
+        self.version = "1.1 alpha"
         self.race:Race = Race.Protoss
+
+        self.base_count = 0
 
         self.start_time = None
         self.game_step = None
         self.speedmining_positions = None
 
         self.expand_locs:list = []
-        self.temp:list = []
-        self.mined_out_bases:list = []
         self.researched:list = []
 
-        # Move in to one tuple
-        self.base_count:int = 5
-        self.gas_count:int = 1
-
-        # Rework build order so that is not necessary anymore
-        self.gateway_count:int = 1
-        self.robo_count:int = 1
-        self.stargate_count:int = 1
-
         self.seen_enemys:list = []
-        self.enemies_lt_list: list = []     #Units in the last tick
+        self.enemies_lt_list: list = []
         self.enemy_supply:int = 0
         self.last_tick:int = 0
 
-        self.scout_probe_tag:int = None
-        self.fighting_probes:list = []
         self.map_sectors:list = []
         self.army_groups:list = []
-
-    @property
-    def build_order(self) -> BuildOrder:
-        return BuildOrder(self)
 
     @property
     def greeting(self):
@@ -177,10 +162,10 @@ class HarstemsAunt(BotAI):
         self.army_groups.append(initial_army_group)
 
     async def on_step(self, iteration):
-        
+
         if self.minerals < 1000 or self.vespene < 1000:
             await self.client.debug_all_resources()
-        
+
         labels = ["min_step","avg_step","max_step","last_step"]
         for i, value in enumerate(self.step_time):
             if value > 34:
@@ -201,10 +186,10 @@ class HarstemsAunt(BotAI):
 
         for group in self.army_groups:
             await group.update(self.get_attack_target)
-            self.client.debug_text_screen(f"{group.name}: {group.attack_pos}", \
+            self.client.debug_text_screen(f"{group.name}: {group.attack_pos}",\
                 (.25, 0.025), color=(255,255,255), size=20)
-            self.client.debug_text_screen(f"Supply:{group.supply} \
-                Enemysupply:{group.enemy_supply_in_proximity}", \
+            self.client.debug_text_screen(f"Supply:{group.supply}\
+                Enemysupply:{group.enemy_supply_in_proximity}",\
                     (.25, 0.05), color=(255,255,255), size=20)
 
         if self.townhalls and self.units:
@@ -237,7 +222,6 @@ class HarstemsAunt(BotAI):
 
             return
 
-        # If the Game is lost, but i want to insult the Opponent before i leave
         if self.last_tick == 0:
             await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also \
                 {self.enemy_race} is IMBA")
@@ -246,35 +230,30 @@ class HarstemsAunt(BotAI):
             await self.client.leave()
 
     async def on_building_construction_started(self,unit):
-        if unit in ALL_STRUCTURES:
-            self.build_order.increment_step()
+        logger.info(f"construction of {unit} started")
+        self.macro.build_order.increment_step()
 
     async def on_building_construction_complete(self, unit):
-        match unit.name:
-            case "Nexus":
-                self.gateway_count += 3
-                if len(self.structures(UnitTypeId.NEXUS)) >= 3:
-                    self.gas_count += 2
-            case "Cyberneticscore":
-                self.gateway_count += 1
-            case "Assimilator":
-                if self.gas_count < 2:
-                    self.gas_count += 1
+        self.macro.build_order.constructed_structures.append(unit.type_id)
 
     async def on_enemy_unit_entered_vision(self, unit):
         if not unit.tag in self.seen_enemys and unit.type_id not in WORKER_IDS:
             self.seen_enemys.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
 
-        if not self.build_order.opponent_builds_air:
-            if unit.is_flying and not unit.can_attack:
-                self.build_order.opponent_builds_air = True
+        if not self.macro.build_order.opponent_builds_air:
+            if unit.is_flying and unit.can_attack:
+                self.macro.build_order.opponent_builds_air = True
                 await self.chat_send("I see you got an AirForce, i can do that too")
 
-        if not self.build_order.opponent_uses_cloak:
+        if not self.macro.build_order.opponent_has_detection:
+            if unit.is_detector:
+                self.macro.build_order.opponent_has_detection = True
+
+        if not self.macro.build_order.opponent_uses_cloak:
             if (unit.is_cloaked and unit.can_attack) \
                 or (unit.is_burrowed and unit.can_attack):
-                self.build_order.opponent_uses_cloak = True
+                self.macro.build_order.opponent_uses_cloak = True
                 await self.chat_send("Stop hiding and fight like a honorable ... \
                         ähm... Robot?\ndo computers have honor ?")
 
