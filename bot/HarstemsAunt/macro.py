@@ -12,8 +12,8 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 
 from .utils import Utils
-from .build_order import BuildOrder, BuildInstruction
-from .common import INITIAL_TECH,UNIT_COMPOSIOTION,logger
+from .build_order import BuildOrder, BuildInstruction, InstructionType
+from .common import GATEWAY_UNTIS, ROBO_UNITS, STARGATE_UNITS, logger
 
 async def warp_in_unit(bot: BotAI,unit:UnitTypeId,\
     warp_in_position:Union[Point2,Point3,Unit]) -> bool:
@@ -54,9 +54,10 @@ class Macro:
         self.mined_out_bases: list = []
         self.build_order = BuildOrder(self.bot)
 
-    @property
-    def unit_composition(self) -> list:
-        return UNIT_COMPOSIOTION.get(self.bot.race)
+    # Move to Build Order:
+    #@property
+    #def unit_composition(self) -> list:
+    #    return UNIT_COMPOSIOTION.get(self.bot.race)
 
     @property
     def gas_count(self) -> int:
@@ -67,37 +68,65 @@ class Macro:
         return 0
 
     async def __call__(self):
-        await self.chronoboost()
-        self.get_upgrades()
-        await self.build_infrastructure()
-
-        await self.build_order.update()
-        self.build_probes()
         if self.bot.alert:
             self.handle_alerts(self.bot.alert)
-        if self.bot.units(UnitTypeId.CYBERNETICSCORE) \
-            or self.bot.already_pending(UnitTypeId.CYBERNETICSCORE):
-            await self.expand()
+        
+        await self.chronoboost()
+        self.get_upgrades()
+        
+        await self.handle_instructions()
+        await self.build_order.update()
+        
+        self.build_probes()
+
+        # Move to Build order 
+        #await self.expand()
 
     def get_build_worker(self) -> Unit:
         return self.bot.workers.closest_to(self.build_order.get_build_pos())
 
-    async def build_infrastructure(self) -> None:
+    def get_production_structure(self, unit_type: UnitTypeId) -> UnitTypeId:
 
-        # Inner function because i am very Lazy
+        if unit_type in GATEWAY_UNTIS:
+            if not self.bot.units(UnitTypeId.WARPGATE):
+                return UnitTypeId.GATEWAY
+            return UnitTypeId.WARPGATE
+        if unit_type in ROBO_UNITS:
+            return UnitTypeId.ROBOTICSFACILITY
+        if unit_type in STARGATE_UNITS:
+            return UnitTypeId.STARGATE
+
+    async def handle_instructions(self) -> None:
+
         async def construct_building(next_step:BuildInstruction):
               if Utils.can_build_structure(self.bot, next_step.type_id)and\
                 not self.bot.already_pending(next_step.type_id):
                 await self.bot.build(next_step.type_id,near=next_step.position,\
                     max_distance=next_step.accuracy,build_worker=self.get_build_worker())
 
+        async def train_unit(next_step:BuildInstruction):
+            #TODO: ADD WARPPRISM LOGIC, SO REINFORCEMENTS CAN BE WARPED IN CLOSE TO FIGHT
+            unit_type: UnitTypeId = next_step.type_id
+            production_structure_type = self.get_production_structure(unit_type)
+            production_structures: Units = self.bot.units(production_structure_type).idle
+            
+            if Utils.can_build_unit(self.bot, next_step.type_id) and production_structures:
+                if not production_structure_type in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY]:
+                    production_structures[0].train(unit_type)
+                    return
+                await build_gateway_units(self.bot,unit_type)
+
         next_step: BuildInstruction = self.build_order.next_instruction()
-        if next_step:
-            await construct_building(next_step)
         if not next_step and self.build_order.buffer:
             next_step = self.build_order.get_instruction_from_buffer()
-            await construct_building(next_step)
+        if not next_step and not self.build_order.buffer:
+            return
 
+        match next_step.instruction_type:
+            case InstructionType.BUILD_STRUCTURE:
+                await construct_building(next_step)
+            case InstructionType.UNIT_PRODUCTION:
+                await train_unit(next_step)
 
     def get_upgrades(self) -> None:
         attack = [
@@ -220,9 +249,11 @@ class Macro:
                 self.temp = self.mined_out_bases
 
     def build_probes(self) -> None:
+ 
         probe_count:int = len(self.bot.structures(UnitTypeId.NEXUS))*16 + len(self.bot.structures(UnitTypeId.ASSIMILATOR))*3
         if self.bot.structures(UnitTypeId.PYLON):
-            for townhall in self.bot.units(UnitTypeId.NEXUS).idle:
+            for townhall in self.bot.townhalls:
+                logger.info(f"{townhall} -> here")
                 if Utils.can_build_unit(self.bot, UnitTypeId.PROBE) and len(self.bot.workers) < probe_count:
                     townhall.train(UnitTypeId.PROBE)
 

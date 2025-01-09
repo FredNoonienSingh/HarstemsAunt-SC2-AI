@@ -4,6 +4,8 @@ from typing import Set, Dict
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
+DT_TIMING:float = 480
+
 UNIT_COMPOSIOTION:Dict = {
     Race.Protoss: [UnitTypeId.STALKER,
                   UnitTypeId.ZEALOT,
@@ -28,7 +30,7 @@ MAP_LIST: list = [
     "AbyssalReefAIE",
     "AcropolisAIE",
     "AutomatonAIE",
-    #"EphemeronAIE",
+    "EphemeronAIE",
     "InterloperAIE",
     "ThunderbirdAIE"
 ]

@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Union, List
 from functools import cached_property
 
-from .common import ALL_STRUCTURES, INITIAL_TECH, logger
+from .common import ALL_STRUCTURES, INITIAL_TECH, DT_TIMING,logger
 
 from sc2.unit import Unit
 from sc2.data import Race
@@ -24,11 +24,12 @@ class BuildInstruction:
     def __new__(cls,type_id:UnitTypeId,position:Union[Point2,Point3,Unit]=None,accuracy:int=0):
         instance = super().__new__(cls)
         instance.type_id = type_id
+        # Position is only used when a Warpprism is present
         instance.position = position
         instance.accuracy = accuracy
         return instance
 
-    def __init__(self, type_id:UnitTypeId, position:Union[Point2,Point3,Unit], accuracy:int=0) -> None:
+    def __init__(self,type_id:UnitTypeId, position:Union[Point2,Point3,Unit], accuracy:int=0) -> None:
         self.type_id = type_id
         self.position = position
         self.accuracy = accuracy
@@ -109,7 +110,8 @@ class BuildOrder:
 
     @opponent_has_detection.setter
     def opponent_has_detection(self, status:bool) -> None:
-        self.opponent_has_detection = status 
+        # for some reason is this causing max iter-depth issues
+        self.opponent_has_detection = status
 
     def increment_step(self) -> None:
         self.step = self.step + 1
@@ -128,7 +130,7 @@ class BuildOrder:
         if self.opponent_builds_air and not self.bot.structures(UnitTypeId.STARGATE):
             self.instruction_list.append(BuildInstruction(UnitTypeId.STARGATE,self.get_build_pos()))
 
-        if self.bot.time > 35:
+        if self.bot.time > DT_TIMING:
             if not self.opponent_has_detection and not self.bot.structures(UnitTypeId.DARKSHRINE)\
                 and UnitTypeId.DARKSHRINE not in self.buffer:
                 self.buffer.append(UnitTypeId.DARKSHRINE)
