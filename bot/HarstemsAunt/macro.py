@@ -59,14 +59,6 @@ class Macro:
     #def unit_composition(self) -> list:
     #    return UNIT_COMPOSIOTION.get(self.bot.race)
 
-    @property
-    def gas_count(self) -> int:
-        return 0
-
-    @property
-    def base_count(self) -> int:
-        return 0
-
     async def __call__(self):
         if self.bot.alert:
             self.handle_alerts(self.bot.alert)
@@ -79,16 +71,13 @@ class Macro:
         
         self.build_probes()
 
-        # Move to Build order 
-        #await self.expand()
-
     def get_build_worker(self) -> Unit:
         return self.bot.workers.closest_to(self.build_order.get_build_pos())
 
     def get_production_structure(self, unit_type: UnitTypeId) -> UnitTypeId:
 
         if unit_type in GATEWAY_UNTIS:
-            if not self.bot.units(UnitTypeId.WARPGATE):
+            if not self.bot.structures(UnitTypeId.WARPGATE):
                 return UnitTypeId.GATEWAY
             return UnitTypeId.WARPGATE
         if unit_type in ROBO_UNITS:
@@ -99,7 +88,20 @@ class Macro:
     async def handle_instructions(self) -> None:
 
         async def construct_building(next_step:BuildInstruction):
-              if Utils.can_build_structure(self.bot, next_step.type_id)and\
+            #TODO: #70 ADD a check if the next instruction is equal to the current one so that building gets not delayed
+            
+            # Needs to be handled separably because it the special placement requirements
+            if next_step.type_id == UnitTypeId.ASSIMILATOR:
+                if Utils.can_build_structure(self.bot, next_step.type_id):
+                    await self.build_gas(next_step.position)
+
+            # Needs to be handled here because, bot.get_next_expansion() is a coroutine
+            if next_step.type_id == UnitTypeId.NEXUS:
+                if Utils.can_build_structure(self.bot, next_step.type_id)and\
+                    not self.bot.already_pending(next_step.type_id):
+                        await self.expand()
+            
+            if Utils.can_build_structure(self.bot, next_step.type_id)and\
                 not self.bot.already_pending(next_step.type_id):
                 await self.bot.build(next_step.type_id,near=next_step.position,\
                     max_distance=next_step.accuracy,build_worker=self.get_build_worker())
@@ -108,13 +110,17 @@ class Macro:
             #TODO: ADD WARPPRISM LOGIC, SO REINFORCEMENTS CAN BE WARPED IN CLOSE TO FIGHT
             unit_type: UnitTypeId = next_step.type_id
             production_structure_type = self.get_production_structure(unit_type)
-            production_structures: Units = self.bot.units(production_structure_type).idle
+            production_structures: Units = self.bot.structures(production_structure_type)
+            
+            logger.info(f"{production_structures}, {production_structure_type}")
             
             if Utils.can_build_unit(self.bot, next_step.type_id) and production_structures:
                 if not production_structure_type in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY]:
                     production_structures[0].train(unit_type)
+                    self.build_order.increment_step()
                     return
                 await build_gateway_units(self.bot,unit_type)
+                self.build_order.increment_step()
 
         next_step: BuildInstruction = self.build_order.next_instruction()
         if not next_step and self.build_order.buffer:
@@ -222,19 +228,14 @@ class Macro:
             worker:Unit = self.bot.workers.prefer_idle.closest_to(self.get_build_pos())
             await self.bot.build(UnitTypeId.PYLON, build_worker=worker, near=self.get_build_pos())
 
-    async def build_gas(self,nexus:Unit) -> None:
+    async def build_gas(self,position:Union[Point2,Point3,Unit]) -> None:
         bot:BotAI = self.bot
-        vespene: Units = bot.vespene_geyser.closer_than(12, nexus)[0]
+        vespene: Units = bot.vespene_geyser.closest_to(position)
         if await bot.can_place_single(UnitTypeId.ASSIMILATOR, vespene.position):
             workers: Units = bot.workers.gathering
             if workers:
                 worker: Unit = workers.closest_to(vespene)
                 worker.build_gas(vespene)
-
-    async def take_gas(self) -> None:
-        #TODO: This needs to be changed
-        for townhall in self.bot.townhalls:
-            pass
 
     def check_mined_out(self) -> None:
         for townhall in self.bot.townhalls:
@@ -252,8 +253,7 @@ class Macro:
  
         probe_count:int = len(self.bot.structures(UnitTypeId.NEXUS))*16 + len(self.bot.structures(UnitTypeId.ASSIMILATOR))*3
         if self.bot.structures(UnitTypeId.PYLON):
-            for townhall in self.bot.townhalls:
-                logger.info(f"{townhall} -> here")
+            for townhall in self.bot.townhalls.idle:
                 if Utils.can_build_unit(self.bot, UnitTypeId.PROBE) and len(self.bot.workers) < probe_count:
                     townhall.train(UnitTypeId.PROBE)
 
@@ -288,13 +288,11 @@ class Macro:
                     chrono_nexus[0](AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, struct)
 
     async def expand(self) -> None:
-        bot:BotAI = self.bot
-        if not bot.already_pending(UnitTypeId.NEXUS) and len(bot.structures(UnitTypeId.NEXUS))<bot.base_count:
-            location:Union[Point2,Point3] = await bot.get_next_expansion()
-            if location:
-                if not bot.enemy_units.filter(lambda unit: unit.distance_to(location) < 2.75):
-                    # Misplacing townhalls causes the Bot to crash, therefore it must be checked if the
-                    # Area is free to build
-                    # 2.75 is the radius of a nexus -
-                    # if a unit is closer than this a nexus would be build away from the location
-                    await bot.build(UnitTypeId.NEXUS, near=location, max_distance=0)
+        location:Union[Point2,Point3] = await self.bot.get_next_expansion()
+        if location:
+            if not self.bot.enemy_units.filter(lambda unit: unit.distance_to(location) < 2.75):
+                # Misplacing townhalls causes the Bot to crash, therefore it must be checked if the
+                # Area is free to build
+                # 2.75 is the radius of a nexus -
+                # if a unit is closer than this a nexus would be build away from the location
+                await self.bot.build(UnitTypeId.NEXUS, near=location, max_distance=0)

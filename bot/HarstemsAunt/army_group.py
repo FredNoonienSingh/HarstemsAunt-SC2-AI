@@ -208,7 +208,7 @@ class ArmyGroup:
             # This could be handled more efficient if i could overwrite the Unit move command
             if self.pathing.is_position_safe(grid, unit.position):
                continue
-            if not Utils.in_proximity_to_point(self.bot, unit, self.retreat_pos, 15):
+            if not Utils.in_proximity_to_point(unit,self.retreat_pos,15):
                     unit.move(
                            self.pathing.find_path_next_point(
                                unit.position, self.retreat_pos, grid
@@ -255,7 +255,7 @@ class ArmyGroup:
                     unit.position, self.position, grid
                 )
             )
-            if Utils.in_proximity_to_point(self.bot, unit, self.position, 10):
+            if Utils.in_proximity_to_point(unit, self.position, 2):
                 self.units_in_transit.remove(unit.tag)
                 self.unit_list.append(unit.tag)
                 await self.bot.chat_send(f"Army Group: {self.name} got reinforced by {unit.type_id}")

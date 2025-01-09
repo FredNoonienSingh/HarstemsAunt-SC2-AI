@@ -30,7 +30,7 @@ from .pathing import Pathing
 from .army_group import ArmyGroup
 from .build_order import BuildOrder
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
-from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,ALL_STRUCTURES,logger
+from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
 
 DEBUG = True
 
@@ -114,7 +114,7 @@ class HarstemsAunt(BotAI):
         return self.enemy_start_locations[0]
 
     def create_folders(self):
-        for path in [self.data_path,self.map_data_path, self.opponent_data_path]:
+        for path in [self.data_path,self.map_data_path,self.opponent_data_path]:
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -155,16 +155,17 @@ class HarstemsAunt(BotAI):
             sector.build_sector()
         split_workers(self)
 
-        await self.client.debug_all_resources()
-        await self.client.debug_fast_build()
+        #await self.client.debug_all_resources()
+        #await self.client.debug_fast_build()
+        #await self.client.debug_cooldown()
         
         initial_army_group:ArmyGroup = ArmyGroup(self, [],[],self.pathing)
         self.army_groups.append(initial_army_group)
 
     async def on_step(self, iteration):
 
-        if self.minerals < 1000 or self.vespene < 1000:
-            await self.client.debug_all_resources()
+        #if self.minerals < 1000 or self.vespene < 1000:
+         #   await self.client.debug_all_resources()
 
         labels = ["min_step","avg_step","max_step","last_step"]
         for i, value in enumerate(self.step_time):
@@ -210,7 +211,8 @@ class HarstemsAunt(BotAI):
 
             for worker in self.workers:
                 micro_worker(self, worker)
-            await self.distribute_workers()
+            # TODO: #69 write on distrubute workers coroutine 
+            await self.distribute_workers(1.22)
             await self.macro()
 
             # tie_breaker

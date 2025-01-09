@@ -68,19 +68,30 @@ class BuildOrder:
         wall_pylon_pos:Point2 = self.bot.main_base_ramp.protoss_wall_pylon
         tech_pylon_pos:Point2 = self.bot.start_location.towards(self.bot.start_location.furthest(minerals).position, 10)
         angle_pylon_pos:Point2 = self.bot.start_location.towards(self.bot.game_info.map_center,10)
+        vespene_position_0:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[0]
+        vespene_position_1:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[1]
 
         instructions = [
             BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
             BuildInstruction(UnitTypeId.GATEWAY,wall_buildings[0]),
+            BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_0),
+            BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_1),
             BuildInstruction(UnitTypeId.CYBERNETICSCORE,wall_buildings[1]),
+            BuildInstruction(UnitTypeId.NEXUS, start_pos),
             BuildInstruction(UnitTypeId.PYLON,tech_pylon_pos),
-            BuildInstruction(tech[0],tech_pylon_pos,5),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.GATEWAY, wall_pylon_pos,5),
             BuildInstruction(UnitTypeId.PYLON, angle_pylon_pos, 1),
-            BuildInstruction(UnitTypeId.GATEWAY, angle_pylon_pos,5),
+            BuildInstruction(tech[0],tech_pylon_pos,5),
             BuildInstruction(UnitTypeId.GATEWAY, angle_pylon_pos,5),
             BuildInstruction(tech[1],wall_pylon_pos.towards(self.bot.game_info.map_center),5),
             BuildInstruction(UnitTypeId.GATEWAY, angle_pylon_pos,5),
-            BuildInstruction(UnitTypeId.PYLON, angle_pylon_pos.towards(wall_pylon_pos,-6),5)
+            BuildInstruction(UnitTypeId.PYLON, angle_pylon_pos.towards(wall_pylon_pos,-6),5),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
         ]
         return instructions
 
@@ -125,8 +136,9 @@ class BuildOrder:
         return self.bot.start_location.towards(self.bot.game_info.map_center, 4)
 
     async def update(self):
-
-        #TODO: #66 ADD Conditions for advanced Tech -> such as fleet beacon ... 
+        
+        #TODO: ADD Conditions under which more Economy gets added to the Build
+        #TODO: #66 ADD Conditions for advanced Tech -> such as fleet beacon ...
         if self.opponent_builds_air and not self.bot.structures(UnitTypeId.STARGATE):
             self.instruction_list.append(BuildInstruction(UnitTypeId.STARGATE,self.get_build_pos()))
 
@@ -135,7 +147,7 @@ class BuildOrder:
                 and UnitTypeId.DARKSHRINE not in self.buffer:
                 self.buffer.append(UnitTypeId.DARKSHRINE)
 
-        self.debug_build_pos(self.get_build_pos())
+        #self.debug_build_pos(self.get_build_pos())
         self.bot.client.debug_text_screen(f"{self.next_instruction()} instruction {self.step}", \
             (0.01, 0.15), color=(255,255,255), size=15)
         self.bot.client.debug_text_screen(f"next struct in Buffer: {self.get_next_in_buffer()}", \
