@@ -21,7 +21,14 @@ class BuildInstruction:
     and how to take unit production into account, i already got a set of all Structures in .common maybe i just add every instruction
     including upgrades and unit production. """
 
-    def __init__(self, type_id:UnitTypeId, position:Union[Point2,Point3,Unit], accuracy:float=0) -> None:
+    def __new__(cls,type_id:UnitTypeId,position:Union[Point2,Point3,Unit]=None,accuracy:int=0):
+        instance = super().__new__(cls)
+        instance.type_id = type_id
+        instance.position = position
+        instance.accuracy = accuracy
+        return instance
+
+    def __init__(self, type_id:UnitTypeId, position:Union[Point2,Point3,Unit], accuracy:int=0) -> None:
         self.type_id = type_id
         self.position = position
         self.accuracy = accuracy
@@ -38,7 +45,6 @@ class BuildInstruction:
         if self.instruction_type == InstructionType.UNIT_PRODUCTION:
             return f"train {self.type_id}"
 
-
 class BuildOrder:
 
     def __init__(self, bot:BotAI):
@@ -50,7 +56,7 @@ class BuildOrder:
     def enemy_race(self) -> Race:
         return self.bot.enemy_race
 
-    @property
+    @cached_property
     def instruction_list(self) -> List[BuildInstruction]:
 
         tech:List[UnitTypeId] = INITIAL_TECH.get(self.enemy_race)
@@ -118,6 +124,7 @@ class BuildOrder:
 
     async def update(self):
 
+        #TODO: #66 ADD Conditions for advanced Tech -> such as fleet beacon ... 
         if self.opponent_builds_air and not self.bot.structures(UnitTypeId.STARGATE):
             self.instruction_list.append(BuildInstruction(UnitTypeId.STARGATE,self.get_build_pos()))
 
@@ -142,17 +149,16 @@ class BuildOrder:
         if self.buffer:
             return self.buffer[0]
 
-    def create_instruction_from_buffer(self) -> BuildInstruction:
-        structure_type:UnitTypeId = self.buffer.pop(0)
+    def get_instruction_from_buffer(self) -> BuildInstruction:
+        structure_type:UnitTypeId = self.buffer[0]
         build_pos:Point2 = self.get_build_pos()
-        accuracy:float = 10.0
+        accuracy:int = 10
         instruction:BuildInstruction = BuildInstruction(structure_type,build_pos,accuracy)
         return instruction
+
+    def remove_from_buffer(self,structure:UnitTypeId) -> None:
+        self.buffer.remove(structure)
 
     def next_instruction(self) -> BuildInstruction:
         if len(self.instruction_list) > self.step:
             return self.instruction_list[self.step]
-        if self.buffer:
-            instruction:BuildInstruction = self.create_instruction_from_buffer()
-            logger.info(instruction)
-            return instruction

@@ -232,6 +232,8 @@ class HarstemsAunt(BotAI):
     async def on_building_construction_started(self,unit):
         logger.info(f"construction of {unit} started")
         self.macro.build_order.increment_step()
+        if unit.type_id in self.macro.build_order.buffer:
+            self.macro.build_order.remove_from_buffer(unit.type_id)
 
     async def on_building_construction_complete(self, unit):
         self.macro.build_order.constructed_structures.append(unit.type_id)
