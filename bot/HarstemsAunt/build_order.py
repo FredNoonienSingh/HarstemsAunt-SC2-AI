@@ -16,6 +16,11 @@ class InstructionType(Enum):
     UNIT_PRODUCTION = 1
     BUILD_STRUCTURE = 2
 
+class Build(Enum):
+    CANNON_RUSH = 1
+    FOUR_GATE = 2
+
+
 class BuildInstruction:
     """ Instruction for the Bot to build a structure, not sure yet how to add upgrades, and multiple instructions at once
     and how to take unit production into account, i already got a set of all Structures in .common maybe i just add every instruction
@@ -46,10 +51,12 @@ class BuildInstruction:
         if self.instruction_type == InstructionType.UNIT_PRODUCTION:
             return f"train {self.type_id}"
 
+
 class BuildOrder:
 
-    def __init__(self, bot:BotAI):
+    def __init__(self, bot:BotAI, build:Build=Build.FOUR_GATE):
         self.bot = bot
+        self.build = build
         self.step = 0
         self.buffer = []
 
@@ -71,7 +78,9 @@ class BuildOrder:
         vespene_position_0:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[0]
         vespene_position_1:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[1]
 
-        instructions = [
+        cannon_pylon_0: Point2 = self.bot.enemy_start_locations[0].towards(self.bot.game_info.map_center, 5)
+
+        FOUR_GATE = [
             BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
             BuildInstruction(UnitTypeId.GATEWAY,wall_buildings[0]),
             BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_0),
@@ -92,8 +101,58 @@ class BuildOrder:
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
+            BuildInstruction(UnitTypeId.STALKER, start_pos),
         ]
-        return instructions
+
+        CANNON_RUSH = [
+            BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
+            BuildInstruction(UnitTypeId.FORGE,wall_buildings[0]),
+            BuildInstruction(UnitTypeId.PYLON, cannon_pylon_0, 5),
+            BuildInstruction(UnitTypeId.PHOTONCANNON, cannon_pylon_0, 5),
+            BuildInstruction(UnitTypeId.PHOTONCANNON, cannon_pylon_0, 5),
+            BuildInstruction(UnitTypeId.PYLON, cannon_pylon_0, 5),
+            BuildInstruction(UnitTypeId.PYLON, cannon_pylon_0, 5),
+            BuildInstruction(UnitTypeId.PHOTONCANNON, cannon_pylon_0, 5),
+            BuildInstruction(UnitTypeId.PHOTONCANNON, cannon_pylon_0, 5),
+            BuildInstruction(UnitTypeId.PYLON, cannon_pylon_0, 5),
+        ]
+
+        match self.build:
+            case Build.CANNON_RUSH:
+                return CANNON_RUSH
+            case Build.FOUR_GATE:
+                return FOUR_GATE
 
     @property
     def constructed_structures(self) -> List[UnitTypeId]:
@@ -133,10 +192,19 @@ class BuildOrder:
     def get_build_pos(self) -> Union[Point2, Point3, Unit]:
         if len(self.instruction_list) > self.step:
             return self.instruction_list[self.step].position
-        return self.bot.start_location.towards(self.bot.game_info.map_center, 4)
+        last_pylon:Unit = self.bot.structures(UnitTypeId.PYLON).sorted(lambda struct: struct.age)[0]
+        return last_pylon.position.towards_with_random_angle(self.bot.game_info.map_center)
 
     async def update(self):
-        
+
+        if self.build == "cannon":
+            if self.bot.structures(UnitTypeId.PYLON)\
+                .filter(lambda struct: struct.distance_to(self.bot.enemy_start_locations[0]) < 12):
+                self.buffer.append(UnitTypeId.PYLON)
+            else:
+                self.buffer.append(UnitTypeId.PHOTONCANNON)
+            return 
+
         #TODO: ADD Conditions under which more Economy gets added to the Build
         #TODO: #66 ADD Conditions for advanced Tech -> such as fleet beacon ...
         if self.opponent_builds_air and not self.bot.structures(UnitTypeId.STARGATE):
