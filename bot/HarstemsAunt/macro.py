@@ -2,7 +2,6 @@ from typing import Union
 
 from sc2.data import Alert
 from sc2.unit import Unit
-from sc2.data import Race
 from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.ids.buff_id import BuffId
@@ -33,18 +32,6 @@ async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
             else:
                 warp_in_pos = Utils.get_warp_in_pos(bot)
                 await warp_in_unit(bot, unit_type, warp_in_pos)
-
-async def build_stargate_units(bot:BotAI, unit_type:UnitTypeId):
-    if Utils.can_build_unit(bot, unit_type):
-        for gate in bot.structures(UnitTypeId.STARGATE):
-            if gate.is_idle:
-                gate.train(unit_type)
-
-async def build_robo_units(bot:BotAI, unit_type:UnitTypeId):
-    if Utils.can_build_unit(bot, unit_type):
-        for robo in bot.structures(UnitTypeId.ROBOTICSFACILITY):
-            if robo.is_idle:
-                robo.train(unit_type)
 
 class Macro:
 
@@ -89,11 +76,25 @@ class Macro:
 
         async def construct_building(next_step:BuildInstruction):
             #TODO: #70 ADD a check if the next instruction is equal to the current one so that building gets not delayed
-            
+
+            pending_check:bool = False
+            following_instruction: UnitTypeId = None
+
+            if self.build_order.step + 1 < len(self.build_order.instruction_list):
+                following_instruction: BuildInstruction = \
+                    self.build_order.instruction_list[self.build_order.step +1]
+
+            if following_instruction == next_step.type_id:
+                pending_check = False
+
             # Needs to be handled separably because it the special placement requirements
             if next_step.type_id == UnitTypeId.ASSIMILATOR:
                 if Utils.can_build_structure(self.bot, next_step.type_id):
-                    await self.build_gas(next_step.position)
+                    if not pending_check:
+                        await self.build_gas(next_step.position)
+                    else:
+                        if not self.bot.already_pending(next_step.type_id):
+                            await self.build_gas(next_step.position)
 
             # Needs to be handled here because, bot.get_next_expansion() is a coroutine
             if next_step.type_id == UnitTypeId.NEXUS:
@@ -101,10 +102,14 @@ class Macro:
                     not self.bot.already_pending(next_step.type_id):
                         await self.expand()
             
-            if Utils.can_build_structure(self.bot, next_step.type_id)and\
-                not self.bot.already_pending(next_step.type_id):
-                await self.bot.build(next_step.type_id,near=next_step.position,\
-                    max_distance=next_step.accuracy,build_worker=self.get_build_worker())
+            if Utils.can_build_structure(self.bot, next_step.type_id):
+                    if not pending_check:
+                        await self.bot.build(next_step.type_id,near=next_step.position,\
+                        max_distance=next_step.accuracy,build_worker=self.get_build_worker())
+                    else:
+                        if not self.bot.already_pending(next_step.type_id):
+                            await self.bot.build(next_step.type_id,near=next_step.position,\
+                            max_distance=next_step.accuracy,build_worker=self.get_build_worker())
 
         async def train_unit(next_step:BuildInstruction):
             #TODO: ADD WARPPRISM LOGIC, SO REINFORCEMENTS CAN BE WARPED IN CLOSE TO FIGHT
