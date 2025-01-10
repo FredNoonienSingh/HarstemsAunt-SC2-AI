@@ -1,3 +1,4 @@
+"""DOCSTRING to shut up the Linter """
 from typing import Union
 
 from sc2.data import Alert
@@ -13,6 +14,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from .utils import Utils
 from .build_order import BuildOrder, BuildInstruction, InstructionType
 from .common import GATEWAY_UNTIS, ROBO_UNITS, STARGATE_UNITS, logger
+
 
 async def warp_in_unit(bot: BotAI,unit:UnitTypeId,\
     warp_in_position:Union[Point2,Point3,Unit]) -> bool:
@@ -41,11 +43,7 @@ class Macro:
         self.mined_out_bases: list = []
         self.build_order = BuildOrder(self.bot)
 
-    # Move to Build Order:
-    #@property
-    #def unit_composition(self) -> list:
-    #    return UNIT_COMPOSIOTION.get(self.bot.race)
-
+    #TODO: #75 Premove workers 
     async def __call__(self):
         if self.bot.alert:
             self.handle_alerts(self.bot.alert)
@@ -55,7 +53,12 @@ class Macro:
         
         await self.handle_instructions()
         await self.build_order.update()
-        
+
+        # TODO: Create Check in Build Order Class
+        if not len(self.build_order.instruction_list) > self.build_order.step:
+            if self.bot.supply_left < 5:
+                logger.info("TIME TO BUILD PYLONS")
+                await self.build_supply()
         self.build_probes()
 
     def get_build_worker(self) -> Unit:
@@ -116,15 +119,13 @@ class Macro:
             unit_type: UnitTypeId = next_step.type_id
             production_structure_type = self.get_production_structure(unit_type)
             production_structures: Units = self.bot.structures(production_structure_type)
-            
-            logger.info(f"{production_structures}, {production_structure_type}")
-            
-            if Utils.can_build_unit(self.bot, next_step.type_id) and production_structures:
+            if Utils.can_build_unit(self.bot, next_step.type_id) and production_structures.idle:
                 if not production_structure_type in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY]:
                     production_structures[0].train(unit_type)
                     self.build_order.increment_step()
                     return
                 await build_gateway_units(self.bot,unit_type)
+                #TODO: #77 STOP COUNTER FROM GOING CRAZY
                 self.build_order.increment_step()
 
         next_step: BuildInstruction = self.build_order.next_instruction()
@@ -230,8 +231,8 @@ class Macro:
         if Utils.can_build_structure(self.bot,UnitTypeId.PYLON) and not \
             self.bot.already_pending(UnitTypeId.PYLON) and self.bot.supply_left < 8 \
                 and len(self.bot.structures(UnitTypeId.NEXUS))>= 2 and self.bot.structures(UnitTypeId.CYBERNETICSCORE):
-            worker:Unit = self.bot.workers.prefer_idle.closest_to(self.get_build_pos())
-            await self.bot.build(UnitTypeId.PYLON, build_worker=worker, near=self.get_build_pos())
+            worker:Unit = self.bot.workers.prefer_idle.closest_to(self.build_order.get_build_pos())
+            await self.bot.build(UnitTypeId.PYLON, build_worker=worker, near=self.build_order.get_build_pos())
 
     async def build_gas(self,position:Union[Point2,Point3,Unit]) -> None:
         bot:BotAI = self.bot

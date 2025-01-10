@@ -1,15 +1,18 @@
+"""DOCSTRING to shut up the Linter """
 from enum import Enum
 from typing import Union, List
 from functools import cached_property
-
-from .common import ALL_STRUCTURES, INITIAL_TECH, DT_TIMING,logger
 
 from sc2.unit import Unit
 from sc2.data import Race
 from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
+from sc2.unit_command import UnitCommand
 from sc2.ids.unit_typeid import UnitTypeId
+
+from .army_group import ArmyGroup
+from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING,logger
 
 
 class InstructionType(Enum):
@@ -20,24 +23,27 @@ class Build(Enum):
     CANNON_RUSH = 1
     FOUR_GATE = 2
 
-
+#TODO: #74 Add worker instruction to BuildInstruction
 class BuildInstruction:
     """ Instruction for the Bot to build a structure, not sure yet how to add upgrades, and multiple instructions at once
     and how to take unit production into account, i already got a set of all Structures in .common maybe i just add every instruction
     including upgrades and unit production. """
 
-    def __new__(cls,type_id:UnitTypeId,position:Union[Point2,Point3,Unit]=None,accuracy:int=0):
+    def __new__(cls,type_id:UnitTypeId,position:Union[Point2,Point3,Unit]=None,\
+        accuracy:int=0, worker_command:UnitCommand=None):
         instance = super().__new__(cls)
         instance.type_id = type_id
-        # Position is only used when a Warpprism is present
         instance.position = position
         instance.accuracy = accuracy
+        instance.worker_command = worker_command
         return instance
 
-    def __init__(self,type_id:UnitTypeId, position:Union[Point2,Point3,Unit], accuracy:int=0) -> None:
+    def __init__(self,type_id:UnitTypeId, position:Union[Point2,Point3,Unit],\
+        accuracy:int=0,worker_command:UnitCommand=None) -> None:
         self.type_id = type_id
         self.position = position
         self.accuracy = accuracy
+        self.worker_command = worker_command
 
     @property
     def instruction_type(self) -> InstructionType:
@@ -51,7 +57,6 @@ class BuildInstruction:
         if self.instruction_type == InstructionType.UNIT_PRODUCTION:
             return f"train {self.type_id}"
 
-
 class BuildOrder:
 
     def __init__(self, bot:BotAI, build:Build=Build.FOUR_GATE):
@@ -59,13 +64,16 @@ class BuildOrder:
         self.build = build
         self.step = 0
         self.buffer = []
+        self.army_groups:List[ArmyGroup] = self.bot.army_groups
 
     @cached_property
     def enemy_race(self) -> Race:
+        """ Race of the enemy"""
         return self.bot.enemy_race
 
     @cached_property
     def instruction_list(self) -> List[BuildInstruction]:
+        """ list of initial Build Instructions """
 
         tech:List[UnitTypeId] = INITIAL_TECH.get(self.enemy_race)
 
@@ -87,48 +95,16 @@ class BuildOrder:
             BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_1),
             BuildInstruction(UnitTypeId.CYBERNETICSCORE,wall_buildings[1]),
             BuildInstruction(UnitTypeId.NEXUS, start_pos),
+            BuildInstruction(UnitTypeId.GATEWAY, wall_pylon_pos,5),
             BuildInstruction(UnitTypeId.PYLON,tech_pylon_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.GATEWAY, wall_pylon_pos,5),
             BuildInstruction(UnitTypeId.PYLON, angle_pylon_pos, 1),
             BuildInstruction(tech[0],tech_pylon_pos,5),
             BuildInstruction(UnitTypeId.GATEWAY, angle_pylon_pos,5),
             BuildInstruction(tech[1],wall_pylon_pos.towards(self.bot.game_info.map_center),5),
             BuildInstruction(UnitTypeId.GATEWAY, angle_pylon_pos,5),
             BuildInstruction(UnitTypeId.PYLON, angle_pylon_pos.towards(wall_pylon_pos,-6),5),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
-            BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
@@ -156,22 +132,27 @@ class BuildOrder:
 
     @property
     def constructed_structures(self) -> List[UnitTypeId]:
+        """ List of Structures that have been constructed  """
         return []
 
     @property
     def opponent_builds_air(self) -> bool:
+        """ Returns True if the opponent is building an Airforce """
         return False
 
     @opponent_builds_air.setter
     def opponent_builds_air(self, status:bool) -> None:
+        """sets the Value of opponent_builds_air """
         self.opponent_builds_air = status
 
     @property
     def opponent_uses_cloak(self) -> bool:
+        """ Returns true if the opponent has cloak """
         return False
 
     @opponent_uses_cloak.setter
     def opponent_uses_cloak(self, status:bool) -> None:
+        """ setter for opponent uses cloak """
         self.opponent_uses_cloak = status
 
     @property
@@ -197,25 +178,33 @@ class BuildOrder:
 
     async def update(self):
 
-        if self.build == "cannon":
+        # CODE FOR THE CANNON RUSH
+        if self.build == Build.CANNON_RUSH:
             if self.bot.structures(UnitTypeId.PYLON)\
                 .filter(lambda struct: struct.distance_to(self.bot.enemy_start_locations[0]) < 12):
                 self.buffer.append(UnitTypeId.PYLON)
             else:
                 self.buffer.append(UnitTypeId.PHOTONCANNON)
-            return 
+            return
 
         #TODO: ADD Conditions under which more Economy gets added to the Build
         #TODO: #66 ADD Conditions for advanced Tech -> such as fleet beacon ...
         if self.opponent_builds_air and not self.bot.structures(UnitTypeId.STARGATE):
-            self.instruction_list.append(BuildInstruction(UnitTypeId.STARGATE,self.get_build_pos()))
+            self.buffer.append(UnitTypeId.STARGATE)
 
         if self.bot.time > DT_TIMING:
             if not self.opponent_has_detection and not self.bot.structures(UnitTypeId.DARKSHRINE)\
                 and UnitTypeId.DARKSHRINE not in self.buffer:
                 self.buffer.append(UnitTypeId.DARKSHRINE)
 
-        #self.debug_build_pos(self.get_build_pos())
+        # THIS RUNS EVERY TICK
+        for group in self.army_groups:
+            if group.requested_units:
+                requested_unit:UnitTypeId = group.requested_units[0]
+                if not requested_unit in self.buffer:
+                    self.buffer.append(requested_unit)
+                    group.requested_units.remove(requested_unit)
+
         self.bot.client.debug_text_screen(f"{self.next_instruction()} instruction {self.step}", \
             (0.01, 0.15), color=(255,255,255), size=15)
         self.bot.client.debug_text_screen(f"next struct in Buffer: {self.get_next_in_buffer()}", \

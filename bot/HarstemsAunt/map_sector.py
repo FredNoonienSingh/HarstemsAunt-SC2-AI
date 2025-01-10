@@ -47,17 +47,17 @@ class MapSector:
 
     def destructables_in_sector(self) -> Units:
         if self.bot.destructables:
-            return self.bot.destructables.filter(lambda unit: self.in_sector(unit) is True)
+            return self.bot.destructables.filter(lambda unit: self.in_sector(unit))
         return None
 
     def units_in_sector(self) -> Units:
         if self.bot.units:
-            return self.bot.units.filter(lambda unit: self.in_sector(unit) is True)
+            return self.bot.units.filter(lambda unit: self.in_sector(unit))
         return None
 
     def enemy_units_in_sector(self) -> Units:
         if self.bot.enemy_units:
-            return self.bot.enemy_units.filter(lambda unit: self.in_sector(unit)is True)
+            return self.bot.enemy_units.filter(lambda unit: self.in_sector(unit))
         return None
     
     def find_ramps_in_sector(self, ramp: Point2) -> List:
