@@ -1,12 +1,13 @@
-"""
-    Army Group class
-"""
+""" Army Group class"""
 from __future__ import annotations
+from enum import Enum
+from typing import Union
+
+from .utils import Utils
+from .pathing import Pathing
+from .common import WORKER_IDS, RUN_BY_SIZE, logger
 
 import numpy as np
-from enum import Enum
-
-from typing import Union
 
 from sc2.unit import Unit
 from sc2.units import Units
@@ -14,9 +15,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 
-from .utils import Utils
-from .pathing import Pathing
-from .common import WORKER_IDS
 
 class GroupStatus(Enum):
     ATTACKING = 1
@@ -24,21 +22,30 @@ class GroupStatus(Enum):
     RETREATING = 3
     REGROUPING = 4
 
+class GroupTypeId(Enum):
+    ARMY = 1
+    RUN_BY = 2
+
 class ArmyGroup:
-    def __init__(self, bot:BotAI, unit_list:list,units_in_transit:list,pathing:Pathing):
+    def __init__(self, bot:BotAI, unit_list:list,\
+        units_in_transit:list,pathing:Pathing,group_type:GroupTypeId=GroupTypeId.ARMY):
         self.bot:BotAI = bot
         self.name = "Attack Group Alpha"
+        self.requested_units:list = []
         self.unit_list:list = unit_list
         self.units_in_transit:list = units_in_transit
         self.pathing:Pathing = pathing
         self.status:GroupStatus = GroupStatus.ATTACKING
+        self.GroupTypeId = group_type
 
     @property
     def units(self) -> Units:
+        """ Units Object containing the all units in Group """
         return self.bot.units.filter(lambda unit: unit.tag in self.unit_list)
 
     @property
     def supply(self) -> int:
+        """ Supply Cost of Units in Group """
         if self.units:
             return sum([self.bot.calculate_supply_cost(unit.type_id) \
                 for unit in self.units if unit.can_attack])
@@ -46,6 +53,7 @@ class ArmyGroup:
 
     @property
     def enemy_supply_in_proximity(self) -> int:
+        """Enemy Supply in the Area"""
         enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
             .filter(lambda unit: unit.type_id not in WORKER_IDS)
         if enemy_units:
@@ -54,76 +62,119 @@ class ArmyGroup:
 
     @property
     def supply_delta(self) -> int:
+        """ Difference betweem own and enemy supply"""
         return self.supply-self.enemy_supply_in_proximity
 
     @property
     def reinforcements(self) -> Units:
+        """ Reinforcements moving to the Army Position"""
         return self.bot.units.filter(lambda unit: unit.tag in self.units_in_transit)
 
     @property
     def position(self) -> Point2:
+        """ Center of Army Group """
         if self.units:
             return self.units.center
-        return self.bot.game_info.map_center
+        return self.bot.main_base_ramp.top_center
 
     @property
     def ground_dps(self) -> float:
+        """Sum of ground_dps of Units in Group"""
         return sum([unit.ground_dps for unit in self.units])
 
     @property
     def air_dps(self) -> float:
+        """Sum of air_dps of Units in Group"""
         return sum([unit.air_dps for unit in self.units])
 
     @property
     def average_health_percentage(self) -> float:
+        """Sum of ground_dps of Units in Group"""
         if not self.units:
             return 0
         return 1/len(self.units)*sum([unit.health_percentage for unit in self.units])
 
     @property
     def average_shield_precentage(self) -> float:
+        """average Shield Percentage"""
         if not self.units:
             return 0
         return 1/len(self.units)*sum([unit.shield_percentage for unit in self.units])
 
     @property
     def has_detection(self) -> float:
+        """Returns if the the Army Group contains a detector"""
         if self.units.filter(lambda unit: unit.is_detector):
             return True
         return False
 
     @property
     def attack_target(self) -> Union[Point2, Unit]:
+        """Current Attack Target of the Army Group """
         #TODO #30 Rework when regrouping is working as it is supposed to
         return self.bot.enemy_start_locations[0]
 
-    @property
-    def attack_pos(self) -> Union[Point2,Point3,Unit]:
-        return self.position.towards(self.attack_target, 10)
+   # @property
+   # def attack_pos(self) -> Union[Point2,Point3,Unit]:
+       # """ Can probably be removed """
+       #return self.position.towards(self.attack_target, 10)
 
     @attack_target.setter
-    def attack_target(self, new_attack_pos:Union[Point2,Point3,Unit]):
-        self.attack_target = new_attack_pos
+    def attack_target(self, new_attack_target:Union[Point2,Point3,Unit]):
+        """ sets new attack target """
+        self.attack_target = new_attack_target
 
     @property
     def retreat_pos(self) -> Union[Point2,Point3,Unit]:
+        """ position to which the group retreats to """
         return self.bot.start_location
 
     @retreat_pos.setter
     def retreat_pos(self, new_retreat_pos:Union[Point2,Point3,Unit]):
+        """ sets new attack target """
         self.retreat_pos = new_retreat_pos
 
-    # TODO: #32 Implement Logic to Allocate production capacity to army_groups
-    def request_unit(self, structure_type: UnitTypeId) -> UnitTypeId:
-        """ 
-
-        Args:
-            structure_type (UnitTypeId): _description_
+    def request_unit(self) -> UnitTypeId:
+        """ Adds Units based on Logic to the List requested Units
 
         Returns:
-            UnitTypeId: _description_
+            UnitTypeId: Type of requested Unit
         """
-        pass
+
+        #TODO: THIS SHOULD BE A POLYMORPHIC APPROACH TO AVOID LARGE FUNCTIONS, BUT FOR NOW INNER FUNCTIONS WILL DO
+        def _runby_request():
+            opponent_has_detection:bool = self.bot.macro.build_order.opponent_has_detection
+            if len(self.unit_list) + len(self.units_in_transit) < RUN_BY_SIZE:
+                if self.bot.structures.filter(lambda struct: struct in [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]\
+                    and struct.is_ready and struct.is_idle):
+                    if self.bot.structures(UnitTypeId.DARKSHRINE) and not opponent_has_detection:
+                        requested_unit: UnitTypeId = UnitTypeId.DARKTEMPLAR
+                        self.requested_units.append(requested_unit)
+                        return
+                    requested_unit: UnitTypeId = UnitTypeId.DARKTEMPLAR
+                    self.requested_units.append(requested_unit)
+                    return
+
+        def _army_request():
+            logger.info("Army gets called to ")
+            # TEST_CODE FOR "NORMAL ARMY GROUP"
+            if self.bot.structures.filter(lambda struct: struct.type_id in [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]):
+                requested_unit: UnitTypeId = UnitTypeId.STALKER
+                self.requested_units.append(requested_unit)
+            if self.bot.structures(UnitTypeId.ROBOTICSFACILITY):
+                requested_unit: UnitTypeId = UnitTypeId.IMMORTAL
+                self.requested_units.append(requested_unit)
+            if self.bot.structures(UnitTypeId.STARGATE):
+                requested_unit: UnitTypeId = UnitTypeId.VOIDRAY
+                self.requested_units.append(requested_unit)
+
+        logger.info("HERE i AM ")
+        
+        match self.GroupTypeId:
+            case GroupTypeId.RUN_BY:
+                _runby_request()
+            case GroupTypeId.ARMY:
+                _army_request()
 
     def remove_unit(self, unit_tag:str) -> bool:
         """ Removes are unit from ArmyGroup 
@@ -154,6 +205,8 @@ class ArmyGroup:
         return False
 
     async def attack(self, attack_target:Union[Point2, Point3, Unit]) -> None:
+        """ attack command for the army group"""
+        # TODO: WHEN ALL UNITS_CLASSES ARE IMPLEMENTED THIS CAN JUST ONE CALL TO HANDLE ATTACKERS 
         stalkers: Units = self.units(UnitTypeId.STALKER)
         zealots: Units = self.units(UnitTypeId.ZEALOT)
         Immortals: Units = self.units(UnitTypeId.IMMORTAL)
@@ -218,6 +271,7 @@ class ArmyGroup:
 
     #TODO: #31 Regroup Units by Range
     def regroup(self) -> None:
+        """ regroup command for the group  """
 
         if not self.units.filter(lambda unit: unit.distance_to(self.position) > 15):
             return
@@ -226,6 +280,7 @@ class ArmyGroup:
 
     # TODO: #29 very basic, needs to be Adjusted to account for different, Unit types
     def defend(self, position:Union[Point2,Point3,Unit]) -> None:
+        """ defent command for the group"""
         enemy_units = self.bot.enemy_units.closer_than(25, position)
         for unit in self.units:
             grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
@@ -244,7 +299,8 @@ class ArmyGroup:
         """ Method controlling the Behavior of the Group,\
             shall be called every tick in main.py 
         """
-
+        if not self.requested_units:
+            self.request_unit()
         last_status: GroupStatus = self.status
 
         # Move Units in Transit to Army_group:

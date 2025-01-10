@@ -5,6 +5,7 @@ from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
 DT_TIMING:float = 480
+RUN_BY_SIZE:int = 4
 
 UNIT_COMPOSIOTION:Dict = {
     Race.Protoss: [UnitTypeId.STALKER,

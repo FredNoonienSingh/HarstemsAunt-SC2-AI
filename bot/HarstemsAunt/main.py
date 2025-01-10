@@ -14,7 +14,13 @@ from sc2.position import Point2
 from sc2.ids.unit_typeid import UnitTypeId
 
 from map_analyzer import MapData
-from map_vision.map_sector import MapSector
+
+from .macro import Macro
+from .pathing import Pathing
+from .map_sector import MapSector
+from .army_group import ArmyGroup, GroupTypeId
+from .speedmining import get_speedmining_positions,split_workers, micro_worker
+from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
 
 #TODO: #63 Move UnitClasses into Micro class when ready
 from Unit_Classes.Archon import Archons
@@ -25,12 +31,6 @@ from Unit_Classes.observer import Observer
 from Unit_Classes.HighTemplar import HighTemplar
 from Unit_Classes.DarkTemplar import DarkTemplar
 
-from .macro import Macro
-from .pathing import Pathing
-from .army_group import ArmyGroup
-from .build_order import BuildOrder
-from .speedmining import get_speedmining_positions,split_workers, micro_worker
-from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
 
 DEBUG = True
 
@@ -65,7 +65,7 @@ class HarstemsAunt(BotAI):
         self.expand_locs:list = []
         self.researched:list = []
 
-        self.seen_enemys:list = []
+        self.seen_enemies:list = []
         self.enemies_lt_list: list = []
         self.enemy_supply:int = 0
         self.last_tick:int = 0
@@ -155,12 +155,14 @@ class HarstemsAunt(BotAI):
             sector.build_sector()
         split_workers(self)
 
-        #await self.client.debug_all_resources()
-        #await self.client.debug_fast_build()
-        #await self.client.debug_cooldown()
-        
         initial_army_group:ArmyGroup = ArmyGroup(self, [],[],self.pathing)
+        run_by_group:ArmyGroup = ArmyGroup(self, [], [], self.pathing, GroupTypeId.RUN_BY)
         self.army_groups.append(initial_army_group)
+        self.army_groups.append(run_by_group)
+        
+        await self.client.debug_all_resources()
+        await self.client.debug_fast_build()
+        await self.client.debug_food()
 
     async def on_step(self, iteration):
 
@@ -185,13 +187,15 @@ class HarstemsAunt(BotAI):
 
         self.pathing.update(iteration)
 
-        for group in self.army_groups:
+        for j, group in enumerate(self.army_groups):
             await group.update(self.get_attack_target)
-            self.client.debug_text_screen(f"{group.name}: {group.attack_pos}",\
-                (.25, 0.025), color=(255,255,255), size=20)
+            self.client.debug_text_screen(f"{group.GroupTypeId}: {group.attack_target}",\
+                (.25+(j*0.25), 0.025), color=(255,255,255), size=20)
             self.client.debug_text_screen(f"Supply:{group.supply}\
                 Enemysupply:{group.enemy_supply_in_proximity}",\
-                    (.25, 0.05), color=(255,255,255), size=20)
+                    (.25+(j*0.25), 0.05), color=(255,255,255), size=20)
+            self.client.debug_text_screen(f"requested:{group.requested_units}",\
+                    (.25+(j*0.25), 0.075), color=(255,255,255), size=20)
 
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
@@ -211,7 +215,7 @@ class HarstemsAunt(BotAI):
 
             for worker in self.workers:
                 micro_worker(self, worker)
-            # TODO: #69 write on distrubute workers coroutine 
+            # TODO: #69 write on distrubute workers coroutine
             await self.distribute_workers(1.22)
             await self.macro()
 
@@ -241,8 +245,8 @@ class HarstemsAunt(BotAI):
         self.macro.build_order.constructed_structures.append(unit.type_id)
 
     async def on_enemy_unit_entered_vision(self, unit):
-        if not unit.tag in self.seen_enemys and unit.type_id not in WORKER_IDS:
-            self.seen_enemys.append(unit.tag)
+        if not unit.tag in self.seen_enemies and unit.type_id not in WORKER_IDS:
+            self.seen_enemies.append(unit.tag)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
 
         if not self.macro.build_order.opponent_builds_air:
@@ -250,6 +254,7 @@ class HarstemsAunt(BotAI):
                 self.macro.build_order.opponent_builds_air = True
                 await self.chat_send("I see you got an AirForce, i can do that too")
 
+        #TODO: #76 Fix max iter depth crashes
         if not self.macro.build_order.opponent_has_detection:
             if unit.is_detector:
                 self.macro.build_order.opponent_has_detection = True
@@ -260,7 +265,7 @@ class HarstemsAunt(BotAI):
                 self.macro.build_order.opponent_uses_cloak = True
                 await self.chat_send("Stop hiding and fight like a honorable ... \
                         ähm... Robot?\ndo computers have honor ?")
-
+    #TODO: #73 Implement on_enemy_unit_left_vision logic
     async def on_enemy_unit_left_vision(self, unit_tag):
         pass
 
@@ -278,8 +283,8 @@ class HarstemsAunt(BotAI):
 
     async def on_unit_destroyed(self, unit_tag):
         # Keeps the List as short as possible
-        if unit_tag in self.seen_enemys:
-            self.seen_enemys.remove(unit_tag)
+        if unit_tag in self.seen_enemies:
+            self.seen_enemies.remove(unit_tag)
 
         unit = self.enemy_units.find_by_tag(unit_tag)
         if unit:
