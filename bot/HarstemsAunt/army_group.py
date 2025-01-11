@@ -2,12 +2,12 @@
 from __future__ import annotations
 from enum import Enum
 from typing import Union
+import numpy as np
 
 from .utils import Utils
 from .pathing import Pathing
 from .common import WORKER_IDS, RUN_BY_SIZE, logger
 
-import numpy as np
 
 from sc2.unit import Unit
 from sc2.units import Units
@@ -15,18 +15,20 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 
-
 class GroupStatus(Enum):
+    """Enum representing the State """
     ATTACKING = 1
     DEFENDING = 2
     RETREATING = 3
     REGROUPING = 4
 
 class GroupTypeId(Enum):
+    """Enum representing the Group State ID """
     ARMY = 1
     RUN_BY = 2
 
 class ArmyGroup:
+    """Class representing an Army Group """
     def __init__(self, bot:BotAI, unit_list:list,\
         units_in_transit:list,pathing:Pathing,group_type:GroupTypeId=GroupTypeId.ARMY):
         self.bot:BotAI = bot
@@ -95,7 +97,7 @@ class ArmyGroup:
         return 1/len(self.units)*sum([unit.health_percentage for unit in self.units])
 
     @property
-    def average_shield_precentage(self) -> float:
+    def average_shield_percentage(self) -> float:
         """average Shield Percentage"""
         if not self.units:
             return 0
@@ -113,11 +115,6 @@ class ArmyGroup:
         """Current Attack Target of the Army Group """
         #TODO #30 Rework when regrouping is working as it is supposed to
         return self.bot.enemy_start_locations[0]
-
-   # @property
-   # def attack_pos(self) -> Union[Point2,Point3,Unit]:
-       # """ Can probably be removed """
-       #return self.position.towards(self.attack_target, 10)
 
     @attack_target.setter
     def attack_target(self, new_attack_target:Union[Point2,Point3,Unit]):
@@ -140,38 +137,53 @@ class ArmyGroup:
         Returns:
             UnitTypeId: Type of requested Unit
         """
-
         #TODO: THIS SHOULD BE A POLYMORPHIC APPROACH TO AVOID LARGE FUNCTIONS, BUT FOR NOW INNER FUNCTIONS WILL DO
         def _runby_request():
+            """ reuest unit for Run-By Army group"""
             opponent_has_detection:bool = self.bot.macro.build_order.opponent_has_detection
             if len(self.unit_list) + len(self.units_in_transit) < RUN_BY_SIZE:
-                if self.bot.structures.filter(lambda struct: struct in [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]\
-                    and struct.is_ready and struct.is_idle):
-                    if self.bot.structures(UnitTypeId.DARKSHRINE) and not opponent_has_detection:
+                if self.bot.structures.filter(lambda struct: struct.type_id in [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]):
+                    if self.bot.units(UnitTypeId.DARKSHRINE).ready and not opponent_has_detection:
                         requested_unit: UnitTypeId = UnitTypeId.DARKTEMPLAR
                         self.requested_units.append(requested_unit)
                         return
-                    requested_unit: UnitTypeId = UnitTypeId.DARKTEMPLAR
+                    requested_unit: UnitTypeId = UnitTypeId.ZEALOT
                     self.requested_units.append(requested_unit)
                     return
 
         def _army_request():
-            logger.info("Army gets called to ")
-            # TEST_CODE FOR "NORMAL ARMY GROUP"
-            if self.bot.structures.filter(lambda struct: struct.type_id in [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]):
-                requested_unit: UnitTypeId = UnitTypeId.STALKER
-                self.requested_units.append(requested_unit)
-            if self.bot.structures(UnitTypeId.ROBOTICSFACILITY):
-                requested_unit: UnitTypeId = UnitTypeId.IMMORTAL
-                self.requested_units.append(requested_unit)
-            if self.bot.structures(UnitTypeId.STARGATE):
-                requested_unit: UnitTypeId = UnitTypeId.VOIDRAY
+            """ request unit for "normal" Army group  """
+            gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
+            if self.bot.structures.filter(lambda struct: struct.type_id in gate_aliases).idle:
+                stalkers:int = len(self.units(UnitTypeId.STALKER))
+                zealots:int = len(self.units(UnitTypeId.ZEALOT)) +1
+                
+                if self.bot.structures(UnitTypeId.TEMPLARARCHIVE) and len(self.units(UnitTypeId.HIGHTEMPLAR)) > 2:
+                    requested_unit: UnitTypeId = UnitTypeId.HIGHTEMPLAR
+                    self.requested_units.append(requested_unit)
+                    return
+
+                if not stalkers or stalkers/zealots < 3:
+                    requested_unit: UnitTypeId = UnitTypeId.STALKER
+                else:
+                    requested_unit: UnitTypeId = UnitTypeId.ZEALOT
+
+            if self.bot.structures(UnitTypeId.ROBOTICSFACILITY).idle:
+                if not self.has_detection:
+                    requested_unit: UnitTypeId = UnitTypeId.OBSERVER
+                else:
+                    requested_unit: UnitTypeId = UnitTypeId.IMMORTAL
                 self.requested_units.append(requested_unit)
 
-        logger.info("HERE i AM ")
-        
+            if self.bot.structures(UnitTypeId.STARGATE).idle:
+                if len(self.bot.units.flying) > \
+                    len(self.bot.enemy_units.filter(lambda unit: unit.is_flying and unit.can_attack)):
+                    requested_unit: UnitTypeId = UnitTypeId.PHOENIX
+                    self.requested_units.append(requested_unit)
+
         match self.GroupTypeId:
             case GroupTypeId.RUN_BY:
+                logger.info("not Testing Runbys right now")
                 _runby_request()
             case GroupTypeId.ARMY:
                 _army_request()
@@ -206,7 +218,7 @@ class ArmyGroup:
 
     async def attack(self, attack_target:Union[Point2, Point3, Unit]) -> None:
         """ attack command for the army group"""
-        # TODO: WHEN ALL UNITS_CLASSES ARE IMPLEMENTED THIS CAN JUST ONE CALL TO HANDLE ATTACKERS 
+        # TODO: WHEN ALL UNITS_CLASSES ARE IMPLEMENTED THIS CAN JUST ONE CALL TO HANDLE ATTACKERS
         stalkers: Units = self.units(UnitTypeId.STALKER)
         zealots: Units = self.units(UnitTypeId.ZEALOT)
         Immortals: Units = self.units(UnitTypeId.IMMORTAL)
@@ -251,7 +263,6 @@ class ArmyGroup:
         """Moves Army back to retreat position
         """
         grid:np.ndarray = self.pathing.ground_grid
-
         #Early return if units are safe
         if all(self.pathing.is_position_safe(grid, unit.position,2) for unit in self.units):
             self.regroup()
@@ -267,6 +278,7 @@ class ArmyGroup:
                                unit.position, self.retreat_pos, grid
                             )
                         )
+                    
         #self.observer.retreat(self.units(UnitTypeId.OBSERVER), self.retreat_pos)
 
     #TODO: #31 Regroup Units by Range
@@ -301,7 +313,7 @@ class ArmyGroup:
         """
         if not self.requested_units:
             self.request_unit()
-        last_status: GroupStatus = self.status
+        #last_status: GroupStatus = self.status
 
         # Move Units in Transit to Army_group:
         for unit in self.reinforcements:
@@ -318,9 +330,9 @@ class ArmyGroup:
 
         # CHECK DEFEND POSITION
         for townhall in self.bot.townhalls:
-            enemys_in_area = self.bot.enemy_units.closer_than(30, townhall)
-            if enemys_in_area:
-                supply_in_area = sum([self.bot.calculate_supply_cost(unit.type_id) for unit in enemys_in_area])
+            enemies_in_area = self.bot.enemy_units.closer_than(30, townhall)
+            if enemies_in_area:
+                supply_in_area = sum([self.bot.calculate_supply_cost(unit.type_id) for unit in enemies_in_area])
                 if supply_in_area > 10:
                     self.defend(townhall)
                     self.status = GroupStatus.DEFENDING
@@ -328,9 +340,9 @@ class ArmyGroup:
 
         # TODO add check if enemy_supply in Target_area > self.supply
         # CHECK RETREAT CONDITIONS
-        shield_condition = self.average_shield_precentage < .45
+        shield_condition = self.average_shield_percentage < .45
         supply_condition = self.supply <= self.enemy_supply_in_proximity
-        if Utils.and_or(shield_condition, supply_condition):
+        if Utils.and_or(shield_condition, supply_condition) or len(self.units) < len(self.units_in_transit):
             self.retreat()
             self.status = GroupStatus.RETREATING
             return

@@ -16,21 +16,31 @@ from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING,logger
 
 
 class InstructionType(Enum):
+    """Enumeration containing InstructionTypes """
     UNIT_PRODUCTION = 1
     BUILD_STRUCTURE = 2
 
 class Build(Enum):
+    """Enumeration containing BuildOrders """
     CANNON_RUSH = 1
     FOUR_GATE = 2
 
 #TODO: #74 Add worker instruction to BuildInstruction
 class BuildInstruction:
-    """ Instruction for the Bot to build a structure, not sure yet how to add upgrades, and multiple instructions at once
-    and how to take unit production into account, i already got a set of all Structures in .common maybe i just add every instruction
-    including upgrades and unit production. """
+    """ class representing a Build Instruction """
 
     def __new__(cls,type_id:UnitTypeId,position:Union[Point2,Point3,Unit]=None,\
         accuracy:int=0, worker_command:UnitCommand=None):
+        """ Creates new instance of BuildInstruction
+
+        Args:
+            type_id (UnitTypeId): type of structure or unit that needs to be build
+            position (Union[Point2,Point3,Unit], optional): position on which the structure will be build. Defaults to None.
+            worker_command (UnitCommand, optional): Worker Command after finishing the structure. Defaults to None.
+
+        Returns:
+            _type_: BuildInstruction
+        """
         instance = super().__new__(cls)
         instance.type_id = type_id
         instance.position = position
@@ -40,6 +50,13 @@ class BuildInstruction:
 
     def __init__(self,type_id:UnitTypeId, position:Union[Point2,Point3,Unit],\
         accuracy:int=0,worker_command:UnitCommand=None) -> None:
+        """ instantiate a instance of the class
+
+        Args:
+            type_id (UnitTypeId): type of unit or structure
+            position (Union[Point2,Point3,Unit]): position on which the structure will be build
+            worker_command (UnitCommand, optional): Worker Command after finishing the structure. Defaults to None.
+        """
         self.type_id = type_id
         self.position = position
         self.accuracy = accuracy
@@ -47,18 +64,30 @@ class BuildInstruction:
 
     @property
     def instruction_type(self) -> InstructionType:
+        """ types of the instruction either, BUILD_STRUCTURE or UNIT_PRODUCTION 
+
+        Returns:
+            InstructionType: type of the instruction
+        """
         if self.type_id in ALL_STRUCTURES:
             return InstructionType.BUILD_STRUCTURE
         return InstructionType.UNIT_PRODUCTION
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """returns a string representation of the class
+
+        Returns:
+            _type_: string representation of class
+        """
         if self.instruction_type == InstructionType.BUILD_STRUCTURE:
             return f"build {self.type_id} at {self.position}"
         if self.instruction_type == InstructionType.UNIT_PRODUCTION:
             return f"train {self.type_id}"
 
 class BuildOrder:
-
+    """ Class containing the build order and methods connected with it
+    """
+    
     def __init__(self, bot:BotAI, build:Build=Build.FOUR_GATE):
         self.bot = bot
         self.build = build
@@ -157,27 +186,43 @@ class BuildOrder:
 
     @property
     def opponent_has_detection(self) -> bool:
+        """ Is set to True once, when the enemy builds a detector """
         return False
 
     @opponent_has_detection.setter
     def opponent_has_detection(self, status:bool) -> None:
+        """ sets opponent_has_detection to the parsed status"""
         # for some reason is this causing max iter-depth issues
         self.opponent_has_detection = status
 
+    @property
+    def is_performing_initial_build(self) -> bool:
+        """ is True, when the bot is still performing predefined actions  """
+        return len(self.instruction_list) > self.step
+
     def increment_step(self) -> None:
+        """ increments the current build step"""
         self.step = self.step + 1
 
+    #TODO: Decide if this can be removed
     def add_constructed_structure(self, structure:UnitTypeId) -> None:
+        """ appends structure to constructed structures currently not in use """
         self.constructed_structures.append(structure)
 
+    #TODO: Make this structure dependent -> return the last pylon not in Vision Pylons for any structure and a different pos for pylons
     def get_build_pos(self) -> Union[Point2, Point3, Unit]:
+        """ returns build pos
+
+        Returns:
+            Union[Point2, Point3, Unit]: position on which the next structure will be build
+        """
         if len(self.instruction_list) > self.step:
             return self.instruction_list[self.step].position
         last_pylon:Unit = self.bot.structures(UnitTypeId.PYLON).sorted(lambda struct: struct.age)[0]
         return last_pylon.position.towards_with_random_angle(self.bot.game_info.map_center)
 
     async def update(self):
-
+        """ Updates the the Instance, bases on game_state -> gets called once per tick in Macro class"""
         # CODE FOR THE CANNON RUSH
         if self.build == Build.CANNON_RUSH:
             if self.bot.structures(UnitTypeId.PYLON)\
@@ -211,16 +256,24 @@ class BuildOrder:
             (0.01, 0.20), color=(255,255,255), size=15)
 
     def debug_build_pos(self, pos:Union[Point2, Point3]):
+        """debug methode to show the current build pos """
         z = self.bot.get_terrain_z_height(pos)+1
         x,y = pos.x, pos.y
         pos_3d = Point3((x,y,z))
         self.bot.client.debug_sphere_out(pos_3d ,1, (255,255,0))
 
+    #TODO: rework so into separate unit and structure buffers
     def get_next_in_buffer(self) -> UnitTypeId:
+        """returns the next structure or unit in buffer """
         if self.buffer:
             return self.buffer[0]
 
     def get_instruction_from_buffer(self) -> BuildInstruction:
+        """ creates BuildInstruction from Units in Buffer
+
+        Returns:
+            BuildInstruction: new BuildInstruction from data in Buffer
+        """
         structure_type:UnitTypeId = self.buffer[0]
         build_pos:Point2 = self.get_build_pos()
         accuracy:int = 10
@@ -228,8 +281,18 @@ class BuildOrder:
         return instruction
 
     def remove_from_buffer(self,structure:UnitTypeId) -> None:
+        """ remove structure type from buffer
+
+        Args:
+            structure (UnitTypeId): type that is to will be removed from buffer
+        """
         self.buffer.remove(structure)
 
     def next_instruction(self) -> BuildInstruction:
-        if len(self.instruction_list) > self.step:
+        """ returns next instruction when there a still instructions left
+
+        Returns:
+            BuildInstruction: next_step instruction
+        """
+        if self.is_performing_initial_build:
             return self.instruction_list[self.step]

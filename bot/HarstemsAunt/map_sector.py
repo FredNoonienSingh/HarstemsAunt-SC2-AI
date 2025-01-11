@@ -1,3 +1,4 @@
+""" Module MapSector """
 #TODO: #55 Rewrite MapSector Classes int Something Useful or remove it
 
 from typing import List
@@ -8,8 +9,9 @@ from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
 from sc2.position import Point2, Point3
 
-
+#TODO: If i decide to keep it, it needs to be rewritten
 class MapSector:
+    """ Class containing data about a section of the map and methods connected to them """
     def __init__(self,bot:BotAI,upper_left:Point2,lower_right:Point2):
         self.bot: BotAI = bot
         self.upper_left: Point2 = upper_left
@@ -23,6 +25,8 @@ class MapSector:
         self.enemy_units = None
 
     def render_sector(self) -> None:
+        """Debug method, drawing the borders of the 
+        """
         color = (255, 255, 0) if self.enemy_units else (255,0, 255)
         z_1 = 15
         z_2 = 15
@@ -36,7 +40,12 @@ class MapSector:
             self.bot.client.debug_sphere_out(ramp_top_3d,.2,(255,0,255))
         self.bot.client.debug_box_out(pos_1_3d, pos_2_3d, color)
 
-    def ramps_in_sector(self) -> List:
+    def ramps_in_sector(self) -> List[Point2]:
+        """ List of Ramps in Sector, currently just contains the top point
+
+        Returns:
+            List[Point2]: List of Ramps in Sector
+        """
         ramps = self.bot.game_info.map_ramps
         temp:list = []
         for ramp in ramps:
@@ -46,37 +55,55 @@ class MapSector:
         return temp
 
     def destructables_in_sector(self) -> Units:
+        """ Returns all destroyable Objects in the Sector
+
+        Returns:
+            Units: Destructible Objects 
+        """
         if self.bot.destructables:
             return self.bot.destructables.filter(lambda unit: self.in_sector(unit))
         return None
 
     def units_in_sector(self) -> Units:
+        """ Returns all friendly Units in the sector
+
+        Returns:
+            Units: own units in sector
+        """
         if self.bot.units:
             return self.bot.units.filter(lambda unit: self.in_sector(unit))
         return None
 
     def enemy_units_in_sector(self) -> Units:
+        """" Returns all enemy units in the sector 
+
+        Returns:
+            Units: _description_
+        """
         if self.bot.enemy_units:
             return self.bot.enemy_units.filter(lambda unit: self.in_sector(unit))
         return None
-    
-    def find_ramps_in_sector(self, ramp: Point2) -> List:
-        min_x, max_x = self.upper_left.x, self.lower_right.x
-        min_y, max_y = self.upper_left.y,self.lower_right.y
-        top_x, top_y = ramp.top_center.x, ramp.top_center.y
-        return min_x <= top_x <= max_x and min_y <= top_y <= max_y
 
     def in_sector(self,unit:Unit) -> bool:
+        """ Checks if a unit is in the Sector 
+
+        Args:
+            unit (Unit): checked Unit
+
+        Returns:
+            bool: returns True if unit is in Sector
+        """
         min_x, max_x = self.upper_left.x, self.lower_right.x
         min_y, max_y = self.upper_left.y,self.lower_right.y
         return min_x <= unit.position.x <= max_x and min_y <= unit.position.y <= max_y
 
     def build_sector(self) -> None:
-
+        """This should be implemented differently and will be reworked """
         self.ramps = self.ramps_in_sector()
         self.units = self.units_in_sector()
         self.enemy_units = self.enemy_units_in_sector()
 
     def update(self) -> None:
+        """ Updates Units in sector"""
         self.units = self.units_in_sector()
         self.enemy_units = self.enemy_units_in_sector()
