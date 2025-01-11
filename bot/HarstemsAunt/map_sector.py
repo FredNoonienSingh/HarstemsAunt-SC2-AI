@@ -97,6 +97,20 @@ class MapSector:
         min_y, max_y = self.upper_left.y,self.lower_right.y
         return min_x <= unit.position.x <= max_x and min_y <= unit.position.y <= max_y
 
+    def find_ramps_in_sector(self, ramp: Point2) -> List[Point2]:
+        """ Finds the Ramp within the sector 
+
+        Args:
+            ramp (Point2): returns the top of the ramp
+
+        Returns:
+            List[Point2]: of Top - center Point of the Ramp
+        """
+        min_x, max_x = self.upper_left.x, self.lower_right.x
+        min_y, max_y = self.upper_left.y,self.lower_right.y
+        top_x, top_y = ramp.top_center.x, ramp.top_center.y
+        return min_x <= top_x <= max_x and min_y <= top_y <= max_y
+
     def build_sector(self) -> None:
         """This should be implemented differently and will be reworked """
         self.ramps = self.ramps_in_sector()

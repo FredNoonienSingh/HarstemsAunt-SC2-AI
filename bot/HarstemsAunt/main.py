@@ -193,6 +193,22 @@ class HarstemsAunt(BotAI):
         for t in threads:
             t.join()
 
+        if not self.macro.build_order.opponent_builds_air:
+            if [unit for unit in self.seen_enemies if unit.is_flying and unit.can_attack]:
+                self.macro.build_order.opponent_builds_air = True
+                await self.chat_send("I see you got an AirForce, i can do that too")
+
+        if not self.macro.build_order.opponent_has_detection:
+            if [unit for unit in self.seen_enemies if unit.is_flying and unit.can_attack]:
+                self.macro.build_order.opponent_has_detection = True
+
+        if not self.macro.build_order.opponent_uses_cloak:
+            if [unit for unit in self.seen_enemies if (unit.is_cloaked and unit.can_attack) or (unit.is_burrowed and unit.can_attack)]:
+                self.macro.build_order.opponent_uses_cloak = True
+                await self.chat_send("Stop hiding and fight like a honorable ... \
+                        ähm... Robot?\ndo computers have honor ?")
+
+
         self.pathing.update(iteration)
 
         for j, group in enumerate(self.army_groups):
@@ -272,26 +288,10 @@ class HarstemsAunt(BotAI):
         Args:
             unit (Unit): Unit
         """
-        if not unit.tag in self.seen_enemies and unit.type_id not in WORKER_IDS:
-            self.seen_enemies.append(unit.tag)
+        if not unit in self.seen_enemies and unit.type_id not in WORKER_IDS:
+            self.seen_enemies.append(unit)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
 
-        if not self.macro.build_order.opponent_builds_air:
-            if unit.is_flying and unit.can_attack:
-                self.macro.build_order.opponent_builds_air = True
-                await self.chat_send("I see you got an AirForce, i can do that too")
-
-        #TODO: #76 Fix max iter depth crashes
-        if not self.macro.build_order.opponent_has_detection:
-            if unit.is_detector:
-                self.macro.build_order.opponent_has_detection = True
-
-        if not self.macro.build_order.opponent_uses_cloak:
-            if (unit.is_cloaked and unit.can_attack) \
-                or (unit.is_burrowed and unit.can_attack):
-                self.macro.build_order.opponent_uses_cloak = True
-                await self.chat_send("Stop hiding and fight like a honorable ... \
-                        ähm... Robot?\ndo computers have honor ?")
     #TODO: #73 Implement on_enemy_unit_left_vision logic
     async def on_enemy_unit_left_vision(self, unit_tag:int):
         """ Coroutine gets called when enemy left vision
