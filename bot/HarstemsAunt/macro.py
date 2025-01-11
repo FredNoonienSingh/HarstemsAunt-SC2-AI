@@ -5,6 +5,7 @@ from sc2.data import Alert
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
+from sc2.game_data import Cost
 from sc2.ids.buff_id import BuffId
 from sc2.position import Point2, Point3
 from sc2.ids.ability_id import AbilityId
@@ -62,7 +63,7 @@ class Macro:
 
     def get_build_worker(self) -> Unit:
         """ returns the build worker """
-        return self.bot.workers.closest_to(self.build_order.get_build_pos())
+        return self.bot.workers.closest_n_units(self.build_order.get_build_pos(), 1)[0]
 
     def get_production_structure(self, unit_type: UnitTypeId) -> UnitTypeId:
         """ returns the appropriate production structure
@@ -146,11 +147,19 @@ class Macro:
                 #TODO: #77 STOP COUNTER FROM GOING CRAZY
                 self.build_order.increment_step()
 
+
         next_step: BuildInstruction = self.build_order.next_instruction()
         if not next_step and self.build_order.buffer:
             next_step = self.build_order.get_instruction_from_buffer()
         if not next_step and not self.build_order.buffer:
             return
+
+        if not next_step.type_id == UnitTypeId.ASSIMILATOR:
+            structure_cost:Cost = self.bot.calculate_cost(next_step.type_id)
+            if (self.bot.minerals > (structure_cost.minerals*0.65)):
+                if not Utils.unittype_in_proximity_to_point(self.bot, UnitTypeId.PROBE, next_step.position):
+                    worker: Unit = self.get_build_worker()
+                    worker.move(next_step.position)
 
         match next_step.instruction_type:
             case InstructionType.BUILD_STRUCTURE:

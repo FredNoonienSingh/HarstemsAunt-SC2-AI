@@ -6,6 +6,7 @@ from typing import Union, Iterable
 
 from sc2.unit import Unit
 from sc2.bot_ai import BotAI
+from sc2.game_data import GameData
 from sc2.position import Point2, Point3
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -133,8 +134,12 @@ class Utils:
             if bot.enemy_units:
                 active_prism = bot.units(UnitTypeId.WARPPRISM).closest_to(bot.enemy_units.center)
             else:
-                active_prism = bot.units(UnitTypeId.WARPPRISM).closest_to(bot.enemy_start_locations[0]) 
+                active_prism = bot.units(UnitTypeId.WARPPRISM).closest_to(bot.enemy_start_locations[0])
             return active_prism.position
+
+    @staticmethod
+    def unittype_in_proximity_to_point(bot:BotAI,type_id:UnitTypeId,point:Union[Point2,Point3,Unit],max_distance:float=.5) -> bool:
+        return bot.units(type_id).filter(lambda unit: unit.distance_to(point)<max_distance)
 
     @staticmethod
     def structure_in_proximity(bot:BotAI, structure_type:UnitTypeId, structure:Unit, max_distance:float)-> bool:
