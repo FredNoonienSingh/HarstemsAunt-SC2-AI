@@ -1,3 +1,4 @@
+"""Module containing a Debug Class"""
 from typing import Union
 from math import sin, pi, cos
 
@@ -6,17 +7,24 @@ from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3, Pointlike
 
 class DebugTools:
+    """ Collection of debug tools  """
 
     def __init__(self, bot:BotAI) -> None:
         self.bot = bot
 
-    def debug_build_pos(self, pos:Union[Point2, Point3, Pointlike]):
+    def debug_pos(self, pos:Union[Point2, Point3, Pointlike]):
+        """ Draws sphere a given position
+
+        Args:
+            pos (Union[Point2, Point3, Pointlike]): position that will be shown
+        """
         z = self.bot.get_terrain_z_height(pos)+1
         x,y = pos.x, pos.y
         pos_3d = Point3((x,y,z))
         self.bot.client.debug_sphere_out(pos_3d ,.2, (255,255,0))
 
     def draw_gameinfo(self):
+        """draws the information about the game to the screen"""
         text:str = ""
         supply:int = self.bot.supply_army
         enemy_supply:int=self.bot.enemy_supply
@@ -27,16 +35,31 @@ class DebugTools:
         self.bot.client.debug_text_screen(str(text), (0,.125), color=None, size=14)
 
     def unit_label(self, unit:Unit):
+        """ Draws information about the unit in a lable at the unit 
+
+        Args:
+            unit (Unit): Unit which will be labled
+        """
         text:str=f"Type: {unit.type_id}\nHealth: {unit.health}\nOrders: {unit.orders} \nPos {unit.position3d}"
         self.bot.client.debug_text_world(text,unit,color=(255,90,0),size=12)
 
     def unit_range(self, unit:Unit):
+        """ draws range of unit
+
+        Args:
+            unit (Unit): unit whoms range will be 
+        """
         if unit.can_attack_ground:
             self.bot.client.debug_sphere_out(unit,unit.ground_range,(0,255,0))
         if unit.can_attack_air:
             self.bot.client.debug_sphere_out(unit,unit.air_range,(255,0,25))
 
     def render_unit_vision(self, unit:Unit):
+        """ draws units vision, draws a raycasting approach that is no longer in use
+
+        Args:
+            unit (Unit): unit who's vision will be displayed
+        """
         terrain_height = self.bot.get_terrain_z_height(unit)+1
         origin:Unit = unit
         num_points:int = 16  # Number of points on the circle

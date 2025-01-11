@@ -12,8 +12,8 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 
 from .utils import Utils
-from .build_order import BuildOrder, BuildInstruction, InstructionType
 from .common import GATEWAY_UNTIS, ROBO_UNITS, STARGATE_UNITS, logger
+from .build_order import BuildOrder, BuildInstruction, InstructionType
 
 
 async def warp_in_unit(bot: BotAI,unit:UnitTypeId,\
@@ -36,17 +36,18 @@ async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
                 await warp_in_unit(bot, unit_type, warp_in_pos)
 
 class Macro:
-
+    """ Class handling the Marco aspect of the Game """
     def __init__(self,bot:BotAI) -> None:
         self.bot = bot
         self.temp:list = []
         self.mined_out_bases: list = []
         self.build_order = BuildOrder(self.bot)
 
-    #TODO: #75 Premove workers 
+    #TODO: #75 Premove workers
     async def __call__(self):
+        """ makes the class callable, get's executed to every tick in BotClass  """
         if self.bot.alert:
-            self.handle_alerts(self.bot.alert)
+            await self.handle_alerts(self.bot.alert)
         
         await self.chronoboost()
         self.get_upgrades()
@@ -55,17 +56,23 @@ class Macro:
         await self.build_order.update()
 
         # TODO: Create Check in Build Order Class
-        if not len(self.build_order.instruction_list) > self.build_order.step:
-            if self.bot.supply_left < 5:
-                logger.info("TIME TO BUILD PYLONS")
-                await self.build_supply()
+        if not self.build_order.is_performing_initial_build:
+            await self.build_supply()
         self.build_probes()
 
     def get_build_worker(self) -> Unit:
+        """ returns the build worker """
         return self.bot.workers.closest_to(self.build_order.get_build_pos())
 
     def get_production_structure(self, unit_type: UnitTypeId) -> UnitTypeId:
+        """ returns the appropriate production structure
 
+        Args:
+            unit_type (UnitTypeId): unit_type for which the production structure is needed
+
+        Returns:
+            UnitTypeId: appropriate productions structure
+        """
         if unit_type in GATEWAY_UNTIS:
             if not self.bot.structures(UnitTypeId.WARPGATE):
                 return UnitTypeId.GATEWAY
@@ -76,8 +83,14 @@ class Macro:
             return UnitTypeId.STARGATE
 
     async def handle_instructions(self) -> None:
+        """ gets build Instruction for self.build_order  """
 
         async def construct_building(next_step:BuildInstruction):
+            """ Handles the construction of structures 
+
+            Args:
+                next_step (BuildInstruction): next instruction 
+            """
             #TODO: #70 ADD a check if the next instruction is equal to the current one so that building gets not delayed
 
             pending_check:bool = False
@@ -115,6 +128,11 @@ class Macro:
                             max_distance=next_step.accuracy,build_worker=self.get_build_worker())
 
         async def train_unit(next_step:BuildInstruction):
+            """ handles the construction of Units
+
+            Args:
+                next_step (BuildInstruction): next instruction
+            """
             #TODO: ADD WARPPRISM LOGIC, SO REINFORCEMENTS CAN BE WARPED IN CLOSE TO FIGHT
             unit_type: UnitTypeId = next_step.type_id
             production_structure_type = self.get_production_structure(unit_type)
@@ -141,6 +159,8 @@ class Macro:
                 await train_unit(next_step)
 
     def get_upgrades(self) -> None:
+        """ handles the research of upgrades """
+        
         attack = [
                 UpgradeId.PROTOSSGROUNDWEAPONSLEVEL1,
                 UpgradeId.PROTOSSGROUNDWEAPONSLEVEL2,
@@ -173,59 +193,46 @@ class Macro:
             if not UpgradeId.CHARGE in self.bot.researched:
                 upgrade(self.bot, UnitTypeId.TWILIGHTCOUNCIL, UpgradeId.CHARGE)
 
-    def handle_alerts(self, alert:Alert) -> None:
-        """ Possible Alerts:
-            AlertError
-            AddOnComplete
-            BuildingComplete
-            BuildingUnderAttack
-            LarvaHatched
-            MergeComplete
-            MineralsExhausted
-            MorphComplete
-            MothershipComplete
-            MULEExpired
-            NuclearLaunchDetected
-            NukeComplete
-            NydusWormDetected
-            ResearchComplete
-            TrainError
-            TrainUnitComplete
-            TrainWorkerComplete
-            TransformationComplete
-            UnitUnderAttack
-            UpgradeComplete
-            VespeneExhausted
-            WarpInComplete
+    async def handle_alerts(self, alert:Alert) -> None:
+        """ Handles reaction to alerts
+
+        Args:
+            alert (Alert): Alert triggered on the current tick
         """
+        #Possible Alerts:
+        #    AlertError
+        #    AddOnComplete
+        #    BuildingComplete
+        #    BuildingUnderAttack
+        #    LarvaHatched
+        #    MergeComplete
+        #    MineralsExhausted
+        #    MorphComplete
+        #    MothershipComplete
+        #    MULEExpired
+        #    NuclearLaunchDetected
+        #    NukeComplete
+        #    NydusWormDetected
+        #    ResearchComplete
+        #    TrainError
+        #    TrainUnitComplete
+        #    TrainWorkerComplete
+        #    TransformationComplete
+        #    UnitUnderAttack
+        #    UpgradeComplete
+        #    VespeneExhausted
+        #    WarpInComplete
+
         match alert:
             case Alert.VespeneExhausted:
-                self.gas_count += 1
+                self.build_order.buffer.append(UnitTypeId.ASSIMILATOR)
             case Alert.NuclearLaunchDetected:
-                pass 
+                await self.bot.chat_send("Nukes ?!? -> RUDE !!!")
             case Alert.NydusWormDetected:
-                pass
-
-    async def build_army(self) -> None:
-        #TODO: #53 Find a better way to control Army composition
-        #TODO: #54 Implement a Check for detectors in Enemy Comp, if not at DTs
-
-        stalkers:int = len(self.bot.units(UnitTypeId.STALKER))
-        # +1 to avoid ZeroDivision exception
-        zealots:int = len(self.bot.units(UnitTypeId.ZEALOT)) +1
-    
-        if not stalkers or stalkers/zealots < 3:
-            await build_gateway_units(self.bot, UnitTypeId.STALKER)
-        else:
-            await build_gateway_units(self.bot, UnitTypeId.ZEALOT)
-        # await build_stargate_units(bot, UnitTypeId.PHOENIX)
-
-        if not self.bot.units(UnitTypeId.OBSERVER):
-            await build_robo_units(self.bot, UnitTypeId.OBSERVER)
-        else:
-            await build_robo_units(self.bot, UnitTypeId.IMMORTAL)
+                await self.bot.chat_send("You went into that thing ? DISGUSTING !!!")
 
     async def build_supply(self) -> None:
+        """Builds supply structures """
         if not self.bot.can_afford(UnitTypeId.PYLON) or self.bot.supply_cap == 200:
             return
         if Utils.can_build_structure(self.bot,UnitTypeId.PYLON) and not \
@@ -235,6 +242,7 @@ class Macro:
             await self.bot.build(UnitTypeId.PYLON, build_worker=worker, near=self.build_order.get_build_pos())
 
     async def build_gas(self,position:Union[Point2,Point3,Unit]) -> None:
+        """Handles the Building of Gas Structures """
         bot:BotAI = self.bot
         vespene: Units = bot.vespene_geyser.closest_to(position)
         if await bot.can_place_single(UnitTypeId.ASSIMILATOR, vespene.position):
@@ -244,6 +252,7 @@ class Macro:
                 worker.build_gas(vespene)
 
     def check_mined_out(self) -> None:
+        """ Check if Base is mined out -> needs to be reworked"""
         for townhall in self.bot.townhalls:
             minerals = self.bot.expansion_locations_dict[townhall.position].mineral_field
 
@@ -252,11 +261,11 @@ class Macro:
                     self.bot.mined_out_bases.append(townhall)
 
             if not len(self.bot.mined_out_bases) == len(self.bot.temp):
-                self.base_count += 1
+                #self.base_count += 1
                 self.temp = self.mined_out_bases
 
     def build_probes(self) -> None:
- 
+        """ Builds workers """
         probe_count:int = len(self.bot.structures(UnitTypeId.NEXUS))*16 + len(self.bot.structures(UnitTypeId.ASSIMILATOR))*3
         if self.bot.structures(UnitTypeId.PYLON):
             for townhall in self.bot.townhalls.idle:
@@ -264,13 +273,14 @@ class Macro:
                     townhall.train(UnitTypeId.PROBE)
 
     async def chronoboost(self) -> None:
+        """ handles Chronoboosting """
         prios:list = [
             [
                 UnitTypeId.ROBOTICSBAY,
                 UnitTypeId.FLEETBEACON,
                 UnitTypeId.TWILIGHTCOUNCIL,
                 UnitTypeId.FORGE,
-                UnitTypeId.CYBERNETICSCORE,
+                #UnitTypeId.CYBERNETICSCORE,        # WARPGATE SHOULD NOT BE CHRONOBOOSTED
                 UnitTypeId.DARKSHRINE,
                 UnitTypeId.TEMPLARARCHIVE,
             ],
@@ -294,6 +304,7 @@ class Macro:
                     chrono_nexus[0](AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, struct)
 
     async def expand(self) -> None:
+        """ Handles the building of new townhalls """
         location:Union[Point2,Point3] = await self.bot.get_next_expansion()
         if location:
             if not self.bot.enemy_units.filter(lambda unit: unit.distance_to(location) < 2.75):

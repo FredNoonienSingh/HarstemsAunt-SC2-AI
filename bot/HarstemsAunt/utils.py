@@ -1,3 +1,4 @@
+"""Utility Module"""
 import math
 import numpy as np
 
@@ -10,39 +11,93 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 
 class Utils:
+    """ Utilityclass containing a collection of static methods """
 
     @staticmethod
     def and_or(a:any, b:any)-> bool:
+        """ Just performs and/or -> here to keep lines shorter 
+
+        Args:
+            a (any): needs to eval to bool
+            b (any): needs to eval to bool
+
+        Returns:
+            bool: and or 
+        """
         return a or b or (a and b)
 
     @staticmethod
     def can_build_structure(bot:BotAI, structure_id:UnitTypeId)->bool:
+        """ Checks if bot can build structure 
+
+        Args:
+            bot (BotAI): Instance of BotAI
+            structure_id (UnitTypeId): structure Id 
+
+        Returns:
+            bool: True if Bot can build Structure 
+        """
         return bot.can_afford(structure_id) and bot.tech_requirement_progress(structure_id)
 
     @staticmethod
     def can_build_unit(bot:BotAI, unit_id:UnitTypeId) ->bool:
+        """ Checks if bot can build unit
+
+        Args:
+            bot (BotAI): Instance of BotAI
+            structure_id (UnitTypeId): unit Id 
+
+        Returns:
+            bool: True if Bot can build unit
+        """
         return bot.can_afford(unit_id) and bot.can_feed(unit_id) and bot.tech_requirement_progress(unit_id)
 
     @staticmethod
     def can_research_upgrade(bot:BotAI,upgrade_id:UpgradeId)->bool:
+        """ Checks if bot can research upgrade 
+
+        Args:
+            bot (BotAI): Instance of BotAI
+            structure_id (UnitTypeId): UpgradeId 
+
+        Returns:
+            bool: True if Bot can research
+        """
         return bot.can_afford(upgrade_id) and not bot.already_pending_upgrade(upgrade_id)\
             and bot.tech_requirement_progress(upgrade_id)
 
     @staticmethod
     def get_army_target(bot:BotAI) -> Union[Point2, Point3]:
+        """ Get a Target for Army
+                - not in use can be removed 
+
+        Args:
+            bot (BotAI): Instance of Bot
+
+        Returns:
+            Union[Point2, Point3]: attack target
+        """
         if bot.enemy_units:
             return bot.enemy_units.center
         else:
             return bot.enemy_start_locations[0]
 
     @staticmethod
-    def check_position(bot:BotAI) -> bool:
-        if bot.units.filter(lambda unit: unit.distance_to(bot.last_enemy_army_pos) < unit.sight_range):
-                return True
-        return False
-
-    @staticmethod
     def get_intersections(p0: Point2, r0: float, p1:Point2, r1:float) -> Iterable[Point2]:
+        """ yield the intersection points of 2 Circles
+
+        Args:
+            p0 (Point2): _description_
+            r0 (float): _description_
+            p1 (Point2): _description_
+            r1 (float): _description_
+
+        Returns:
+            Iterable[Point2]: _description_
+
+        Yields:
+            Iterator[Iterable[Point2]]: _description_
+        """
         p01 = p1 - p0
         d = np.linalg.norm(p01)
         if d == 0:
