@@ -145,48 +145,57 @@ class ArmyGroup:
                 if self.bot.structures.filter(lambda struct: struct.type_id in [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]):
                     if self.bot.units(UnitTypeId.DARKSHRINE).ready and not opponent_has_detection:
                         requested_unit: UnitTypeId = UnitTypeId.DARKTEMPLAR
-                        self.requested_units.append(requested_unit)
+                        if not requested_unit in self.requested_units:
+                            self.requested_units.append(requested_unit)
                         return
                     requested_unit: UnitTypeId = UnitTypeId.ZEALOT
-                    self.requested_units.append(requested_unit)
+                    if not requested_unit in self.requested_units:
+                        self.requested_units.append(requested_unit)
                     return
 
         def _army_request():
             """ request unit for "normal" Army group  """
             gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
-            if self.bot.structures.filter(lambda struct: struct.type_id in gate_aliases).idle:
+            if self.bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
                 stalkers:int = len(self.units(UnitTypeId.STALKER))
                 zealots:int = len(self.units(UnitTypeId.ZEALOT)) +1
                 
-                if self.bot.structures(UnitTypeId.TEMPLARARCHIVE) and len(self.units(UnitTypeId.HIGHTEMPLAR)) > 2:
+                if self.bot.structures(UnitTypeId.TEMPLARARCHIVE) and len(self.units(UnitTypeId.HIGHTEMPLAR)) < 2:
                     requested_unit: UnitTypeId = UnitTypeId.HIGHTEMPLAR
-                    self.requested_units.append(requested_unit)
-                    return
+                    if not requested_unit in self.requested_units:
+                        self.requested_units.append(requested_unit)
 
-                if not stalkers or stalkers/zealots < 3:
-                    requested_unit: UnitTypeId = UnitTypeId.STALKER
-                else:
+                if not zealots < stalkers:
                     requested_unit: UnitTypeId = UnitTypeId.ZEALOT
+                    if not requested_unit in self.requested_units:
+                        self.requested_units.append(requested_unit)
+                else:
+                    requested_unit: UnitTypeId = UnitTypeId.STALKER
+                    if not requested_unit in self.requested_units:
+                        self.requested_units.append(requested_unit)
 
-            if self.bot.structures(UnitTypeId.ROBOTICSFACILITY).idle:
+            if self.bot.structures(UnitTypeId.ROBOTICSFACILITY):
                 if not self.has_detection:
                     requested_unit: UnitTypeId = UnitTypeId.OBSERVER
                 else:
                     requested_unit: UnitTypeId = UnitTypeId.IMMORTAL
-                self.requested_units.append(requested_unit)
+                if not requested_unit in self.requested_units:
+                    self.requested_units.append(requested_unit)
 
-            if self.bot.structures(UnitTypeId.STARGATE).idle:
+
+            if self.bot.structures(UnitTypeId.STARGATE):
                 if len(self.bot.units.flying) > \
                     len(self.bot.enemy_units.filter(lambda unit: unit.is_flying and unit.can_attack)):
                     requested_unit: UnitTypeId = UnitTypeId.PHOENIX
-                    self.requested_units.append(requested_unit)
+                    if not requested_unit in self.requested_units:
+                        self.requested_units.append(requested_unit)
 
-        match self.GroupTypeId:
-            case GroupTypeId.RUN_BY:
-                logger.info("not Testing Runbys right now")
-                _runby_request()
-            case GroupTypeId.ARMY:
-                _army_request()
+        #match self.GroupTypeId:
+            #case GroupTypeId.RUN_BY:
+             #   logger.info("not Testing Runbys right now")
+#                _runby_request()
+            #case GroupTypeId.ARMY:
+        _army_request()
 
     def remove_unit(self, unit_tag:str) -> bool:
         """ Removes are unit from ArmyGroup 
@@ -285,7 +294,7 @@ class ArmyGroup:
     def regroup(self) -> None:
         """ regroup command for the group  """
 
-        if not self.units.filter(lambda unit: unit.distance_to(self.position) > 15):
+        if not self.units.filter(lambda unit: unit.distance_to(self.position) > 5):
             return
 
         self.units.furthest_to(self.position).move(self.position)
