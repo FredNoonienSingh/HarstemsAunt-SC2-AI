@@ -1,4 +1,6 @@
 """DOCSTRING to shut up the Linter """
+from __future__ import annotations
+
 from enum import Enum
 from typing import Union, List
 from functools import cached_property
@@ -13,7 +15,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 from .army_group import ArmyGroup
 from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING,logger
-
 
 class InstructionType(Enum):
     """Enumeration containing InstructionTypes """
@@ -30,7 +31,7 @@ class BuildInstruction:
     """ class representing a Build Instruction """
 
     def __new__(cls,type_id:UnitTypeId,position:Union[Point2,Point3,Unit]=None,\
-        accuracy:int=0, worker_command:UnitCommand=None):
+        accuracy:int=0, worker_command:UnitCommand=None) -> BuildInstruction:
         """ Creates new instance of BuildInstruction
 
         Args:
@@ -121,11 +122,11 @@ class BuildOrder:
             BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
             BuildInstruction(UnitTypeId.GATEWAY,wall_buildings[0]),
             BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_0),
+            BuildInstruction(UnitTypeId.PYLON,tech_pylon_pos),
             BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_1),
             BuildInstruction(UnitTypeId.CYBERNETICSCORE,wall_buildings[1]),
             BuildInstruction(UnitTypeId.NEXUS, start_pos),
             BuildInstruction(UnitTypeId.GATEWAY, wall_pylon_pos,5),
-            BuildInstruction(UnitTypeId.PYLON,tech_pylon_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.PYLON, angle_pylon_pos, 1),

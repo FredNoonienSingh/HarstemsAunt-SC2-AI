@@ -23,7 +23,8 @@ UNIT_COMPOSIOTION:Dict = {
 
 INITIAL_TECH:Dict = {
     Race.Protoss: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY],
-    Race.Terran: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.TEMPLARARCHIVE],
+    Race.Terran: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY],
+            #[UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.TEMPLARARCHIVE], -> Terran tech change back later
     Race.Zerg: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY]
 }
 

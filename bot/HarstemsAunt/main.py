@@ -308,13 +308,13 @@ class HarstemsAunt(BotAI):
         Args:
             unit (Unit): Unit that gets created 
         """
-        if self.macro.build_order.is_performing_initial_build \
-            and not unit.type_id == UnitTypeId.PROBE:
+        if not unit.type_id == UnitTypeId.PROBE:
             self.army_groups[0].units_in_transit.append(unit.tag)
 
         for group in self.army_groups:
             if unit.type_id in group.requested_units:
-                group.units_in_transit.append(unit.tag)
+                self.macro.build_order.buffer.remove(unit.type_id)
+                logger.info(f"{unit.type_id} got removed from {group}")
 
     async def on_unit_type_changed(self, unit:Unit, previous_type:UnitTypeId) -> None:
         """ Coroutine that gets called when a unit changes type:

@@ -17,25 +17,6 @@ from .common import GATEWAY_UNTIS, ROBO_UNITS, STARGATE_UNITS, logger
 from .build_order import BuildOrder, BuildInstruction, InstructionType
 
 
-async def warp_in_unit(bot: BotAI,unit:UnitTypeId,\
-    warp_in_position:Union[Point2,Point3,Unit]) -> bool:
-    pos:Point2= warp_in_position.position.to2.random_on_distance(4)
-    placement = await bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
-
-    for gate in bot.structures(UnitTypeId.WARPGATE).idle:
-        if Utils.can_build_unit(bot, unit):
-            gate.warp_in(unit, placement)
-
-async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
-    gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
-    if Utils.can_build_unit(bot, unit_type):
-        for gate in bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
-            if gate.is_idle and UpgradeId.WARPGATERESEARCH not in bot.researched:
-                gate.train(unit_type)
-            else:
-                warp_in_pos = Utils.get_warp_in_pos(bot)
-                await warp_in_unit(bot, unit_type, warp_in_pos)
-
 class Macro:
     """ Class handling the Marco aspect of the Game """
     def __init__(self,bot:BotAI) -> None:
@@ -134,18 +115,40 @@ class Macro:
             Args:
                 next_step (BuildInstruction): next instruction
             """
+            
+            async def warp_in_unit(bot: BotAI,unit:UnitTypeId,\
+                warp_in_position:Union[Point2,Point3,Unit]) -> bool:
+                pos:Point2= warp_in_position.position.to2.random_on_distance(4)
+                placement = await bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+
+                for gate in bot.structures(UnitTypeId.WARPGATE).idle:
+                    if Utils.can_build_unit(bot, unit):
+                         gate.warp_in(unit, placement)
+
+            async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
+                gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
+                if Utils.can_build_unit(bot, unit_type):
+                    for gate in bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
+                        if gate.is_idle and UpgradeId.WARPGATERESEARCH not in bot.researched:
+                            gate.train(unit_type)
+                            self.build_order.increment_step()
+                        else:
+                            warp_in_pos = Utils.get_warp_in_pos(bot)
+                            await warp_in_unit(bot, unit_type, warp_in_pos)
+                            self.build_order.increment_step()
+
             #TODO: ADD WARPPRISM LOGIC, SO REINFORCEMENTS CAN BE WARPED IN CLOSE TO FIGHT
             unit_type: UnitTypeId = next_step.type_id
             production_structure_type = self.get_production_structure(unit_type)
             production_structures: Units = self.bot.structures(production_structure_type)
-            if Utils.can_build_unit(self.bot, next_step.type_id) and production_structures.idle:
+            if Utils.can_build_unit(self.bot, next_step.type_id) and production_structures:
                 if not production_structure_type in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY]:
-                    production_structures[0].train(unit_type)
-                    self.build_order.increment_step()
-                    return
+                    for struct in production_structures:
+                        if struct.is_idle and not self.bot.already_pending(unit_type):
+                            production_structures[0].train(unit_type)
+                            self.build_order.increment_step()
+                            return
                 await build_gateway_units(self.bot,unit_type)
-                #TODO: #77 STOP COUNTER FROM GOING CRAZY
-                self.build_order.increment_step()
 
 
         next_step: BuildInstruction = self.build_order.next_instruction()
@@ -154,7 +157,7 @@ class Macro:
         if not next_step and not self.build_order.buffer:
             return
 
-        if not next_step.type_id == UnitTypeId.ASSIMILATOR:
+        if not next_step.type_id == UnitTypeId.ASSIMILATOR and self.build_order.is_performing_initial_build:
             structure_cost:Cost = self.bot.calculate_cost(next_step.type_id)
             if (self.bot.minerals > (structure_cost.minerals*0.65)):
                 if not Utils.unittype_in_proximity_to_point(self.bot, UnitTypeId.PROBE, next_step.position):

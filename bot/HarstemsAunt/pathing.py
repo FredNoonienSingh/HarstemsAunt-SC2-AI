@@ -24,7 +24,7 @@ class Pathing:
         self.climber_grid: np.ndarray = self.map_data.get_climber_grid()
         self.units_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.ground_grid: np.ndarray = self.map_data.get_pyastar_grid()
-        #self.detection_grid: np.ndarray = self.map_data.get_pyastar_grid()
+        self.detection_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.air_grid: np.ndarray = self.map_data.get_clean_air_grid()
         self.influence_fade_rate: float = fade_rate
 
@@ -32,15 +32,15 @@ class Pathing:
 
         last_ground_grid:np.ndarray = self.ground_grid
         last_air_grid:np.ndarray = self.air_grid
-        #last_detection_grid: np.ndarray = self.detection_grid
+        last_detection_grid: np.ndarray = self.detection_grid
 
         last_ground_grid[last_ground_grid != 0] /= self.influence_fade_rate
         last_air_grid[last_air_grid != 0] /= self.influence_fade_rate
-        #last_detection_grid[last_detection_grid != 0] /=self.influence_fade_rate
+        last_detection_grid[last_detection_grid != 0] /=self.influence_fade_rate
 
         self.ground_grid = self.map_data.get_pyastar_grid() + last_ground_grid
         self.air_grid = self.map_data.get_clean_air_grid() + last_air_grid
-        #self.detection_grid = self.map_data.get_pyastar_grid() + last_detection_grid
+        self.detection_grid = self.map_data.get_pyastar_grid() + last_detection_grid
 
         for unit in self.bot.all_enemy_units:
             if unit.type_id in ALL_STRUCTURES:
