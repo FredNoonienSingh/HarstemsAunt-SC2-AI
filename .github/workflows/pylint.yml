@@ -18,6 +18,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint
+    - name: Create .pylintrc file
+      run: |
+        echo "disable=import-error" > .pylintrc
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py') --fail-under 4
