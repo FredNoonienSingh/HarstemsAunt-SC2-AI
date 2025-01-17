@@ -21,9 +21,6 @@ jobs:
     - name: Create .pylintrc file
       run: |
         echo "disable=import-error" > .pylintrc
-    - name: Lint code (excluding specific directory)
-      run: |
-        find . -type f -name "*.py" \( -path "./map_analyzer" -prune \) -o -print0 | xargs -0 pylint
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py') --fail-under 5
