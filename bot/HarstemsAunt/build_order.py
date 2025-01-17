@@ -1,4 +1,5 @@
 """DOCSTRING to shut up the Linter """
+# pylint: disable=C0103
 from __future__ import annotations
 
 from enum import Enum
@@ -37,8 +38,10 @@ class BuildInstruction:
 
         Args:
             type_id (UnitTypeId): type of structure or unit that needs to be build
-            position (Union[Point2,Point3,Unit], optional): position on which the structure will be build. Defaults to None.
-            worker_command (UnitCommand, optional): Worker Command after finishing the structure. Defaults to None.
+            position (Union[Point2,Point3,Unit], optional): position on which the \
+                structure will be build. Defaults to None.
+            worker_command (UnitCommand, optional): Worker Command after finishing the \
+                structure. Defaults to None.
 
         Returns:
             _type_: BuildInstruction
@@ -57,7 +60,8 @@ class BuildInstruction:
         Args:
             type_id (UnitTypeId): type of unit or structure
             position (Union[Point2,Point3,Unit]): position on which the structure will be build
-            worker_command (UnitCommand, optional): Worker Command after finishing the structure. Defaults to None.
+            worker_command (UnitCommand, optional): Worker Command after finishing \
+                the structure. Defaults to None.
         """
         self.type_id = type_id
         self.position = position
@@ -89,7 +93,7 @@ class BuildInstruction:
 class BuildOrder:
     """ Class containing the build order and methods connected with it
     """
-    
+
     def __init__(self, bot:BotAI, build:Build=Build.FOUR_GATE):
         self.bot = bot
         self.build = build
@@ -112,12 +116,14 @@ class BuildOrder:
         minerals:Units = self.bot.expansion_locations_dict[self.bot.start_location].mineral_field
         wall_buildings:list = list(self.bot.main_base_ramp.protoss_wall_buildings)
         wall_pylon_pos:Point2 = self.bot.main_base_ramp.protoss_wall_pylon
-        tech_pylon_pos:Point2 = self.bot.start_location.towards(self.bot.start_location.furthest(minerals).position, 10)
+        tech_pylon_pos:Point2 = self.bot.start_location\
+            .towards(self.bot.start_location.furthest(minerals).position, 10)
         angle_pylon_pos:Point2 = self.bot.start_location.towards(self.bot.game_info.map_center,10)
         vespene_position_0:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[0]
         vespene_position_1:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[1]
 
-        cannon_pylon_0: Point2 = self.bot.enemy_start_locations[0].towards(self.bot.game_info.map_center, 5)
+        cannon_pylon_0: Point2 = self.bot.enemy_start_locations[0]\
+            .towards(self.bot.game_info.map_center, 5)
 
         FOUR_GATE = [
             BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
@@ -211,7 +217,8 @@ class BuildOrder:
         """ appends structure to constructed structures currently not in use """
         self.constructed_structures.append(structure)
 
-    #TODO: Make this structure dependent -> return the last pylon not in Vision Pylons for any structure and a different pos for pylons
+    #TODO: Make this structure dependent -> return the last pylon not in \
+        # Vision Pylons for any structure and a different pos for pylons
     def get_build_pos(self) -> Union[Point2, Point3, Unit]:
         """ returns build pos
 
@@ -258,7 +265,7 @@ class BuildOrder:
             (0.01, 0.20), color=(255,255,255), size=15)
 
     def debug_build_pos(self, pos:Union[Point2, Point3]):
-        """debug methode to show the current build pos """
+        """debug method to show the current build pos """
         z = self.bot.get_terrain_z_height(pos)+1
         x,y = pos.x, pos.y
         pos_3d = Point3((x,y,z))

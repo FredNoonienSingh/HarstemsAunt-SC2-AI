@@ -246,7 +246,6 @@ class ArmyGroup:
                                unit.position, self.retreat_pos, grid
                             )
                         )
-                    
         #self.observer.retreat(self.units(UnitTypeId.OBSERVER), self.retreat_pos)
 
     #TODO: #31 Regroup Units by Range
@@ -280,7 +279,7 @@ class ArmyGroup:
             shall be called every tick in main.py 
         """
         if not self.requested_units:
-            self.request_unit()
+            self.request_units()
         #last_status: GroupStatus = self.status
 
         # Move Units in Transit to Army_group:
@@ -294,13 +293,15 @@ class ArmyGroup:
             if Utils.in_proximity_to_point(unit, self.position, 2):
                 self.units_in_transit.remove(unit.tag)
                 self.unit_list.append(unit.tag)
-                await self.bot.chat_send(f"Army Group: {self.name} got reinforced by {unit.type_id}")
+                await self.bot.chat_send(f"Army Group: {self.name} \
+                    got reinforced by {unit.type_id}")
 
         # CHECK DEFEND POSITION
         for townhall in self.bot.townhalls:
             enemies_in_area = self.bot.enemy_units.closer_than(30, townhall)
             if enemies_in_area:
-                supply_in_area = sum([self.bot.calculate_supply_cost(unit.type_id) for unit in enemies_in_area])
+                supply_in_area = sum([self.bot.calculate_supply_cost(unit.type_id) \
+                    for unit in enemies_in_area])
                 if supply_in_area > 10:
                     self.defend(townhall)
                     self.status = GroupStatus.DEFENDING
@@ -310,7 +311,8 @@ class ArmyGroup:
         # CHECK RETREAT CONDITIONS
         shield_condition = self.average_shield_percentage < .45
         supply_condition = self.supply <= self.enemy_supply_in_proximity
-        if Utils.and_or(shield_condition, supply_condition) or len(self.units) < len(self.units_in_transit):
+        if Utils.and_or(shield_condition, supply_condition) \
+            or len(self.units) < len(self.units_in_transit):
             self.retreat()
             self.status = GroupStatus.RETREATING
             return

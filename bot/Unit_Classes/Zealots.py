@@ -1,5 +1,7 @@
 """Unit Class for Zealots"""
+# pylint: disable=C0103
 # pylint: disable=W0611
+# pylint: disable=W0640
 from typing import Optional
 
 import numpy as np
@@ -14,8 +16,8 @@ from HarstemsAunt.common import ATTACK_TARGET_IGNORE
 
 
 class Zealot(BaseClassGround):
-    # Overwritten from BaseClassGround
-    # pylint: disable=W0640
+    """ Class controlling Units of type UnitTypeId.ZEALOT"""
+
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
         """ Handles Attackers
 
@@ -47,6 +49,11 @@ class Zealot(BaseClassGround):
             return
 
     async def retreat(self, retreat_pos: Point2):
+        """ gives the order to retreat for Units in Class 
+
+        Args:
+            retreat_pos (Point2): position to retreat to
+        """
         grid: np.ndarray = self.pathing.ground_grid
         for unit in self.units:
             move_to: Point2 = self.pathing.find_path_next_point(
@@ -56,6 +63,15 @@ class Zealot(BaseClassGround):
 
     @staticmethod
     def pick_enemy_target(enemies: Units, unit: Unit) -> Unit:
+        """ Returns the target that a unit is supposed to target
+
+        Args:
+            enemies (Units): Enemies that are close to unit
+            unit (Unit): controlled Unit
+
+        Returns:
+            Unit: target for unit
+        """
         fighting_units: Units = enemies.filter(lambda unit:
             unit.ground_dps > 5 and
             not unit.is_flying

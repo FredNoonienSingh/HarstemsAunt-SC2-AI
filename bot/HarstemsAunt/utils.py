@@ -1,4 +1,6 @@
 """Utility Module"""
+# pylint: disable=C0411
+
 import math
 import numpy as np
 
@@ -50,7 +52,8 @@ class Utils:
         Returns:
             bool: True if Bot can build unit
         """
-        return bot.can_afford(unit_id) and bot.can_feed(unit_id) and bot.tech_requirement_progress(unit_id)
+        return bot.can_afford(unit_id) and bot.can_feed(unit_id) \
+            and bot.tech_requirement_progress(unit_id)
 
     @staticmethod
     def can_research_upgrade(bot:BotAI,upgrade_id:UpgradeId)->bool:
@@ -115,47 +118,130 @@ class Utils:
 
     @staticmethod
     def get_build_pos(bot:BotAI) -> Union[Point2, Point3, Unit]:
+        """ returns build_pos
+
+        Args:
+            bot (BotAI): instance of Bot
+
+        Returns:
+            Union[Point2, Point3, Unit]: Build Pos
+        """
         if not bot.structures(UnitTypeId.PYLON):
             return bot.main_base_ramp.protoss_wall_pylon
         elif not bot.structures(UnitTypeId.GATEWAY) and not bot.already_pending(UnitTypeId.GATEWAY):
-                return bot.main_base_ramp.protoss_wall_warpin
+            return bot.main_base_ramp.protoss_wall_warpin
         else:
-            return bot.structures(UnitTypeId.NEXUS)[0].position3d.towards(bot.game_info.map_center, 5)
+            return bot.structures(UnitTypeId.NEXUS)[0]\
+                .position3d.towards(bot.game_info.map_center, 5)
 
     @staticmethod
     def get_warp_in_pos(bot:BotAI) -> Union[Point2, Point3, Unit]:
+        """ returns Warp in position
+
+        Args:
+            bot (BotAI): Instance of the Bot
+
+        Returns:
+            Union[Point2, Point3, Unit]: Warp in Pos
+        """
         if not bot.units(UnitTypeId.WARPPRISM):
             if bot.supply_army > 10:
-                return bot.structures(UnitTypeId.PYLON).in_closest_distance_to_group([x for x in bot.units if x not in bot.workers])
+                return bot.structures(UnitTypeId.PYLON)\
+                    .in_closest_distance_to_group([x for x in bot.units if x not in bot.workers])
             else:
-                return bot.structures(UnitTypeId.PYLON).closest_to(bot.enemy_start_locations[0]).position.towards(bot.enemy_start_locations[0], distance=1, limit=False)
+                return bot.structures(UnitTypeId.PYLON)\
+                    .closest_to(bot.enemy_start_locations[0])\
+                        .position.towards(bot.enemy_start_locations[0], distance=1, limit=False)
         else:
             if bot.enemy_units:
                 active_prism = bot.units(UnitTypeId.WARPPRISM).closest_to(bot.enemy_units.center)
             else:
-                active_prism = bot.units(UnitTypeId.WARPPRISM).closest_to(bot.enemy_start_locations[0])
+                active_prism = bot.units(UnitTypeId.WARPPRISM)\
+                    .closest_to(bot.enemy_start_locations[0])
             return active_prism.position
 
     @staticmethod
-    def unittype_in_proximity_to_point(bot:BotAI,type_id:UnitTypeId,point:Union[Point2,Point3,Unit],max_distance:float=.5) -> bool:
+    def unittype_in_proximity_to_point(bot:BotAI,
+                                       type_id:UnitTypeId,
+                                       point:Union[Point2,Point3,Unit],
+                                       max_distance:float=.5
+                                       ) -> bool:
+        """ Returns true if a unit of type is in radius around point
+
+        Args:
+            bot (BotAI): instance of the bot
+            type_id (UnitTypeId): checked unit type
+            point (Union[Point2,Point3,Unit]): checked point
+            max_distance (float, optional): radius around point. Defaults to .5.
+
+        Returns:
+            bool: _description_
+        """
         return bot.units(type_id).filter(lambda unit: unit.distance_to(point)<max_distance)
 
     @staticmethod
-    def structure_in_proximity(bot:BotAI, structure_type:UnitTypeId, structure:Unit, max_distance:float)-> bool:
-        if bot.structures(structure_type).filter(lambda struct: struct.distance_to(structure)<max_distance):
+    def structure_in_proximity(bot:BotAI,
+                               structure_type:UnitTypeId,
+                               structure:Unit,
+                               max_distance:float
+                               )-> bool:
+        """ returns true if 
+
+        Args:
+            bot (BotAI): _description_
+            structure_type (UnitTypeId): _description_
+            structure (Unit): _description_
+            max_distance (float): _description_
+
+        Returns:
+            bool: _description_
+        """
+        if bot.structures(structure_type)\
+            .filter(lambda struct: struct.distance_to(structure)<max_distance):
             return True
         return False
 
     @staticmethod
     def unit_in_proximity(bot:BotAI, unit_type:UnitTypeId, unit:Unit, max_distance:float) ->bool:
+        """ Checks if the a specific unit is in proyimity to a Unit of Unit type
+
+        Args:
+            bot (BotAI): Instance of Bot
+            unit_type (UnitTypeId): _description_
+            unit (Unit): _description_
+            max_distance (float): _description_
+
+        Returns:
+            bool: _description_
+        """
         if bot.units(unit_type).filter(lambda struct: struct.distance_to(unit)<max_distance):
             return True
         return False
 
     @staticmethod
     def in_proximity_to_point(unit:Unit, point:Union[Point2, Point3], max_distance:float) -> bool:
+        """ checks if Unit is in proximity to a point
+
+        Args:
+            unit (Unit): _description_
+            point (Union[Point2, Point3]): _description_
+            max_distance (float): _description_
+
+        Returns:
+            bool: _description_
+        """
         return unit.distance_to(point) < max_distance
 
     @staticmethod
     def is_close_to_unit(unit_1:Unit, unit_2:Unit, max_distance:float) -> bool:
+        """ checks if two units are close to each other
+
+        Args:
+            unit_1 (Unit): _description_
+            unit_2 (Unit): _description_
+            max_distance (float): _description_
+
+        Returns:
+            bool: _description_
+        """
         return unit_1.distance_to(unit_2) <= max_distance
