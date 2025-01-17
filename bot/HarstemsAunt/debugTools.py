@@ -1,4 +1,5 @@
 """Module containing a Debug Class"""
+# pylint: disable=C0103
 from typing import Union
 from math import sin, pi, cos
 
