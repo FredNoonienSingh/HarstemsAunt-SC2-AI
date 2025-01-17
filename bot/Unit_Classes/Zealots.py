@@ -1,4 +1,5 @@
-
+"""Unit Class for Zealots"""
+# pylint: disable=W0611
 from typing import Optional
 
 import numpy as np
@@ -7,14 +8,21 @@ from sc2.unit import Unit
 from sc2.units import Units
 from sc2.position import Point2
 
+# pylint: disable=E0401
 from Unit_Classes.baseClassGround import BaseClassGround
 from HarstemsAunt.common import ATTACK_TARGET_IGNORE
 
 
 class Zealot(BaseClassGround):
     # Overwritten from BaseClassGround
-
+    # pylint: disable=W0640
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
+        """ Handles Attackers
+
+        Args:
+            units (Units): Controlled Units
+            attack_target (Point2): Point which is supposed to be attacked
+        """
         grid: np.ndarray = self.pathing.ground_grid
         for unit in units:
             friendly_units = self.bot.units.filter(lambda u: u.tag != unit.tag)

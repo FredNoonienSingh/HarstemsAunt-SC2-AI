@@ -12,8 +12,10 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 
+# pylint: disable=E0402
 from .utils import Utils
-from .common import GATEWAY_UNTIS, ROBO_UNITS, STARGATE_UNITS, logger
+from .production_buffer import ProductionBuffer
+from .common import GATEWAY_UNTIS, ROBO_UNITS, STARGATE_UNITS
 from .build_order import BuildOrder, BuildInstruction, InstructionType
 
 
@@ -24,20 +26,20 @@ class Macro:
         self.temp:list = []
         self.mined_out_bases: list = []
         self.build_order = BuildOrder(self.bot)
+        self.production_buffer = ProductionBuffer(self.bot)
 
     #TODO: #75 Premove workers
     async def __call__(self):
         """ makes the class callable, get's executed to every tick in BotClass  """
         if self.bot.alert:
             await self.handle_alerts(self.bot.alert)
-        
+
         await self.chronoboost()
         self.get_upgrades()
-        
+
         await self.handle_instructions()
         await self.build_order.update()
 
-        # TODO: Create Check in Build Order Class
         if not self.build_order.is_performing_initial_build:
             await self.build_supply()
         self.build_probes()
@@ -149,7 +151,6 @@ class Macro:
                             self.build_order.increment_step()
                             return
                 await build_gateway_units(self.bot,unit_type)
-
 
         next_step: BuildInstruction = self.build_order.next_instruction()
         if not next_step and self.build_order.buffer:

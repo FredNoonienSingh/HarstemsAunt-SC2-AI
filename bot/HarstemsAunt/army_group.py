@@ -4,16 +4,18 @@ from enum import Enum
 from typing import Union
 import numpy as np
 
+# pylint: disable=E0402
 from .utils import Utils
 from .pathing import Pathing
-from .common import WORKER_IDS, RUN_BY_SIZE, logger
+from .common import WORKER_IDS
+from .production_buffer import ProductionBuffer,ProductionRequest
 
-
+# pylint: disable=C0411
 from sc2.unit import Unit
 from sc2.units import Units
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
+from sc2.ids.unit_typeid import UnitTypeId
 
 class GroupStatus(Enum):
     """Enum representing the State """
@@ -29,10 +31,12 @@ class GroupTypeId(Enum):
 
 class ArmyGroup:
     """Class representing an Army Group """
-    def __init__(self, bot:BotAI, unit_list:list,\
-        units_in_transit:list,pathing:Pathing,group_type:GroupTypeId=GroupTypeId.ARMY):
+    def __init__(self, bot:BotAI,name:str, unit_list:list,\
+        units_in_transit:list,pathing:Pathing,\
+            army_group_id:int=0,group_type:GroupTypeId=GroupTypeId.ARMY):
         self.bot:BotAI = bot
-        self.name = "Attack Group Alpha"
+        self.name = name
+        self.id = army_group_id
         self.requested_units:list = []
         self.unit_list:list = unit_list
         self.units_in_transit:list = units_in_transit
@@ -124,78 +128,33 @@ class ArmyGroup:
     @property
     def retreat_pos(self) -> Union[Point2,Point3,Unit]:
         """ position to which the group retreats to """
-        return self.bot.start_location
+        return self.bot.units(UnitTypeId.NEXUS).sort(lambda struct: struct.age)
 
     @retreat_pos.setter
     def retreat_pos(self, new_retreat_pos:Union[Point2,Point3,Unit]):
         """ sets new attack target """
         self.retreat_pos = new_retreat_pos
 
-    def request_unit(self) -> UnitTypeId:
+    def request_units(self) -> None:
         """ Adds Units based on Logic to the List requested Units
 
         Returns:
-            UnitTypeId: Type of requested Unit
+            ProductionRequest: None
         """
-        #TODO: THIS SHOULD BE A POLYMORPHIC APPROACH TO AVOID LARGE FUNCTIONS, BUT FOR NOW INNER FUNCTIONS WILL DO
-        def _runby_request():
-            """ reuest unit for Run-By Army group"""
-            opponent_has_detection:bool = self.bot.macro.build_order.opponent_has_detection
-            if len(self.unit_list) + len(self.units_in_transit) < RUN_BY_SIZE:
-                if self.bot.structures.filter(lambda struct: struct.type_id in [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]):
-                    if self.bot.units(UnitTypeId.DARKSHRINE).ready and not opponent_has_detection:
-                        requested_unit: UnitTypeId = UnitTypeId.DARKTEMPLAR
-                        if not requested_unit in self.requested_units:
-                            self.requested_units.append(requested_unit)
-                        return
-                    requested_unit: UnitTypeId = UnitTypeId.ZEALOT
-                    if not requested_unit in self.requested_units:
-                        self.requested_units.append(requested_unit)
-                    return
+        buffer:ProductionBuffer = self.bot.macro.production_buffer
 
-        def _army_request():
-            """ request unit for "normal" Army group  """
-            gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
-            if self.bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
-                stalkers:int = len(self.units(UnitTypeId.STALKER))
-                zealots:int = len(self.units(UnitTypeId.ZEALOT)) +1
-                
-                if self.bot.structures(UnitTypeId.TEMPLARARCHIVE) and len(self.units(UnitTypeId.HIGHTEMPLAR)) < 2:
-                    requested_unit: UnitTypeId = UnitTypeId.HIGHTEMPLAR
-                    if not requested_unit in self.requested_units:
-                        self.requested_units.append(requested_unit)
+        for struct in buffer.gateways:
+            request:ProductionRequest = \
+                ProductionRequest(UnitTypeId.STALKER, self.id, struct.tag)
+            buffer.add_request(request)
 
-                if not zealots < stalkers:
-                    requested_unit: UnitTypeId = UnitTypeId.ZEALOT
-                    if not requested_unit in self.requested_units:
-                        self.requested_units.append(requested_unit)
-                else:
-                    requested_unit: UnitTypeId = UnitTypeId.STALKER
-                    if not requested_unit in self.requested_units:
-                        self.requested_units.append(requested_unit)
+        for struct in buffer.robofacilities:
+            request:ProductionRequest = \
+                ProductionRequest(UnitTypeId.IMMORTAL, self.id, struct.tag)
 
-            if self.bot.structures(UnitTypeId.ROBOTICSFACILITY):
-                if not self.has_detection:
-                    requested_unit: UnitTypeId = UnitTypeId.OBSERVER
-                else:
-                    requested_unit: UnitTypeId = UnitTypeId.IMMORTAL
-                if not requested_unit in self.requested_units:
-                    self.requested_units.append(requested_unit)
-
-
-            if self.bot.structures(UnitTypeId.STARGATE):
-                if len(self.bot.units.flying) > \
-                    len(self.bot.enemy_units.filter(lambda unit: unit.is_flying and unit.can_attack)):
-                    requested_unit: UnitTypeId = UnitTypeId.PHOENIX
-                    if not requested_unit in self.requested_units:
-                        self.requested_units.append(requested_unit)
-
-        #match self.GroupTypeId:
-            #case GroupTypeId.RUN_BY:
-             #   logger.info("not Testing Runbys right now")
-#                _runby_request()
-            #case GroupTypeId.ARMY:
-        _army_request()
+        for struct in buffer.stargates:
+            request:ProductionRequest = \
+                ProductionRequest(UnitTypeId.PHOENIX, self.id, struct.tag)
 
     def remove_unit(self, unit_tag:str) -> bool:
         """ Removes are unit from ArmyGroup 

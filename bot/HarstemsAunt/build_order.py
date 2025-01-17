@@ -13,8 +13,9 @@ from sc2.position import Point2, Point3
 from sc2.unit_command import UnitCommand
 from sc2.ids.unit_typeid import UnitTypeId
 
+# pylint: disable=E0402
 from .army_group import ArmyGroup
-from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING,logger
+from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING
 
 class InstructionType(Enum):
     """Enumeration containing InstructionTypes """
@@ -94,7 +95,7 @@ class BuildOrder:
         self.build = build
         self.step = 0
         self.buffer = []
-        self.army_groups:List[ArmyGroup] = self.bot.army_groups
+        self.army_groups:List[ArmyGroup] = bot.army_groups
 
     @cached_property
     def enemy_race(self) -> Race:
