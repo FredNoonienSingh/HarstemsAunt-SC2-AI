@@ -1,26 +1,32 @@
-
-
-
-import numpy as np
-
-from sc2.units import Units
-from sc2.position import Point2
-
+"""Unit Class for Stalkers"""
+# pylint: disable=C0103
+# pylint: disable=W0611
 # pylint: disable=E0402
 # pylint: disable=E0401
-from HarstemsAunt.pathing import Pathing
-from HarstemsAunt.common import ATTACK_TARGET_IGNORE, MIN_SHIELD_AMOUNT,\
-    ALL_STRUCTURES, PRIO_ATTACK_TARGET, WORKER_IDS
+
+import numpy as np
+from sc2.position import Point2
+from sc2.units import Units
 from Unit_Classes.baseClassGround import BaseClassGround
+
+from HarstemsAunt.pathing import Pathing
+from HarstemsAunt.common import (ALL_STRUCTURES, ATTACK_TARGET_IGNORE,
+                                 MIN_SHIELD_AMOUNT, PRIO_ATTACK_TARGET,
+                                 WORKER_IDS)
 
 class Stalkers(BaseClassGround):
     """ Extension of BaseClassGround """
 
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
+        """ handles attackers 
+
+        Args:
+            units (Units): controlled Units
+            attack_target (Point2): attack point 
+        """
         grid: np.ndarray = self.pathing.ground_grid
         for stalker in units:
-            
-            
+
             # Keep out of Range, if Shields are low, removes to much supply from fights to fast
             #if stalker.shield_percentage < MIN_SHIELD_AMOUNT \
              #   and not self.pathing.is_position_safe(grid, stalker.position):
@@ -47,6 +53,7 @@ class Stalkers(BaseClassGround):
                             )
                         )
 
+                # pylint: disable=W0640
                 # Move out of range if attacking is not possible
                 elif not stalker.weapon_ready and visible_units:
                     threads = self.bot.enemy_units\
@@ -70,4 +77,5 @@ class Stalkers(BaseClassGround):
                 )
 
     async def _do_blink(self):
-        logger.info(f"BLINK is not yet implemented")
+        """Not implemented yet"""
+        pass

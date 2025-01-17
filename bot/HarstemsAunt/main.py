@@ -1,5 +1,5 @@
 """MainClass of the Bot handling"""
-
+# pylint: disable=W0201
 import os
 import csv
 import threading
@@ -180,7 +180,8 @@ class HarstemsAunt(BotAI):
                 color = (0, 0, 255)
             else:
                 color = (0, 255, 0)
-            self.client.debug_text_screen(f"{labels[i]}: {value}", (0, 0.025+(i*0.025)), color=color, size=20)
+            self.client.debug_text_screen(f"{labels[i]}: {value}", \
+                (0, 0.025+(i*0.025)), color=color, size=20)
 
         threads: list = []
         for i, sector in enumerate(self.map_sectors):
@@ -200,7 +201,8 @@ class HarstemsAunt(BotAI):
                 self.macro.build_order.opponent_has_detection = True
 
         if not self.macro.build_order.opponent_uses_cloak:
-            if [unit for unit in self.seen_enemies if (unit.is_cloaked and unit.can_attack) or (unit.is_burrowed and unit.can_attack)]:
+            if [unit for unit in self.seen_enemies if (unit.is_cloaked and unit.can_attack) \
+                or (unit.is_burrowed and unit.can_attack)]:
                 self.macro.build_order.opponent_uses_cloak = True
                 await self.chat_send("Stop hiding and fight like a honorable ... \
                         ähm... Robot?\ndo computers have honor ?")

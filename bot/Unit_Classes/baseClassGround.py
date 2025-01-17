@@ -1,5 +1,6 @@
-from typing import Optional
-
+""" Baseclass for all Ground Units"""
+# pylint: disable=C0103
+# pylint: disable=W0640
 import numpy as np
 
 from sc2.unit import Unit
@@ -12,6 +13,7 @@ from HarstemsAunt.pathing import Pathing
 from HarstemsAunt.common import ATTACK_TARGET_IGNORE,PRIO_ATTACK_TARGET
 
 class BaseClassGround:
+    """ Baseclass for ground units"""
 
     def __init__(self, bot:BotAI, pathing:Pathing):
         self.bot:BotAI=bot
@@ -19,11 +21,22 @@ class BaseClassGround:
 
     @property
     def get_recharge_spot(self) -> Point2:
+        """ Spot to recharge shields
+
+        Returns:
+            Point2: spot to recharge shields
+        """
         return self.pathing.find_closest_safe_spot(
             self.bot.game_info.map_center, self.pathing.ground_grid
         )
 
     async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
+        """ Handles Attackers
+
+        Args:
+            units (Units): Controlled Units
+            attack_target (Point2): Point which is supposed to be attacked
+        """
         grid: np.ndarray = self.pathing.ground_grid
 
         for unit in units:
@@ -49,10 +62,15 @@ class BaseClassGround:
         unit.move(move_to)
 
     async def stay_out_of_range(self, unit:Unit):
+        """ Method to move unit out of range, predates the influence map
+
+        Args:
+            unit (Unit): unit that is getting moved
+        """
         enemy_units:Units = self.bot.enemy_units.closer_than(15, unit)
-        # 15 is the hightest attack range in the Game / any unit further away cant be in range 
+        # 15 is the hightest attack range in the Game / any unit further away cant be in range
         enemy_structures:Units = self.bot.enemy_structures.closer_than(8, unit)
-        # 8 is the range of a turret with range upgrade - no structure has a higher range 
+        # 8 is the range of a turret with range upgrade - no structure has a higher range
         possible_threads: list = [unit for unit in enemy_units]
         for structure in enemy_structures:
             possible_threads.append(structure)
@@ -68,6 +86,15 @@ class BaseClassGround:
 
     @staticmethod
     def pick_enemy_target(enemies: Units, attacker:Unit) -> Unit:
+        """ Returns the target that a unit is supposed to target
+
+        Args:
+            enemies (Units): Enemies that are close to unit
+            unit (Unit): controlled Unit
+
+        Returns:
+            Unit: target for unit
+        """
         #TODO: #35 This should not be tinkered with any further, TARGETING will take care of it
         prio_targets = enemies.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET\
             and not unit in ATTACK_TARGET_IGNORE)

@@ -1,8 +1,10 @@
+"""make linter shut up"""
+# pylint: disable=C0103
+# pylint: disable=E0401
 # Author: Frederic Baumeister
 # 2024-11-26
 # Project: SC2Bot
 
-import os
 from setuptools import setup, find_packages
 
 with open("readME.md", 'r', encoding="Uft8") as f:
