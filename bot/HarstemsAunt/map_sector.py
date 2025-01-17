@@ -6,7 +6,7 @@ from typing import List
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
-from sc2.game_info import Ramp
+#from sc2.game_info import Ramp
 from sc2.position import Point2, Point3
 
 #TODO: If i decide to keep it, it needs to be rewritten

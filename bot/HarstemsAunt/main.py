@@ -14,23 +14,24 @@ from sc2.data import Race, Result
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 
-from map_analyzer import MapData
-
-from .macro import Macro
-from .pathing import Pathing
-from .map_sector import MapSector
-from .army_group import ArmyGroup, GroupTypeId
-from .speedmining import get_speedmining_positions,split_workers, micro_worker
-from .common import GATEWAY_UNTIS,WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
-
-#TODO: #63 Move UnitClasses into Micro class when ready
-from Unit_Classes.Archon import Archons
+# pylint: disable=E0401
+#from Unit_Classes.Archon import Archons
 from Unit_Classes.Zealots import Zealot
 from Unit_Classes.Stalkers import Stalkers
-from Unit_Classes.Immortal import Immortals
+#from Unit_Classes.Immortal import Immortals
 from Unit_Classes.observer import Observer
-from Unit_Classes.HighTemplar import HighTemplar
-from Unit_Classes.DarkTemplar import DarkTemplar
+#from Unit_Classes.HighTemplar import HighTemplar
+#from Unit_Classes.DarkTemplar import DarkTemplar
+
+from map_analyzer import MapData
+
+# pylint: disable=E0402
+from .macro import Macro
+from .pathing import Pathing
+from .army_group import ArmyGroup
+from .map_sector import MapSector
+from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
+from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
 
 DEBUG = True
@@ -43,11 +44,7 @@ class HarstemsAunt(BotAI):
 
     # Ground Units
     zealots: Zealot
-    archons: Archons
     stalkers: Stalkers
-    immortals: Immortals
-    high_templar: HighTemplar
-    dark_templar: DarkTemplar
 
     # Scouting Units
     observer : Observer
@@ -373,11 +370,11 @@ class HarstemsAunt(BotAI):
         filename = f"{self.opponent_data_path}/results.csv"
 
         if not os.path.exists(filename):
-            with open(filename, 'w', newline='') as csvfile:
+            with open(filename, 'w', newline='', encoding='uft-8') as csvfile:
                 csv_writer = csv.writer(csvfile)
                 csv_writer.writerow(data)
         else:
-            with open(filename, 'a', newline='') as csvfile:
+            with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
                 csv_writer = csv.writer(csvfile)
                 csv_writer.writerow(data)
 

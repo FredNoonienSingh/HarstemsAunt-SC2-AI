@@ -6,7 +6,6 @@ from typing import Union, Iterable
 
 from sc2.unit import Unit
 from sc2.bot_ai import BotAI
-from sc2.game_data import GameData
 from sc2.position import Point2, Point3
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId

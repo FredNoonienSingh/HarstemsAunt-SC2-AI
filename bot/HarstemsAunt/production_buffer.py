@@ -11,7 +11,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 class ProductionRequest:
     """ Class Representing the a Production Request """
 
-    def __new__(cls, requested_unit:UnitTypeId, army_group_tag:int, build_structure_tag:int) -> ProductionRequest:
+    def __new__(cls, requested_unit:UnitTypeId,army_group_id:int,build_structure_tag:int) -> ProductionRequest:
         """ Creates new instance of Production Request
 
         Args:
@@ -23,14 +23,14 @@ class ProductionRequest:
         """
         instance = super().__new__(cls)
         instance.requested_unit = requested_unit
-        instance.army_group_tag = army_group_tag
+        instance.army_group = army_group_id
         instance.build_structure_tag = build_structure_tag
 
         return instance
 
-    def __init__(self, requested_unit:UnitTypeId, army_group_tag:int, build_structure_tag:int) -> None:
+    def __init__(self, requested_unit:UnitTypeId,army_group_id:int,build_structure_tag:int) -> None:
         self.requested_unit:UnitTypeId = requested_unit
-        self.army_group_tag:int = army_group_tag
+        self.army_group_tag:int = army_group_id
         self.build_structure_tag = build_structure_tag
 
     def __repr__(self) -> str:
@@ -44,6 +44,7 @@ class ProductionRequest:
     def handled(self, new_status) -> None:
         self.handled = new_status
 
+
 class ProductionBuffer:
     """ Buffer for Production Requests before they are full filled"""
 
@@ -54,15 +55,23 @@ class ProductionBuffer:
     @property
     def gateways(self) -> Units:
        return self.bot.units.filter(lambda struct: struct.type_id \
-           in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY])
+           in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY] and struct.is_idle)
 
     @property
     def stargates(self) -> Units:
-        return self.bot.units(UnitTypeId.STARGATE)
+        return self.bot.units(UnitTypeId.STARGATE).idle
 
     @property
     def robofacilities(self) -> Units:
-        return self.bot.units(UnitTypeId.ROBOTICSFACILITY)
+        return self.bot.units(UnitTypeId.ROBOTICSFACILITY).idle
 
-    #def add_request(self) -> None:
-     #   self.
+    def add_request(self, request:ProductionRequest) -> None:
+        self.requests.append(request)
+
+    def remove_request(self, request:ProductionRequest):
+        self.requests.remove(request)
+
+    def update(self) -> None:
+        for request in self.requests:
+            if request.handled:
+                self.remove_request(request)
