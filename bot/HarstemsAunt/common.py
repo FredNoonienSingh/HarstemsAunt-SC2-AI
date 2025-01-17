@@ -78,7 +78,7 @@ PRIO_ATTACK_TARGET: Set[UnitTypeId] = {
     UnitTypeId.CARRIER
 }
 
-GATEWAY_UNTIS: Set[UnitTypeId] = {
+GATEWAY_UNITS: Set[UnitTypeId] = {
     UnitTypeId.ZEALOT,
     UnitTypeId.STALKER,
     UnitTypeId.SENTRY,

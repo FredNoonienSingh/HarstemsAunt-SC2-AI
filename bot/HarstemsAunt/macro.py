@@ -15,7 +15,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 # pylint: disable=E0402
 from .utils import Utils
 from .production_buffer import ProductionBuffer
-from .common import GATEWAY_UNTIS, ROBO_UNITS, STARGATE_UNITS
+from .common import GATEWAY_UNITS, ROBO_UNITS, STARGATE_UNITS
 from .build_order import BuildOrder, BuildInstruction, InstructionType
 
 
@@ -29,7 +29,7 @@ class Macro:
         self.production_buffer = ProductionBuffer(self.bot)
 
     #TODO: #75 Premove workers
-    async def __call__(self):
+    async def __call__(self) -> None:
         """ makes the class callable, get's executed to every tick in BotClass  """
         if self.bot.alert:
             await self.handle_alerts(self.bot.alert)
@@ -57,7 +57,7 @@ class Macro:
         Returns:
             UnitTypeId: appropriate productions structure
         """
-        if unit_type in GATEWAY_UNTIS:
+        if unit_type in GATEWAY_UNITS:
             if not self.bot.structures(UnitTypeId.WARPGATE):
                 return UnitTypeId.GATEWAY
             return UnitTypeId.WARPGATE
@@ -65,6 +65,7 @@ class Macro:
             return UnitTypeId.ROBOTICSFACILITY
         if unit_type in STARGATE_UNITS:
             return UnitTypeId.STARGATE
+        return
 
     async def handle_instructions(self) -> None:
         """ gets build Instruction for self.build_order  """
@@ -75,7 +76,8 @@ class Macro:
             Args:
                 next_step (BuildInstruction): next instruction 
             """
-            #TODO: #70 ADD a check if the next instruction is equal to the current one so that building gets not delayed
+            #TODO: #70 ADD a check if the next instruction is equal to the
+            # current one so that building gets not delayed
 
             pending_check:bool = False
             following_instruction: UnitTypeId = None
@@ -100,37 +102,40 @@ class Macro:
             if next_step.type_id == UnitTypeId.NEXUS:
                 if Utils.can_build_structure(self.bot, next_step.type_id)and\
                     not self.bot.already_pending(next_step.type_id):
-                        await self.expand()
-            
+                    await self.expand()
+
             if Utils.can_build_structure(self.bot, next_step.type_id):
-                    if not pending_check:
+                if not pending_check:
+                    await self.bot.build(next_step.type_id,near=next_step.position,\
+                    max_distance=next_step.accuracy,build_worker=self.get_build_worker())
+                else:
+                    if not self.bot.already_pending(next_step.type_id):
                         await self.bot.build(next_step.type_id,near=next_step.position,\
                         max_distance=next_step.accuracy,build_worker=self.get_build_worker())
-                    else:
-                        if not self.bot.already_pending(next_step.type_id):
-                            await self.bot.build(next_step.type_id,near=next_step.position,\
-                            max_distance=next_step.accuracy,build_worker=self.get_build_worker())
 
+        # TODO: This should be reworked
         async def train_unit(next_step:BuildInstruction):
             """ handles the construction of Units
 
             Args:
                 next_step (BuildInstruction): next instruction
             """
-            
+
             async def warp_in_unit(bot: BotAI,unit:UnitTypeId,\
                 warp_in_position:Union[Point2,Point3,Unit]) -> bool:
                 pos:Point2= warp_in_position.position.to2.random_on_distance(4)
-                placement = await bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, pos, placement_step=1)
+                placement = await bot.find_placement(AbilityId.WARPGATETRAIN_STALKER, \
+                    pos, placement_step=1)
 
                 for gate in bot.structures(UnitTypeId.WARPGATE).idle:
                     if Utils.can_build_unit(bot, unit):
-                         gate.warp_in(unit, placement)
+                        gate.warp_in(unit, placement)
 
             async def build_gateway_units(bot:BotAI,unit_type:UnitTypeId):
                 gate_aliases:list = [UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]
                 if Utils.can_build_unit(bot, unit_type):
-                    for gate in bot.structures.filter(lambda struct: struct.type_id in gate_aliases):
+                    for gate in bot.structures\
+                        .filter(lambda struct: struct.type_id in gate_aliases):
                         if gate.is_idle and UpgradeId.WARPGATERESEARCH not in bot.researched:
                             gate.train(unit_type)
                             self.build_order.increment_step()
@@ -158,10 +163,12 @@ class Macro:
         if not next_step and not self.build_order.buffer:
             return
 
-        if not next_step.type_id == UnitTypeId.ASSIMILATOR and self.build_order.is_performing_initial_build:
+        if not next_step.type_id == UnitTypeId.ASSIMILATOR \
+            and self.build_order.is_performing_initial_build:
             structure_cost:Cost = self.bot.calculate_cost(next_step.type_id)
-            if (self.bot.minerals > (structure_cost.minerals*0.65)):
-                if not Utils.unittype_in_proximity_to_point(self.bot, UnitTypeId.PROBE, next_step.position):
+            if self.bot.minerals > (structure_cost.minerals*0.65):
+                if not Utils.unittype_in_proximity_to_point(self.bot,\
+                    UnitTypeId.PROBE, next_step.position):
                     worker: Unit = self.get_build_worker()
                     worker.move(next_step.position)
 
@@ -173,31 +180,33 @@ class Macro:
 
     def get_upgrades(self) -> None:
         """ handles the research of upgrades """
-        
+
         attack = [
                 UpgradeId.PROTOSSGROUNDWEAPONSLEVEL1,
                 UpgradeId.PROTOSSGROUNDWEAPONSLEVEL2,
                 UpgradeId.PROTOSSGROUNDWEAPONSLEVEL3,
             ]
-    
+
         amor = [
                 UpgradeId.PROTOSSGROUNDARMORSLEVEL1,
                 UpgradeId.PROTOSSGROUNDARMORSLEVEL2,
                 UpgradeId.PROTOSSGROUNDARMORSLEVEL3
             ]
 
-        # THIS IS A INNER FUNCTION DON'T CHANGE THE INDENTATION AGAIN BECAUSE YOU GOT THE MEMORY OF A GOLDFISH
-        def upgrade(bot:BotAI, Upgrade_structure:UnitTypeId, Upgrade_id:UpgradeId) -> None:
-            if bot.structures(Upgrade_structure).idle and Utils.can_research_upgrade(bot,Upgrade_id):
-                bot.research(Upgrade_id)
+        # THIS IS A INNER FUNCTION DON'T CHANGE THE INDENTATION \
+            # AGAIN BECAUSE YOU GOT THE MEMORY OF A GOLDFISH
+        def upgrade(bot:BotAI, upgrade_structure:UnitTypeId, upgrade_id:UpgradeId) -> None:
+            if bot.structures(upgrade_structure).idle \
+                and Utils.can_research_upgrade(bot,upgrade_id):
+                bot.research(upgrade_id)
 
         for forge in self.bot.structures(UnitTypeId.FORGE):
-                for upgrades in attack:
-                    if upgrades not in self.bot.researched:
-                       upgrade(self.bot, UnitTypeId.FORGE, upgrades)
-                for upgrades in amor:
-                    if upgrades not in self.bot.researched:
-                        upgrade(self.bot, UnitTypeId.FORGE, upgrades)
+            for upgrades in attack:
+                if upgrades not in self.bot.researched:
+                    upgrade(self.bot, UnitTypeId.FORGE, upgrades)
+            for upgrades in amor:
+                if upgrades not in self.bot.researched:
+                    upgrade(self.bot, UnitTypeId.FORGE, upgrades)
 
         if self.bot.structures(UnitTypeId.CYBERNETICSCORE):
             if not UpgradeId.WARPGATERESEARCH in self.bot.researched:
@@ -250,9 +259,11 @@ class Macro:
             return
         if Utils.can_build_structure(self.bot,UnitTypeId.PYLON) and not \
             self.bot.already_pending(UnitTypeId.PYLON) and self.bot.supply_left < 8 \
-                and len(self.bot.structures(UnitTypeId.NEXUS))>= 2 and self.bot.structures(UnitTypeId.CYBERNETICSCORE):
+                and len(self.bot.structures(UnitTypeId.NEXUS))>= 2 \
+                    and self.bot.structures(UnitTypeId.CYBERNETICSCORE):
             worker:Unit = self.bot.workers.prefer_idle.closest_to(self.build_order.get_build_pos())
-            await self.bot.build(UnitTypeId.PYLON, build_worker=worker, near=self.build_order.get_build_pos())
+            await self.bot.build(UnitTypeId.PYLON, build_worker=worker, \
+                                 near=self.build_order.get_build_pos())
 
     async def build_gas(self,position:Union[Point2,Point3,Unit]) -> None:
         """Handles the Building of Gas Structures """
@@ -279,14 +290,16 @@ class Macro:
 
     def build_probes(self) -> None:
         """ Builds workers """
-        probe_count:int = len(self.bot.structures(UnitTypeId.NEXUS))*16 + len(self.bot.structures(UnitTypeId.ASSIMILATOR))*3
+        probe_count:int = len(self.bot.structures(UnitTypeId.NEXUS))*16 \
+            + len(self.bot.structures(UnitTypeId.ASSIMILATOR))*3
         if self.bot.structures(UnitTypeId.PYLON):
             for townhall in self.bot.townhalls.idle:
-                if Utils.can_build_unit(self.bot, UnitTypeId.PROBE) and len(self.bot.workers) < probe_count:
+                if Utils.can_build_unit(self.bot, UnitTypeId.PROBE) \
+                    and len(self.bot.workers) < probe_count:
                     townhall.train(UnitTypeId.PROBE)
 
     async def chronoboost(self) -> None:
-        """ handles Chronoboosting """
+        """ handles chronoboosting """
         prios:list = [
             [
                 UnitTypeId.ROBOTICSBAY,
@@ -312,7 +325,8 @@ class Macro:
                     .sorted(lambda struct: struct.orders[0].progress, reverse=True)
 
             for struct in structures:
-                chrono_nexus = self.bot.structures(UnitTypeId.NEXUS).filter(lambda nexus: nexus.energy > 50)
+                chrono_nexus = self.bot.structures(UnitTypeId.NEXUS)\
+                    .filter(lambda nexus: nexus.energy > 50)
                 if chrono_nexus:
                     chrono_nexus[0](AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, struct)
 
