@@ -23,4 +23,4 @@ jobs:
         echo "disable=import-error" > .pylintrc
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py') --fail-under 4
+        pylint $(git ls-files '*.py') --fail-under 5.8
