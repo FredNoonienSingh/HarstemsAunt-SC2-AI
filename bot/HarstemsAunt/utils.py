@@ -1,5 +1,7 @@
 """Utility Module"""
 # pylint: disable=C0411
+# pylint: disable=w0611
+from .common import logger
 
 import math
 import numpy as np
@@ -7,6 +9,7 @@ import numpy as np
 from typing import Union, Iterable
 
 from sc2.unit import Unit
+from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 from sc2.ids.upgrade_id import UpgradeId
@@ -230,6 +233,9 @@ class Utils:
         Returns:
             bool: _description_
         """
+        
+        if isinstance(point,Units):
+            return False
         return unit.distance_to(point) < max_distance
 
     @staticmethod

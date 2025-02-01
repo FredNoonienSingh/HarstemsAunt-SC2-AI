@@ -30,11 +30,9 @@ from .macro import Macro
 from .pathing import Pathing
 from .army_group import ArmyGroup
 from .map_sector import MapSector
-from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
+from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
-
-DEBUG = True
 
 class HarstemsAunt(BotAI):
     """ Main class of the Bot"""
@@ -114,8 +112,8 @@ class HarstemsAunt(BotAI):
                 and not u.is_hallucination
             ):
                 return enemy_units.closest_to(self.start_location).position
-            elif enemy_structures := self.enemy_structures:
-                return enemy_structures.closest_to(self.start_location).position
+            elif self.enemy_structures:
+                return self.enemy_structures.closest_to(self.start_location).position
         return self.enemy_start_locations[0]
 
     def create_folders(self) -> None:
@@ -130,6 +128,10 @@ class HarstemsAunt(BotAI):
         # Create Folders to save data for analysis
         self.create_folders()
 
+        if DEBUG:
+            await self.client.debug_fast_build()
+            await self.client.debug_all_resources()
+        
         # set Edge Points
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
         bottom_right = Point2((self.game_info.playable_area.right, 0))
@@ -163,7 +165,7 @@ class HarstemsAunt(BotAI):
             sector.build_sector()
         split_workers(self)
 
-        initial_army_group:ArmyGroup = ArmyGroup(self, [],[],self.pathing)
+        initial_army_group:ArmyGroup = ArmyGroup(self, "Peter", [],[],pathing=self.pathing)
         #run_by_group:ArmyGroup = ArmyGroup(self, [], [], self.pathing, GroupTypeId.RUN_BY)
         self.army_groups.append(initial_army_group)
         #self.army_groups.append(run_by_group)
