@@ -1,17 +1,24 @@
-from __init__ import logger
+"""DOCSTRING to shut up the linter"""
+# pylint: disable=E0611
+from typing import Dict, Set
 
-from typing import Set, Dict
+# pylint: disable=W0611
+from __init__ import logger
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
-DT_TIMING:float = 480
-RUN_BY_SIZE:int = 4
+SECTORS: int = 10
+DEBUG: bool = False
+RUN_BY_SIZE: int = 4
+DT_TIMING: float = 480
+MIN_SHIELD_AMOUNT: float = 0.5
+SPEEDMINING_DISTANCE: float = 1.8
 
-UNIT_COMPOSIOTION:Dict = {
+UNIT_COMPOSITION: Dict = {
     Race.Protoss: [UnitTypeId.STALKER,
-                  UnitTypeId.ZEALOT,
-                  UnitTypeId.IMMORTAL
-                  ],
+                   UnitTypeId.ZEALOT,
+                   UnitTypeId.IMMORTAL
+                   ],
     Race.Terran: [UnitTypeId.ZEALOT,
                   UnitTypeId.STALKER,
                   UnitTypeId.HIGHTEMPLAR,
@@ -21,10 +28,10 @@ UNIT_COMPOSIOTION:Dict = {
                 UnitTypeId.ARCHON]
 }
 
-INITIAL_TECH:Dict = {
+INITIAL_TECH: Dict = {
     Race.Protoss: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY],
     Race.Terran: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY],
-            #[UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.TEMPLARARCHIVE], -> Terran tech change back later
+    # [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.TEMPLARARCHIVE], -> Terran tech change back later
     Race.Zerg: [UnitTypeId.TWILIGHTCOUNCIL, UnitTypeId.ROBOTICSFACILITY]
 }
 
@@ -66,16 +73,21 @@ ATTACK_TARGET_IGNORE: Set[UnitTypeId] = {
 
 PRIO_ATTACK_TARGET: Set[UnitTypeId] = {
     # Terran
+    UnitTypeId.GHOST,
     UnitTypeId.SIEGETANK,
     UnitTypeId.SIEGETANKSIEGED,
     UnitTypeId.BATTLECRUISER,
 
     # Zerg
     UnitTypeId.QUEEN,
+    UnitTypeId.LURKER,
+    UnitTypeId.LURKERBURROWED,
+    UnitTypeId.NYDUSCANAL,
 
     # Protoss
     UnitTypeId.COLOSSUS,
-    UnitTypeId.CARRIER
+    UnitTypeId.CARRIER,
+    UnitTypeId.ARCHON,
 }
 
 GATEWAY_UNITS: Set[UnitTypeId] = {
@@ -196,9 +208,9 @@ ALL_STRUCTURES: Set[UnitTypeId] = {
 
 INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
     UnitTypeId.ADEPT: {
-        "AirCost": 0, 
-        "GroundCost": 9, 
-        "AirRange": 0, 
+        "AirCost": 0,
+        "GroundCost": 9,
+        "AirRange": 0,
         "GroundRange": 5
     },
     UnitTypeId.ADEPTPHASESHIFT: {
@@ -388,7 +400,3 @@ INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
         "GroundRange": 5.5,
     },
 }
-
-SECTORS: int = 10
-MIN_SHIELD_AMOUNT: float = 0.5
-SPEEDMINING_DISTANCE: float = 1.8

@@ -55,7 +55,6 @@ class ProductionRequest:
     def handled(self, new_status) -> None:
         self.handled = new_status
 
-
 class ProductionBuffer:
     """ Buffer for Production Requests before they are full filled"""
 
