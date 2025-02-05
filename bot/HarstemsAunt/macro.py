@@ -18,7 +18,6 @@ from .production_buffer import ProductionBuffer
 from .common import GATEWAY_UNITS, ROBO_UNITS, STARGATE_UNITS
 from .build_order import BuildOrder, BuildInstruction, InstructionType
 
-
 class Macro:
     """ Class handling the Marco aspect of the Game """
     def __init__(self,bot:BotAI) -> None:
@@ -28,7 +27,6 @@ class Macro:
         self.build_order = BuildOrder(self.bot)
         self.production_buffer = ProductionBuffer(self.bot)
 
-    #TODO: #75 Premove workers
     async def __call__(self) -> None:
         """ makes the class callable, get's executed to every tick in BotClass  """
         if self.bot.alert:
@@ -78,7 +76,6 @@ class Macro:
             """
             #TODO: #70 ADD a check if the next instruction is equal to the
             # current one so that building gets not delayed
-
             pending_check:bool = False
             following_instruction: UnitTypeId = None
 
@@ -306,7 +303,8 @@ class Macro:
                 UnitTypeId.FLEETBEACON,
                 UnitTypeId.TWILIGHTCOUNCIL,
                 UnitTypeId.FORGE,
-                #UnitTypeId.CYBERNETICSCORE,        # WARPGATE SHOULD NOT BE CHRONOBOOSTED
+                # WARPGATE SHOULD NOT BE CHRONOBOOSTED
+                #UnitTypeId.CYBERNETICSCORE,
                 UnitTypeId.DARKSHRINE,
                 UnitTypeId.TEMPLARARCHIVE,
             ],
@@ -320,6 +318,7 @@ class Macro:
             ]
         ]
         for prio in prios:
+            # pylint: disable=W0640
             structures = self.bot.structures.filter(lambda struct: not struct.is_idle and \
                 not struct.has_buff(BuffId.CHRONOBOOSTENERGYCOST) and struct.type_id in prio)\
                     .sorted(lambda struct: struct.orders[0].progress, reverse=True)

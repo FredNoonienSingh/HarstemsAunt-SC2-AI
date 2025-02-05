@@ -6,6 +6,7 @@ import numpy as np
 
 # pylint: disable=E0402
 from .utils import Utils
+from .common import logger
 from .pathing import Pathing
 from .common import WORKER_IDS
 from .production_buffer import ProductionBuffer,ProductionRequest
@@ -53,7 +54,7 @@ class ArmyGroup:
     def supply(self) -> int:
         """ Supply Cost of Units in Group """
         if self.units:
-            return sum([self.bot.calculate_supply_cost(unit.type_id) \
+            return sum([self.bot.calculate_supply_cost(unit.type_id)\
                 for unit in self.units if unit.can_attack])
         return 0
 
@@ -68,7 +69,7 @@ class ArmyGroup:
 
     @property
     def supply_delta(self) -> int:
-        """ Difference betweem own and enemy supply"""
+        """ Difference between own and enemy supply"""
         return self.supply-self.enemy_supply_in_proximity
 
     @property
@@ -126,13 +127,18 @@ class ArmyGroup:
         self.attack_target = new_attack_target
 
     @property
-    def retreat_pos(self) -> Union[Point2,Point3,Unit]:
+    def retreat_pos(self) -> Union[Point2,Point3]:
         """ position to which the group retreats to """
-        return self.bot.units(UnitTypeId.NEXUS).sort(lambda struct: struct.age)
+        if self.bot.units(UnitTypeId.NEXUS):
+            return self.bot.units(UnitTypeId.NEXUS).sorted(lambda struct: struct.age)[0].position
+        return self.bot.start_location
 
     @retreat_pos.setter
-    def retreat_pos(self, new_retreat_pos:Union[Point2,Point3,Unit]):
+    def retreat_pos(self, new_retreat_pos:Union[Point2,Point3,Units]):
         """ sets new attack target """
+        if isinstance(new_retreat_pos) == Units:
+            self.retreat_pos = new_retreat_pos.center
+            return
         self.retreat_pos = new_retreat_pos
 
     def request_units(self) -> None:
@@ -189,16 +195,16 @@ class ArmyGroup:
         # TODO: WHEN ALL UNITS_CLASSES ARE IMPLEMENTED THIS CAN JUST ONE CALL TO HANDLE ATTACKERS
         stalkers: Units = self.units(UnitTypeId.STALKER)
         zealots: Units = self.units(UnitTypeId.ZEALOT)
-        Immortals: Units = self.units(UnitTypeId.IMMORTAL)
+        immortals: Units = self.units(UnitTypeId.IMMORTAL)
         observer: Units = self.units(UnitTypeId.OBSERVER)
 
         if stalkers:
             await self.bot.stalkers.handle_attackers(
                 stalkers, attack_target
             )
-        if Immortals:
+        if immortals:
             await self.bot.stalkers.handle_attackers(
-                Immortals, attack_target
+                immortals, attack_target
             )
         if zealots:
             await self.bot.zealots.handle_attackers(
@@ -230,8 +236,10 @@ class ArmyGroup:
     def retreat(self) -> None:
         """Moves Army back to retreat position
         """
+        #logger.warning(f"retreat pos: {self.retreat_pos}")
+        #logger.warning(f" pos-type: {type(self.retreat_pos)}")
         grid:np.ndarray = self.pathing.ground_grid
-        #Early return if units are safe
+        # Early return if units are safe
         if all(self.pathing.is_position_safe(grid, unit.position,2) for unit in self.units):
             self.regroup()
             return
@@ -239,16 +247,18 @@ class ArmyGroup:
         for unit in self.units:
             # This could be handled more efficient if i could overwrite the Unit move command
             if self.pathing.is_position_safe(grid, unit.position):
-               continue
-            if not Utils.in_proximity_to_point(unit,self.retreat_pos,15):
-                    unit.move(
-                           self.pathing.find_path_next_point(
-                               unit.position, self.retreat_pos, grid
-                            )
+                continue
+
+            if not Utils.in_proximity_to_point(unit, self.retreat_pos,15):
+                #logger.info("Proximity to Point")
+                unit.move(
+                        self.pathing.find_path_next_point(
+                            unit.position, self.retreat_pos, grid
                         )
+                    )
         #self.observer.retreat(self.units(UnitTypeId.OBSERVER), self.retreat_pos)
 
-    #TODO: #31 Regroup Units by Range
+    # TODO: #31 Regroup Units by Range
     def regroup(self) -> None:
         """ regroup command for the group  """
 
@@ -259,7 +269,7 @@ class ArmyGroup:
 
     # TODO: #29 very basic, needs to be Adjusted to account for different, Unit types
     def defend(self, position:Union[Point2,Point3,Unit]) -> None:
-        """ defent command for the group"""
+        """ defend command for the group"""
         enemy_units = self.bot.enemy_units.closer_than(25, position)
         for unit in self.units:
             grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
@@ -278,6 +288,10 @@ class ArmyGroup:
         """ Method controlling the Behavior of the Group,\
             shall be called every tick in main.py 
         """
+        
+        #logger.warning(f"target: {target}")
+        #logger.warning(f" target-type: {type(target)}")
+        
         if not self.requested_units:
             self.request_units()
         #last_status: GroupStatus = self.status
