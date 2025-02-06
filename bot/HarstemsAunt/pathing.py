@@ -13,9 +13,10 @@ import matplotlib.pyplot as plt
 from map_analyzer import MapData
 from .common import ALL_STRUCTURES, INFLUENCE_COSTS, logger
 
-RANGE_BUFFER: float = 2.00
+RANGE_BUFFER: float = 2.22 
 
 class Pathing:
+    """ Pathing class """
     def __init__(self, bot:BotAI, debug:bool, fade_rate:float = 3.0) -> None:
         self.bot: BotAI = bot
         self.debug: bool = debug
@@ -26,21 +27,21 @@ class Pathing:
         self.ground_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.detection_grid: np.ndarray = self.map_data.get_pyastar_grid()
         self.air_grid: np.ndarray = self.map_data.get_clean_air_grid()
-        self.influence_fade_rate: float = fade_rate
+        self.influence_fade_rate:float = fade_rate
 
     def update(self, iteration) -> None:
-
+        """ runs every frame  """
         last_ground_grid:np.ndarray = self.ground_grid
         last_air_grid:np.ndarray = self.air_grid
-        last_detection_grid: np.ndarray = self.detection_grid
+        last_detection_grid:np.ndarray = self.detection_grid
 
         last_ground_grid[last_ground_grid != 0] /= self.influence_fade_rate
         last_air_grid[last_air_grid != 0] /= self.influence_fade_rate
-        last_detection_grid[last_detection_grid != 0] /=self.influence_fade_rate
+        #last_detection_grid[last_detection_grid != 0] /=self.influence_fade_rate
 
         self.ground_grid = self.map_data.get_pyastar_grid() + last_ground_grid
         self.air_grid = self.map_data.get_clean_air_grid() + last_air_grid
-        self.detection_grid = self.map_data.get_pyastar_grid() + last_detection_grid
+        #self.detection_grid = self.map_data.get_pyastar_grid() + last_detection_grid
 
         for unit in self.bot.all_enemy_units:
             if unit.type_id in ALL_STRUCTURES:
@@ -48,7 +49,7 @@ class Pathing:
             else:
                 self._add_unit_influence(unit)
         
-        self.add_positional_costs()
+        # self.add_positional_costs()
         
         #if not iteration%100:
             #self.save_plot(iteration)
@@ -103,7 +104,7 @@ class Pathing:
     def is_position_safe(
             grid: np.ndarray,
             position: Point2,
-            weight_safety_limit: float = 1.0,
+            weight_safety_limit: float = 1.0
         ) -> bool:
         """
         Checks if the current position is dangerous by
@@ -154,11 +155,11 @@ class Pathing:
             )
 
         if enemy.is_detector:
-            (self.detection_grid) = self._add_cost_to_multiple_grids(
+            (self.detection_grid) = self._add_cost(
                 enemy.position,
                 12,
                 enemy.detect_range + RANGE_BUFFER,
-                [self.detection_grid]
+                self.detection_grid
             )
 
     def _add_structure_influence(self, structure: Unit) -> None:
@@ -234,7 +235,7 @@ class Pathing:
         return grids
 
     #TODO: #36 Add weights to points close to the edges, and points on Ramps
-    def add_positional_costs(self):
+    def _add_positional_costs(self):
         pass
 
     def save_plot(self, iteration:int):
@@ -243,10 +244,12 @@ class Pathing:
         influence_map = self.ground_grid
         fig, ax = plt.subplots()
         plt.imshow(influence_map, cmap='jet')
-        plt.scatter(x_positions, y_positions, color='green', marker='x', s=10)
+        plt.scatter(x_positions, y_positions, color='green', marker='x', s=1)
         plt.grid(True)
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_title('Influence Map')
         plt.plot()
-        plt.savefig(f"{self.bot.data_path}/influence_map_at_{iteration}.png")
+        plt.savefig(f"{self.bot.data_path}/influence_{iteration}.png")
+
+

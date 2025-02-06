@@ -59,7 +59,12 @@ We tried to get a bot to play like Harstem by scanning the brain of his Aunt - s
 <details>
   <summary>Version 1.1</summary>
 
-### Currently under development
+#### Currently under development
+
+#### Version 1.1.0
+    - reworked build order 
+    - reworked unit Movement & targeting 
+    - fixxed various bugs and crashes
 
 </details>
 

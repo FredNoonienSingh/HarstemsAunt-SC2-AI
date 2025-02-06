@@ -30,7 +30,7 @@ from .macro import Macro
 from .pathing import Pathing
 from .army_group import ArmyGroup
 from .map_sector import MapSector
-from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,logger
+from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,DEBUG_FONT_SIZE, logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
 
@@ -43,14 +43,13 @@ class HarstemsAunt(BotAI):
     # Ground Units
     zealots: Zealot
     stalkers: Stalkers
-
     # Scouting Units
     observer : Observer
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.name = "HarstemsAunt"
-        self.version = "1.1 alpha"
+        self.version = "1.1_dev"
         self.race:Race = Race.Protoss
 
         self.base_count = 0
@@ -128,9 +127,9 @@ class HarstemsAunt(BotAI):
         # Create Folders to save data for analysis
         self.create_folders()
 
-        if DEBUG:
-            await self.client.debug_fast_build()
-            await self.client.debug_all_resources()
+        # if DEBUG:
+            # await self.client.debug_fast_build()  Buildings take no time 
+            # await self.client.debug_all_resources() Free minerals and gas
         
         # set Edge Points
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -143,7 +142,7 @@ class HarstemsAunt(BotAI):
             for y in range(SECTORS):
                 upper_left: Point2 = Point2((0+(sector_width*x), 0+bottom_right.y+(sector_width*(y))))
                 lower_right: Point2 = Point2((0+(sector_width*(x+1)),0+bottom_right.y+(sector_width*(y+1))))
-                logger.info(f"upper_left {upper_left} lower_right {lower_right}")
+                # logger.info(f"upper_left {upper_left} lower_right {lower_right}")
                 sector: MapSector = MapSector(self, upper_left, lower_right)
                 self.map_sectors.append(sector)
 
@@ -161,11 +160,17 @@ class HarstemsAunt(BotAI):
 
         await self.chat_send(self.greeting)
 
+        if DEBUG:
+            await self.client.debug_show_map()
+            await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 1]])
+            await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 2]])
+
+
         for sector in self.map_sectors:
             sector.build_sector()
         split_workers(self)
 
-        initial_army_group:ArmyGroup = ArmyGroup(self, "Peter", [],[],pathing=self.pathing)
+        initial_army_group:ArmyGroup = ArmyGroup(self, "HA_alpha", [],[],pathing=self.pathing)
         #run_by_group:ArmyGroup = ArmyGroup(self, [], [], self.pathing, GroupTypeId.RUN_BY)
         self.army_groups.append(initial_army_group)
         #self.army_groups.append(run_by_group)
@@ -182,10 +187,10 @@ class HarstemsAunt(BotAI):
                 color = (0, 0, 255)
             else:
                 color = (0, 255, 0)
-            self.client.debug_text_screen(f"{labels[i]}: {value}", \
-                (0, 0.025+(i*0.025)), color=color, size=20)
+            self.client.debug_text_screen(f"{labels[i]}: {round(value,3)}", \
+                (0, 0.025+(i*0.025)), color=color, size=DEBUG_FONT_SIZE)
 
-        threads: list = []
+        threads: ist = []
         for i, sector in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=sector.update())
             threads.append(t_0)
@@ -209,18 +214,17 @@ class HarstemsAunt(BotAI):
                 await self.chat_send("Stop hiding and fight like a honorable ... \
                         ähm... Robot?\ndo computers have honor ?")
 
-
         self.pathing.update(iteration)
 
         for j, group in enumerate(self.army_groups):
             await group.update(self.get_attack_target)
             self.client.debug_text_screen(f"{group.GroupTypeId}: {group.attack_target}",\
-                (.25+(j*0.25), 0.025), color=(255,255,255), size=20)
+                (.25+(j*0.25), 0.025), color=(255,255,255), size=DEBUG_FONT_SIZE)
             self.client.debug_text_screen(f"Supply:{group.supply}\
                 Enemysupply:{group.enemy_supply_in_proximity}",\
-                    (.25+(j*0.27), 0.05), color=(255,255,255), size=20)
+                    (.25+(j*0.27), 0.05), color=(255,255,255), size=DEBUG_FONT_SIZE)
             self.client.debug_text_screen(f"requested:{group.requested_units}",\
-                    (.25+(j*0.27), 0.075), color=(255,255,255), size=20)
+                    (.25+(j*0.27), 0.075), color=(255,255,255), size=DEBUG_FONT_SIZE)
 
         if self.townhalls and self.units:
             self.transfer_from: List[Unit] = []
@@ -254,7 +258,8 @@ class HarstemsAunt(BotAI):
             return
 
         if self.last_tick == 0:
-            await self.chat_send(f"GG, you are probably a hackcheating smurf cheat hacker anyway also \
+            await self.chat_send\
+                (f"GG, you are probably a hackcheating smurf cheat hacker anyway also\
                 {self.enemy_race} is IMBA")
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
@@ -303,6 +308,7 @@ class HarstemsAunt(BotAI):
         pass
 
     async def on_unit_created(self, unit:Unit) -> None:
+
         """ Coroutine that gets called when Unit is created
             - adds created Units to the ArmyGroup
 
@@ -383,3 +389,4 @@ class HarstemsAunt(BotAI):
                 csv_writer.writerow(data)
 
         await self.client.leave()
+

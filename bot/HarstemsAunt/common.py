@@ -8,7 +8,8 @@ from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
 SECTORS: int = 10
-DEBUG: bool = False
+DEBUG: bool = True
+DEBUG_FONT_SIZE = 7
 RUN_BY_SIZE: int = 4
 DT_TIMING: float = 480
 MIN_SHIELD_AMOUNT: float = 0.5

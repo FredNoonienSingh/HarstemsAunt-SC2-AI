@@ -16,7 +16,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 # pylint: disable=E0402
 from .army_group import ArmyGroup
-from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING
+from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING, DEBUG,DEBUG_FONT_SIZE
 
 class InstructionType(Enum):
     """Enumeration containing InstructionTypes """
@@ -260,9 +260,9 @@ class BuildOrder:
                     group.requested_units.remove(requested_unit)
 
         self.bot.client.debug_text_screen(f"{self.next_instruction()} instruction {self.step}", \
-            (0.01, 0.15), color=(255,255,255), size=15)
+            (0.01, 0.15), color=(255,255,255), size=DEBUG_FONT_SIZE)
         self.bot.client.debug_text_screen(f"next struct in Buffer: {self.get_next_in_buffer()}", \
-            (0.01, 0.20), color=(255,255,255), size=15)
+            (0.01, 0.20), color=(255,255,255), size=DEBUG_FONT_SIZE)
 
     def debug_build_pos(self, pos:Union[Point2, Point3]):
         """debug method to show the current build pos """
