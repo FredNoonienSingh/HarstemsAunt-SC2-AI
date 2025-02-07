@@ -7,6 +7,7 @@ from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 
+from .common import logger
 
 class ProductionRequest:
     """ Class Representing the a Production Request """
@@ -62,6 +63,9 @@ class ProductionBuffer:
         self.bot:BotAI = bot
         self.requests:List[ProductionRequest] = []
 
+    def __repr__(self) -> str:
+        return f"ProductionBuffer  managing {len(self.gateways)} handling {self.requests}"
+
     @property
     def gateways(self) -> Units:
         """ Returns a Units Object containing all idle Warp and Gateways 
@@ -69,8 +73,9 @@ class ProductionBuffer:
         Returns:
             Units: idle Warp and Gateways
         """
-        return self.bot.units.filter(lambda struct: struct.type_id \
-           in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY] and struct.is_idle)
+        return self.bot.structures.filter(lambda struct: struct.type_id \
+           in [UnitTypeId.WARPGATE, UnitTypeId.GATEWAY] and struct.is_idle and struct.is_ready)
+
 
     @property
     def stargates(self) -> Units:
@@ -79,7 +84,7 @@ class ProductionBuffer:
         Returns:
             Units: idle stargates
         """
-        return self.bot.units(UnitTypeId.STARGATE).idle
+        return self.bot.structures(UnitTypeId.STARGATE).idle
 
     @property
     def robofacilities(self) -> Units:
@@ -88,7 +93,7 @@ class ProductionBuffer:
         Returns:
             Units: all idle robofacilities
         """
-        return self.bot.units(UnitTypeId.ROBOTICSFACILITY).idle
+        return self.bot.structures(UnitTypeId.ROBOTICSFACILITY).idle
 
     def add_request(self, request:ProductionRequest) -> None:
         """ adds request to buffer
@@ -111,3 +116,4 @@ class ProductionBuffer:
         for request in self.requests:
             if request.handled:
                 self.remove_request(request)
+

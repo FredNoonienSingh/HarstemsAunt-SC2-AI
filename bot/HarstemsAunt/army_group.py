@@ -1,14 +1,13 @@
 """ Army Group class"""
 from __future__ import annotations
 from enum import Enum
-from typing import Union
+from typing import Union, Set
 import numpy as np
 
 # pylint: disable=E0402
 from .utils import Utils
-from .common import logger
 from .pathing import Pathing
-from .common import WORKER_IDS
+from .common import WORKER_IDS, logger
 from .production_buffer import ProductionBuffer,ProductionRequest
 
 # pylint: disable=C0411
@@ -71,6 +70,15 @@ class ArmyGroup:
     def supply_delta(self) -> int:
         """ Difference between own and enemy supply"""
         return self.supply-self.enemy_supply_in_proximity
+
+    @property
+    def enemy_unit_types(self) -> Set[UnitTypeId]:
+        """ Unittypes of enemies in the Area of ArmyGroup"""
+        enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
+            .filter(lambda unit: unit.type_id not in WORKER_IDS)
+ 
+        types:Set = {unit.type_id for unit in enemy_units}
+        return types
 
     @property
     def reinforcements(self) -> Units:
@@ -149,18 +157,22 @@ class ArmyGroup:
         """
         buffer:ProductionBuffer = self.bot.macro.production_buffer
 
+        # TODO: calculate counters to unit types in Enemy Area 
+        if DEBUG:
+            logger.info(self.enemy_unit_types)
+
         for struct in buffer.gateways:
             request:ProductionRequest = \
                 ProductionRequest(UnitTypeId.STALKER, self.id, struct.tag)
             buffer.add_request(request)
-
+        
         for struct in buffer.robofacilities:
             request:ProductionRequest = \
                 ProductionRequest(UnitTypeId.IMMORTAL, self.id, struct.tag)
 
         for struct in buffer.stargates:
             request:ProductionRequest = \
-                ProductionRequest(UnitTypeId.PHOENIX, self.id, struct.tag)
+               ProductionRequest(UnitTypeId.PHOENIX, self.id, struct.tag)
 
     def remove_unit(self, unit_tag:str) -> bool:
         """ Removes are unit from ArmyGroup 

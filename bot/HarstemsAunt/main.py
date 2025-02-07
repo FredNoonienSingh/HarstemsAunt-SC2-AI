@@ -161,9 +161,10 @@ class HarstemsAunt(BotAI):
         await self.chat_send(self.greeting)
 
         if DEBUG:
-            await self.client.debug_show_map()
-            await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 1]])
-            await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 2]])
+            pass
+            #await self.client.debug_show_map()
+            #await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 1]])
+            #await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 2]])
 
 
         for sector in self.map_sectors:

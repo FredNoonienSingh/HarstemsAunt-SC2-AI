@@ -10,7 +10,7 @@ from sc2.position import Point2
 
 # pylint: disable=E0401
 from HarstemsAunt.pathing import Pathing
-from HarstemsAunt.common import ATTACK_TARGET_IGNORE,PRIO_ATTACK_TARGET
+from HarstemsAunt.common import ATTACK_TARGET_IGNORE,PRIO_ATTACK_TARGET, WORKER_IDS
 
 class BaseClassGround:
     """ Baseclass for ground units"""
@@ -42,8 +42,14 @@ class BaseClassGround:
         for unit in units:
             enemies = self.bot.enemy_units.\
                 filter(lambda enemy: enemy.distance_to(unit) > unit.range+12)
+            
+            workers = self.bot.enemy_units.\
+                    filter(lambda enemy: enemy.type_id in WORKER_IDS and enemy.distance_to(unit) > unit.range+12)
+
             if enemies:
                 attack_pos = self.pick_enemy_target(enemies, unit)
+            elif workers and not enemies:
+                attack_pos = workers.closest_to(unit)
             else:
                 attack_pos = self.pathing.find_path_next_point(
                     unit.position, attack_target, grid
