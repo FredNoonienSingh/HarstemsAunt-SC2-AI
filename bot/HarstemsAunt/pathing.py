@@ -1,7 +1,7 @@
 """ Class Handling Pathing, needs to be cleaned up."""
 #TODO: #52 clean up Pathing Class
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 import numpy as np
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
@@ -11,6 +11,7 @@ from scipy import spatial
 import matplotlib.pyplot as plt
 
 from map_analyzer import MapData
+from .unitmarker import UnitMarker
 from .common import ALL_STRUCTURES, INFLUENCE_COSTS, logger
 
 RANGE_BUFFER: float = 2.22 
@@ -48,7 +49,10 @@ class Pathing:
                 self._add_structure_influence(unit)
             else:
                 self._add_unit_influence(unit)
-        
+
+        for marker in self.bot.unitmarkers:
+            self._add_unit_influence(marker.unit) 
+                    
         # self.add_positional_costs()
         
         #if not iteration%100:
@@ -119,7 +123,7 @@ class Pathing:
         # np.inf check if drone is pathing near a spore crawler
         return weight == np.inf or weight <= weight_safety_limit
 
-    def _add_unit_influence(self, enemy: Unit) -> None:
+    def _add_unit_influence(self, enemy: Union[Unit, UnitMarker]) -> None:
 
         if enemy.type_id in INFLUENCE_COSTS:
             values: Dict = INFLUENCE_COSTS[enemy.type_id]

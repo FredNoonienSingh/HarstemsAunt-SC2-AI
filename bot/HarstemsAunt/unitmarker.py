@@ -23,6 +23,8 @@ class UnitMarker:
                 unit:Unit,
                 created_at_iteration: int, 
                 ):
+        # A bit shit to implement it like this but thats the fastest will fix it later
+        self.unit = unit
         self.unit_typeid :UnitTypeId = unit.type_id
         self.position: Point2 = unit.position
         self.unit_tag: int = unit.tag

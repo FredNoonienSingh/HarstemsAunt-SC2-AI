@@ -15,6 +15,8 @@ DEBUG_FONT_SIZE: int = 7
 MIN_SHIELD_AMOUNT: float = 0.5
 SPEEDMINING_DISTANCE: float = 1.8
 
+MAX_MARKER_LIFE: int = 600
+
 UNIT_COMPOSITION: Dict = {
     Race.Protoss: [UnitTypeId.STALKER,
                    UnitTypeId.ZEALOT,

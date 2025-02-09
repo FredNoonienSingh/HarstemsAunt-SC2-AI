@@ -31,7 +31,7 @@ from .pathing import Pathing
 from .unitmarker import UnitMarker
 from .army_group import ArmyGroup
 from .map_sector import MapSector
-from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,DEBUG_FONT_SIZE, logger
+from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,DEBUG_FONT_SIZE,MAX_MARKER_LIFE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
 
@@ -266,7 +266,7 @@ class HarstemsAunt(BotAI):
             self.iteration = iteration
             for marker in self.unitmarkers:
                 
-                if self.is_visible(marker.position):
+                if self.is_visible(marker.position) or marker.age_in_frames(iteration) > MAX_MARKER_LIFE:
                     self.unitmarkers.remove(marker)
 
                 if DEBUG:
