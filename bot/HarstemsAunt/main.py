@@ -140,9 +140,9 @@ class HarstemsAunt(BotAI):
         # Create Folders to save data for analysis
         self.create_folders()
 
-        if DEBUG:
-            await self.client.debug_fast_build()  #Buildings take no time 
-            await self.client.debug_all_resources() #Free minerals and gas
+        #if DEBUG:
+            #await self.client.debug_fast_build()  #Buildings take no time 
+            #await self.client.debug_all_resources() #Free minerals and gas
         
         # set Edge Points
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -212,11 +212,6 @@ class HarstemsAunt(BotAI):
         for t in threads:
             t.join()
 
-        #if DEBUG:
-         #   logger.info(self.enemies_lt_list)
-
-         # Handling UnitMarkes 
-
         if not self.macro.build_order.opponent_builds_air:
             if [unit for unit in self.seen_enemies if unit.is_flying and unit.can_attack]:
                 self.macro.build_order.opponent_builds_air = True
@@ -269,14 +264,17 @@ class HarstemsAunt(BotAI):
 
             self.enemies_lt_list = self.enemy_units
             self.iteration = iteration
-            if DEBUG:
-                for marker in self.unitmarkers:
-                    logger.info(marker)
+            for marker in self.unitmarkers:
+                
+                if self.is_visible(marker.position):
+                    self.unitmarkers.remove(marker)
+
+                if DEBUG:
                     pos: Point2 = marker.position
                     z = self.get_terrain_z_height(pos)+1
                     x,y = pos.x, pos.y
                     pos_3d = Point3((x,y,z))
-                    self.client.debug_sphere_out(pos_3d ,.75, (255,255,0))
+                    self.client.debug_sphere_out(pos_3d ,.2, (255,int(marker.health*2.5),0))
 
             # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0])\
@@ -327,6 +325,10 @@ class HarstemsAunt(BotAI):
         if not unit in self.seen_enemies and unit.type_id not in WORKER_IDS:
             self.seen_enemies.append(unit)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
+        marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit.tag]
+        for m in marker:
+            self.unitmarkers.remove(m)
+
 
     #TODO: #73 Implement on_enemy_unit_left_vision logic
     async def on_enemy_unit_left_vision(self, unit_tag:int):
@@ -394,9 +396,12 @@ class HarstemsAunt(BotAI):
         if unit_tag in self.seen_enemies:
             self.seen_enemies.remove(unit_tag)
 
-        unit = self.enemy_units.find_by_tag(unit_tag)
+        unit = self.enemies_lt_list.find_by_tag(unit_tag)
         if unit:
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
+        marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit_tag]
+        for m in marker:
+            self.unitmarkers.remove(m)        
 
     async def on_upgrade_complete(self, upgrade:UpgradeId):
         """ Coroutine gets called on when upgrade is complete 

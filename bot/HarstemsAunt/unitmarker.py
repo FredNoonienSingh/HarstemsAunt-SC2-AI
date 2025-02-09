@@ -19,17 +19,15 @@ class UnitMarker:
     Needs to get the whole unit not just type, so that the marker can contain addinal data
 
     """
-    def __new__(cls,
+    def __init__(self,
                 unit:Unit,
                 created_at_iteration: int, 
                 ):
-        instance = super().__new__(cls)
-        cls.unit_typeid :UnitTypeId = unit.type_id
-        cls.position: Point2 = unit.position
-        cls.unit_tag: int = unit.tag
-        cls.health: float = unit.health_percentage
-        cls.created_at:int = created_at_iteration
-        return instance
+        self.unit_typeid :UnitTypeId = unit.type_id
+        self.position: Point2 = unit.position
+        self.unit_tag: int = unit.tag
+        self.health: float = unit.health_percentage
+        self.created_at:int = created_at_iteration
    
     def __repr__(self) -> str: 
         return f"marker for {self.unit_typeid} at position {self.position}"
