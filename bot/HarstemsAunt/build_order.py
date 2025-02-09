@@ -147,7 +147,6 @@ class BuildOrder:
             BuildInstruction(UnitTypeId.STALKER, start_pos),
             BuildInstruction(UnitTypeId.STALKER, start_pos),
         ]
-
         CANNON_RUSH = [
             BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
             BuildInstruction(UnitTypeId.FORGE,wall_buildings[0]),
@@ -258,11 +257,12 @@ class BuildOrder:
                 if not requested_unit in self.buffer:
                     self.buffer.append(requested_unit)
                     group.requested_units.remove(requested_unit)
-
-        self.bot.client.debug_text_screen(f"{self.next_instruction()} instruction {self.step}", \
-            (0.01, 0.15), color=(255,255,255), size=DEBUG_FONT_SIZE)
-        self.bot.client.debug_text_screen(f"next struct in Buffer: {self.get_next_in_buffer()}", \
-            (0.01, 0.20), color=(255,255,255), size=DEBUG_FONT_SIZE)
+        
+        if DEBUG:
+            self.bot.client.debug_text_screen(f"{self.next_instruction()} instruction {self.step}", \
+                (0.01, 0.15), color=(255,255,255), size=DEBUG_FONT_SIZE)
+            self.bot.client.debug_text_screen(f"next struct in Buffer: {self.get_next_in_buffer()}", \
+                (0.01, 0.20), color=(255,255,255), size=DEBUG_FONT_SIZE)
 
     def debug_build_pos(self, pos:Union[Point2, Point3]):
         """debug method to show the current build pos """

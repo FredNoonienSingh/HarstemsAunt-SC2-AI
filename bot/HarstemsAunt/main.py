@@ -9,7 +9,7 @@ from datetime import datetime
 
 from sc2.unit import Unit
 from sc2.bot_ai import BotAI
-from sc2.position import Point2
+from sc2.position import Point2, Point3
 from sc2.data import Race, Result
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -28,9 +28,10 @@ from map_analyzer import MapData
 # pylint: disable=E0402
 from .macro import Macro
 from .pathing import Pathing
+from .unitmarker import UnitMarker
 from .army_group import ArmyGroup
 from .map_sector import MapSector
-from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,DEBUG_FONT_SIZE, logger
+from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,DEBUG_FONT_SIZE,MAX_MARKER_LIFE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
 
@@ -61,13 +62,25 @@ class HarstemsAunt(BotAI):
         self.expand_locs:list = []
         self.researched:list = []
 
-        self.seen_enemies:list = []
+        # Should be a set 
+        self.seen_enemies:set = []
         self.enemies_lt_list: list = []
+        self.unitmarkers: List[UnitMarker] = []
         self.enemy_supply:int = 0
         self.last_tick:int = 0
 
         self.map_sectors:list = []
         self.army_groups:list = []
+
+    
+    @property
+    def iteration(self):
+        """The iteration property."""
+        return self._iteration
+    
+    @iteration.setter
+    def iteration(self, value):
+        self._iteration = value
 
     @property
     def greeting(self) -> str:
@@ -127,9 +140,9 @@ class HarstemsAunt(BotAI):
         # Create Folders to save data for analysis
         self.create_folders()
 
-        # if DEBUG:
-            # await self.client.debug_fast_build()  Buildings take no time 
-            # await self.client.debug_all_resources() Free minerals and gas
+        #if DEBUG:
+            #await self.client.debug_fast_build()  #Buildings take no time 
+            #await self.client.debug_all_resources() #Free minerals and gas
         
         # set Edge Points
         top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
@@ -161,9 +174,10 @@ class HarstemsAunt(BotAI):
         await self.chat_send(self.greeting)
 
         if DEBUG:
-            await self.client.debug_show_map()
-            await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 1]])
-            await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 2]])
+            pass
+            #await self.client.debug_show_map()
+            #await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 1]])
+            #await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 2]])
 
 
         for sector in self.map_sectors:
@@ -204,7 +218,7 @@ class HarstemsAunt(BotAI):
                 await self.chat_send("I see you got an AirForce, i can do that too")
 
         if not self.macro.build_order.opponent_has_detection:
-            if [unit for unit in self.seen_enemies if unit.is_flying and unit.can_attack]:
+            if [unit for unit in self.seen_enemies if unit.is_detector]:
                 self.macro.build_order.opponent_has_detection = True
 
         if not self.macro.build_order.opponent_uses_cloak:
@@ -247,6 +261,20 @@ class HarstemsAunt(BotAI):
             # TODO: #69 write on distrubute workers coroutine
             await self.distribute_workers(1.22)
             await self.macro()
+
+            self.enemies_lt_list = self.enemy_units
+            self.iteration = iteration
+            for marker in self.unitmarkers:
+                
+                if self.is_visible(marker.position) or marker.age_in_frames(iteration) > MAX_MARKER_LIFE:
+                    self.unitmarkers.remove(marker)
+
+                if DEBUG:
+                    pos: Point2 = marker.position
+                    z = self.get_terrain_z_height(pos)+1
+                    x,y = pos.x, pos.y
+                    pos_3d = Point3((x,y,z))
+                    self.client.debug_sphere_out(pos_3d ,.2, (255,int(marker.health*2.5),0))
 
             # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0])\
@@ -297,6 +325,10 @@ class HarstemsAunt(BotAI):
         if not unit in self.seen_enemies and unit.type_id not in WORKER_IDS:
             self.seen_enemies.append(unit)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
+        marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit.tag]
+        for m in marker:
+            self.unitmarkers.remove(m)
+
 
     #TODO: #73 Implement on_enemy_unit_left_vision logic
     async def on_enemy_unit_left_vision(self, unit_tag:int):
@@ -305,7 +337,15 @@ class HarstemsAunt(BotAI):
         Args:
             unit_tag (int): unit_tag
         """
-        pass
+        if self.enemies_lt_list:
+            # et Unit by ID then create a marker at last know psition
+            logger.info(f"{len(self.unitmarkers)}")
+            unit = self.enemies_lt_list.find_by_tag(unit_tag)
+            if unit:
+                iteration = self.iteration
+                marker: UnitMarker = UnitMarker(unit, iteration)
+                self.unitmarkers.append(marker)
+                logger.info(unit)
 
     async def on_unit_created(self, unit:Unit) -> None:
 
@@ -351,14 +391,17 @@ class HarstemsAunt(BotAI):
         Args:
             unit_tag (int): tag of destroyed unit
         """
-        
+        # TODO seen Units should be a set to sace memory 
         # Keeps the List as short as possible
         if unit_tag in self.seen_enemies:
             self.seen_enemies.remove(unit_tag)
 
-        unit = self.enemy_units.find_by_tag(unit_tag)
+        unit = self.enemies_lt_list.find_by_tag(unit_tag)
         if unit:
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
+        marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit_tag]
+        for m in marker:
+            self.unitmarkers.remove(m)        
 
     async def on_upgrade_complete(self, upgrade:UpgradeId):
         """ Coroutine gets called on when upgrade is complete 

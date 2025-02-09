@@ -1,6 +1,6 @@
 """DOCSTRING to shut up the linter"""
 # pylint: disable=E0611
-from typing import Dict, Set
+from typing import Dict, Set, List
 
 # pylint: disable=W0611
 from __init__ import logger
@@ -9,11 +9,13 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 SECTORS: int = 10
 DEBUG: bool = True
-DEBUG_FONT_SIZE = 7
 RUN_BY_SIZE: int = 4
 DT_TIMING: float = 480
+DEBUG_FONT_SIZE: int = 7
 MIN_SHIELD_AMOUNT: float = 0.5
 SPEEDMINING_DISTANCE: float = 1.8
+
+MAX_MARKER_LIFE: int = 600
 
 UNIT_COMPOSITION: Dict = {
     Race.Protoss: [UnitTypeId.STALKER,
@@ -26,7 +28,8 @@ UNIT_COMPOSITION: Dict = {
                   ],
     Race.Zerg: [UnitTypeId.ZEALOT,
                 UnitTypeId.IMMORTAL,
-                UnitTypeId.ARCHON]
+                UnitTypeId.ARCHON
+                ]
 }
 
 INITIAL_TECH: Dict = {
@@ -205,6 +208,51 @@ ALL_STRUCTURES: Set[UnitTypeId] = {
     UnitTypeId.TWILIGHTCOUNCIL,
     UnitTypeId.ULTRALISKCAVERN,
     UnitTypeId.WARPGATE,
+}
+
+COUNTER_DICT: Dict[UnitTypeId, List] = {
+    # Zerg Units
+    UnitTypeId.ZERGLING: [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.SENTRY, UnitTypeId.ARCHON],
+    UnitTypeId.HYDRALISK:[UnitTypeId.STALKER, UnitTypeId.ARCHON, UnitTypeId.IMMORTAL],
+    UnitTypeId.MUTALISK:[UnitTypeId.PHOENIX, UnitTypeId.ARCHON, UnitTypeId.CARRIER],
+    UnitTypeId.BANELING: [UnitTypeId.STALKER, UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS],
+    UnitTypeId.ROACH: [UnitTypeId.ZEALOT, UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS],
+    UnitTypeId.ULTRALISK:[UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.TEMPEST],
+    UnitTypeId.INFESTOR: [UnitTypeId.STALKER, UnitTypeId.HIGHTEMPLAR, UnitTypeId.DISRUPTOR],
+    UnitTypeId.LURKER: [UnitTypeId.OBSERVER, UnitTypeId.STALKER, UnitTypeId.DISRUPTOR],
+    UnitTypeId.BROODLORD:[UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.CORRUPTOR:[UnitTypeId.PHOENIX, UnitTypeId.STALKER, UnitTypeId.CARRIER],
+    UnitTypeId.QUEEN:[UnitTypeId.ZEALOT, UnitTypeId.STALKER],
+    UnitTypeId.OVERLORD: [UnitTypeId.PHOENIX, UnitTypeId.STALKER],
+    # Terran Units
+    UnitTypeId.MARINE: [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.ARCHON],
+    UnitTypeId.MARAUDER:[UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.ARCHON],
+    UnitTypeId.REAPER: [UnitTypeId.STALKER, UnitTypeId.PHOENIX],
+    UnitTypeId.GHOST:[UnitTypeId.STALKER, UnitTypeId.HIGHTEMPLAR, UnitTypeId.DISRUPTOR],
+    UnitTypeId.SIEGETANK:[UnitTypeId.STALKER, UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST],
+    UnitTypeId.HELLION: [UnitTypeId.STALKER],
+    UnitTypeId.THOR:[UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.VIKING: [UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
+    UnitTypeId.BATTLECRUISER:[UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.RAVEN: [UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
+    UnitTypeId.BANSHEE: [UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
+    UnitTypeId.LIBERATOR:[UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
+    UnitTypeId.WIDOWMINE:[UnitTypeId.OBSERVER, UnitTypeId.STALKER, UnitTypeId.DISRUPTOR],
+    # Protoss Units
+    UnitTypeId.ZEALOT: [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.SENTRY, UnitTypeId.IMMORTAL],
+    UnitTypeId.STALKER:[UnitTypeId.STALKER, UnitTypeId.ARCHON, UnitTypeId.DISRUPTOR, UnitTypeId.IMMORTAL],
+    UnitTypeId.SENTRY: [UnitTypeId.SENTRY, UnitTypeId.STALKER, UnitTypeId.HIGHTEMPLAR],
+    UnitTypeId.HIGHTEMPLAR: [UnitTypeId.HIGHTEMPLAR, UnitTypeId.ARCHON, UnitTypeId.STALKER],
+    UnitTypeId.DARKTEMPLAR: [UnitTypeId.DARKTEMPLAR, UnitTypeId.STALKER, UnitTypeId.ARCHON],
+    UnitTypeId.ARCHON: [UnitTypeId.ARCHON, UnitTypeId.TEMPEST, UnitTypeId.CARRIER, UnitTypeId.IMMORTAL],
+    UnitTypeId.IMMORTAL:[UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.ARCHON],
+    UnitTypeId.COLOSSUS:[UnitTypeId.COLOSSUS, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.VOIDRAY: [UnitTypeId.VOIDRAY, UnitTypeId.PHOENIX, UnitTypeId.CARRIER], 
+    UnitTypeId.CARRIER:[UnitTypeId.CARRIER, UnitTypeId.TEMPEST, UnitTypeId.VOIDRAY],
+    UnitTypeId.PHOENIX: [UnitTypeId.PHOENIX, UnitTypeId.STALKER, UnitTypeId.ARCHON],
+    UnitTypeId.TEMPEST: [UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.DISRUPTOR: [UnitTypeId.DISRUPTOR, UnitTypeId.STALKER, UnitTypeId.ARCHON],
+    UnitTypeId.MOTHERSHIP:[UnitTypeId.MOTHERSHIP, UnitTypeId.CARRIER, UnitTypeId.TEMPEST], 
 }
 
 INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
