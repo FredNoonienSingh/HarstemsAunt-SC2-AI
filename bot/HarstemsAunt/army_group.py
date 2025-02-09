@@ -7,7 +7,7 @@ import numpy as np
 # pylint: disable=E0402
 from .utils import Utils
 from .pathing import Pathing
-from .common import WORKER_IDS, logger
+from .common import WORKER_IDS,COUNTER_DICT,DEBUG,logger
 from .production_buffer import ProductionBuffer,ProductionRequest
 
 # pylint: disable=C0411
@@ -157,9 +157,11 @@ class ArmyGroup:
         """
         buffer:ProductionBuffer = self.bot.macro.production_buffer
 
-        # TODO: calculate counters to unit types in Enemy Area 
         if DEBUG:
-            logger.info(self.enemy_unit_types)
+            unit_types:list = self.enemy_unit_types
+            for typ in unit_types:
+                counters: Dict[str,UnitTypeId] = COUNTER_DICT.get(typ, None)
+                #logger.info(counters)
 
         for struct in buffer.gateways:
             request:ProductionRequest = \
