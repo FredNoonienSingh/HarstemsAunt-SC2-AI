@@ -176,8 +176,8 @@ class HarstemsAunt(BotAI):
         if DEBUG:
             pass
             #await self.client.debug_show_map()
-            #await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 1]])
-            #await self.client.debug_create_unit([[UnitTypeId.RAVEN, 5, self._game_info.map_center, 2]])
+            await self.client.debug_create_unit([[UnitTypeId.STALKER, 5, self._game_info.map_center, 1]])
+            await self.client.debug_create_unit([[UnitTypeId.STALKER, 5, self._game_info.map_center, 2]])
 
 
         for sector in self.map_sectors:
@@ -265,8 +265,9 @@ class HarstemsAunt(BotAI):
             self.enemies_lt_list = self.enemy_units
             self.iteration = iteration
             for marker in self.unitmarkers:
-                
-                if self.is_visible(marker.position) or marker.age_in_frames(iteration) > MAX_MARKER_LIFE:
+               
+                # maybe having a max life for marker is not a great idea
+                if self.is_visible(marker.position): #or marker.age_in_frames(iteration) > MAX_MARKER_LIFE:
                     self.unitmarkers.remove(marker)
 
                 if DEBUG:
@@ -274,7 +275,7 @@ class HarstemsAunt(BotAI):
                     z = self.get_terrain_z_height(pos)+1
                     x,y = pos.x, pos.y
                     pos_3d = Point3((x,y,z))
-                    self.client.debug_sphere_out(pos_3d ,.2, (255,int(marker.health*2.5),0))
+                    self.client.debug_sphere_out(pos_3d ,.2, marker.color)
 
             # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0])\

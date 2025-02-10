@@ -62,8 +62,10 @@ class ArmyGroup:
         """Enemy Supply in the Area"""
         enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
             .filter(lambda unit: unit.type_id not in WORKER_IDS)
-        if enemy_units:
-            return sum([self.bot.calculate_supply_cost(unit.type_id) for unit in enemy_units])
+        enemy_marker = [marker.unit for marker in self.bot.unitmarkers \
+                if marker.position.distance_to(self.position)<25]
+        if Utils.and_or(enemy_marker, enemy_units):
+            return sum([self.bot.calculate_supply_cost(unit.type_id) for unit in list(enemy_units)+enemy_marker])
         return 0
 
     @property
@@ -73,7 +75,7 @@ class ArmyGroup:
 
     @property
     def enemy_unit_types(self) -> Set[UnitTypeId]:
-        """ Unittypes of enemies in the Area of ArmyGroup"""
+        """ Unittypes of enemies in the Area of ArmyGroup """
         enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
             .filter(lambda unit: unit.type_id not in WORKER_IDS)
  
