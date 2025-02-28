@@ -7,6 +7,7 @@ import numpy as np
 # pylint: disable=E0402
 from .utils import Utils
 from .pathing import Pathing
+from .targeting import TargetAllocator
 from .common import WORKER_IDS,COUNTER_DICT,DEBUG,logger
 from .production_buffer import ProductionBuffer,ProductionRequest
 
@@ -16,6 +17,7 @@ from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.position import Point2, Point3
 from sc2.ids.unit_typeid import UnitTypeId
+
 
 class GroupStatus(Enum):
     """Enum representing the State """
@@ -31,9 +33,11 @@ class GroupTypeId(Enum):
 
 class ArmyGroup:
     """Class representing an Army Group """
+    
     def __init__(self, bot:BotAI,name:str, unit_list:list,\
-        units_in_transit:list,pathing:Pathing,\
-            army_group_id:int=0,group_type:GroupTypeId=GroupTypeId.ARMY):
+            units_in_transit:list,pathing:Pathing,\
+            army_group_id:int=0,group_type:GroupTypeId=GroupTypeId.ARMY
+            ):
         self.bot:BotAI = bot
         self.name = name
         self.id = army_group_id
@@ -42,7 +46,9 @@ class ArmyGroup:
         self.units_in_transit:list = units_in_transit
         self.pathing:Pathing = pathing
         self.status:GroupStatus = GroupStatus.ATTACKING
-        self.GroupTypeId = group_type
+        self.group_type_id = group_type
+        self.debug_counter:int = 0
+        self.target_allocator = TargetAllocator(self.bot)
 
     @property
     def units(self) -> Units:
@@ -92,6 +98,10 @@ class ArmyGroup:
         """ Center of Army Group """
         if self.units:
             return self.units.center
+
+        # THIS HAS TO BE CHANGED BACK BEFORE DEPLOYING !!!
+
+        #return self.bot.game_info.map_center
         return self.bot.main_base_ramp.top_center
 
     @property
@@ -151,7 +161,7 @@ class ArmyGroup:
             return
         self.retreat_pos = new_retreat_pos
 
-    def request_units(self) -> None:
+    async def request_units(self) -> None:
         """ Adds Units based on Logic to the List requested Units
 
         Returns:
@@ -160,10 +170,22 @@ class ArmyGroup:
         buffer:ProductionBuffer = self.bot.macro.production_buffer
 
         if DEBUG:
+            self.debug_counter += 1
             unit_types:list = self.enemy_unit_types
             for typ in unit_types:
                 counters: Dict[str,UnitTypeId] = COUNTER_DICT.get(typ, None)
                 #logger.info(counters)
+            if not self.debug_counter%250:
+                logger.info(f"created unit:  ")
+                await self.bot.client.debug_create_unit([[UnitTypeId.STALKER, 1, \
+                        self.position.towards(self.bot.game_info.map_center), 1]])
+                await self.bot.client.debug_create_unit([[UnitTypeId.STALKER, 1, \
+                        self.bot.enemy_start_locations[0].towards(self.bot.game_info.map_center), 2]])
+
+                await self.bot.client.debug_create_unit([[UnitTypeId.ZEALOT, 1, \
+                        self.position.towards(self.bot.game_info.map_center), 1]])
+                await self.bot.client.debug_create_unit([[UnitTypeId.ZEALOT, 1, \
+                        self.bot.enemy_start_locations[0].towards(self.bot.game_info.map_center), 2]])
 
         for struct in buffer.gateways:
             request:ProductionRequest = \
@@ -252,27 +274,21 @@ class ArmyGroup:
     def retreat(self) -> None:
         """Moves Army back to retreat position
         """
-        #logger.warning(f"retreat pos: {self.retreat_pos}")
-        #logger.warning(f" pos-type: {type(self.retreat_pos)}")
         grid:np.ndarray = self.pathing.ground_grid
-        # Early return if units are safe
         if all(self.pathing.is_position_safe(grid, unit.position,2) for unit in self.units):
             self.regroup()
             return
 
         for unit in self.units:
-            # This could be handled more efficient if i could overwrite the Unit move command
             if self.pathing.is_position_safe(grid, unit.position):
                 continue
 
             if not Utils.in_proximity_to_point(unit, self.retreat_pos,15):
-                #logger.info("Proximity to Point")
                 unit.move(
                         self.pathing.find_path_next_point(
                             unit.position, self.retreat_pos, grid
                         )
                     )
-        #self.observer.retreat(self.units(UnitTypeId.OBSERVER), self.retreat_pos)
 
     # TODO: #31 Regroup Units by Range
     def regroup(self) -> None:
@@ -290,7 +306,7 @@ class ArmyGroup:
         for unit in self.units:
             grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
                 else self.pathing.ground_grid
-            if not Utils.in_proximity_to_point(self.bot, unit, position, 20):
+            if not Utils.in_proximity_to_point(unit, position, 20):
                 unit.move(
                     self.pathing.find_path_next_point(
                         unit.position, self.retreat_pos, grid
@@ -305,11 +321,10 @@ class ArmyGroup:
             shall be called every tick in main.py 
         """
         
-        #logger.warning(f"target: {target}")
-        #logger.warning(f" target-type: {type(target)}")
+        self.target_allocator(self.units, self.attack_target)
         
         if not self.requested_units:
-            self.request_units()
+            await self.request_units()
         #last_status: GroupStatus = self.status
 
         # Move Units in Transit to Army_group:
@@ -340,7 +355,10 @@ class ArmyGroup:
         # TODO add check if enemy_supply in Target_area > self.supply
         # CHECK RETREAT CONDITIONS
         shield_condition = self.average_shield_percentage < .45
-        supply_condition = self.supply <= self.enemy_supply_in_proximity
+        # Thi will be replaced by a check how many enemie units can attack 
+        supply_condition = self.supply <= self.enemy_supply_in_proximity + 3
+        #enemies_in_range:Units = self.bot.enemy_units.filter(lambda unit:expression expression)
+
         if Utils.and_or(shield_condition, supply_condition) \
             or len(self.units) < len(self.units_in_transit):
             self.retreat()
@@ -350,3 +368,4 @@ class ArmyGroup:
         #self.regroup()
         await self.attack(target)
         self.status = GroupStatus.ATTACKING
+

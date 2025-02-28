@@ -119,6 +119,8 @@ class BuildOrder:
         tech_pylon_pos:Point2 = self.bot.start_location\
             .towards(self.bot.start_location.furthest(minerals).position, 10)
         angle_pylon_pos:Point2 = self.bot.start_location.towards(self.bot.game_info.map_center,10)
+
+        # WHy does this cause such wierd behavior ?
         vespene_position_0:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[0]
         vespene_position_1:Point2 = self.bot.vespene_geyser.closer_than(12, start_pos)[1]
 

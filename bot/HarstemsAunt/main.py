@@ -7,9 +7,10 @@ from typing import List
 from itertools import chain
 from datetime import datetime
 
+# pylint: disable=E0401
 from sc2.unit import Unit
 from sc2.bot_ai import BotAI
-from sc2.position import Point2, Point3
+from sc2.position import Point2
 from sc2.data import Race, Result
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -28,12 +29,13 @@ from map_analyzer import MapData
 # pylint: disable=E0402
 from .macro import Macro
 from .pathing import Pathing
+from .chatter import Chatter
 from .unitmarker import UnitMarker
+from .debugTools import DebugTools
 from .army_group import ArmyGroup
 from .map_sector import MapSector
-from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,DEBUG_FONT_SIZE,MAX_MARKER_LIFE,logger
+from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
-
 
 class HarstemsAunt(BotAI):
     """ Main class of the Bot"""
@@ -53,8 +55,6 @@ class HarstemsAunt(BotAI):
         self.version = "1.1_dev"
         self.race:Race = Race.Protoss
 
-        self.base_count = 0
-
         self.start_time = None
         self.game_step = None
         self.speedmining_positions = None
@@ -62,7 +62,6 @@ class HarstemsAunt(BotAI):
         self.expand_locs:list = []
         self.researched:list = []
 
-        # Should be a set 
         self.seen_enemies:set = []
         self.enemies_lt_list: list = []
         self.unitmarkers: List[UnitMarker] = []
@@ -71,13 +70,14 @@ class HarstemsAunt(BotAI):
 
         self.map_sectors:list = []
         self.army_groups:list = []
+        
+        self.debug_tools = DebugTools(self)
 
-    
     @property
     def iteration(self):
         """The iteration property."""
         return self._iteration
-    
+
     @iteration.setter
     def iteration(self, value):
         self._iteration = value
@@ -112,10 +112,10 @@ class HarstemsAunt(BotAI):
         opponent:str = self.opponent_id
         return f"data/opponent/{opponent}"
 
+    # TODO: this should be reworked and removed
     @property
     def get_attack_target(self) -> Point2:
         """ Target of the main army group """
-        # Why the 5 Minute wait time
         if self.time > 300.0:
             if enemy_units := self.enemy_units.filter(
                 lambda u: u.type_id not in ATTACK_TARGET_IGNORE
@@ -134,30 +134,52 @@ class HarstemsAunt(BotAI):
             if not os.path.exists(path):
                 os.makedirs(path)
 
+    def handle_unit_markers(self) -> None:
+        """handles unit markers -> removes markers when visible"""
+        for marker in self.unitmarkers:
+            if self.is_visible(marker.position):
+                self.unitmarkers.remove(marker)
+            if DEBUG:
+                self.debug_tools.draw_unit_marker(self, marker)
+
+    async def update_states(self, iteration:int) -> None:
+        """Updates all states for the next iteration"""
+        self.iteration = iteration
+        self.enemies_lt_list = self.enemy_units
+        self.pathing.update(iteration)
+
+        self.transfer_from: List[Unit] = []
+        self.transfer_to: List[Unit] = []
+        self.transfer_from_gas: List[Unit] = []
+        self.transfer_to_gas: List[Unit] = []
+        self.resource_by_tag = {unit.tag: unit for unit in \
+            chain(self.mineral_field, self.gas_buildings)}
+
+        for j, group in enumerate(self.army_groups):
+            await group.update(self.get_attack_target)
+            if DEBUG:
+                self.debug_tools.draw_army_group_label(j, group)
+
     async def on_before_start(self) -> None:
         """ coroutine called before the game starts """
         self.start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # Create Folders to save data for analysis
         self.create_folders()
 
-        #if DEBUG:
-            #await self.client.debug_fast_build()  #Buildings take no time 
-            #await self.client.debug_all_resources() #Free minerals and gas
-        
-        # set Edge Points
-        top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
-        bottom_right = Point2((self.game_info.playable_area.right, 0))
-        top_left = Point2((0, self.game_info.playable_area.top))
+        def build_sectors() -> None:
+            """ Builds Map Sector """
+            top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
+            bottom_right = Point2((self.game_info.playable_area.right, 0))
+            top_left = Point2((0, self.game_info.playable_area.top))
 
-        # Create Map_sectors
-        sector_width:int = abs(top_right.x - top_left.x)//SECTORS
-        for x in range(SECTORS):
-            for y in range(SECTORS):
-                upper_left: Point2 = Point2((0+(sector_width*x), 0+bottom_right.y+(sector_width*(y))))
-                lower_right: Point2 = Point2((0+(sector_width*(x+1)),0+bottom_right.y+(sector_width*(y+1))))
-                # logger.info(f"upper_left {upper_left} lower_right {lower_right}")
-                sector: MapSector = MapSector(self, upper_left, lower_right)
-                self.map_sectors.append(sector)
+            # Create Map_sectors
+            sector_width:int = abs(top_right.x - top_left.x)//SECTORS
+            for x in range(SECTORS):
+                for y in range(SECTORS):
+                    upper_left: Point2 = Point2((0+(sector_width*x), 0+bottom_right.y+(sector_width*(y))))
+                    lower_right: Point2 = Point2((0+(sector_width*(x+1)),0+bottom_right.y+(sector_width*(y+1))))
+                    sector: MapSector = MapSector(self, upper_left, lower_right)
+                    self.map_sectors.append(sector)
+        build_sectors()
 
     async def on_start(self) -> None:
         """ coroutine called on game_start """
@@ -171,23 +193,17 @@ class HarstemsAunt(BotAI):
         self.client.game_step = self.game_step
         self.speedmining_positions = get_speedmining_positions(self)
 
-        await self.chat_send(self.greeting)
+        await Chatter.greeting(self)
 
         if DEBUG:
-            pass
-            #await self.client.debug_show_map()
-            await self.client.debug_create_unit([[UnitTypeId.STALKER, 5, self._game_info.map_center, 1]])
-            await self.client.debug_create_unit([[UnitTypeId.STALKER, 5, self._game_info.map_center, 2]])
-
+            await self.debug_tools.debug_micro()
 
         for sector in self.map_sectors:
             sector.build_sector()
         split_workers(self)
 
-        initial_army_group:ArmyGroup = ArmyGroup(self, "HA_alpha", [],[],pathing=self.pathing)
-        #run_by_group:ArmyGroup = ArmyGroup(self, [], [], self.pathing, GroupTypeId.RUN_BY)
+        initial_army_group:ArmyGroup = ArmyGroup(self,"HA_alpha",[],[],pathing=self.pathing)
         self.army_groups.append(initial_army_group)
-        #self.army_groups.append(run_by_group)
 
     async def on_step(self, iteration:int):
         """ Coroutine running every game tick
@@ -195,16 +211,13 @@ class HarstemsAunt(BotAI):
         Args:
             iteration (_type_): current tick
         """
-        labels = ["min_step","avg_step","max_step","last_step"]
-        for i, value in enumerate(self.step_time):
-            if value > 34:
-                color = (0, 0, 255)
-            else:
-                color = (0, 255, 0)
-            self.client.debug_text_screen(f"{labels[i]}: {round(value,3)}", \
-                (0, 0.025+(i*0.025)), color=color, size=DEBUG_FONT_SIZE)
+        await self.update_states(iteration)
 
-        threads: ist = []
+        if DEBUG:
+            self.debug_tools.draw_vespene_pos()
+            self.debug_tools.draw_step_time_label()
+
+        threads: list = []
         for i, sector in enumerate(self.map_sectors):
             t_0 = threading.Thread(target=sector.update())
             threads.append(t_0)
@@ -212,42 +225,9 @@ class HarstemsAunt(BotAI):
         for t in threads:
             t.join()
 
-        if not self.macro.build_order.opponent_builds_air:
-            if [unit for unit in self.seen_enemies if unit.is_flying and unit.can_attack]:
-                self.macro.build_order.opponent_builds_air = True
-                await self.chat_send("I see you got an AirForce, i can do that too")
-
-        if not self.macro.build_order.opponent_has_detection:
-            if [unit for unit in self.seen_enemies if unit.is_detector]:
-                self.macro.build_order.opponent_has_detection = True
-
-        if not self.macro.build_order.opponent_uses_cloak:
-            if [unit for unit in self.seen_enemies if (unit.is_cloaked and unit.can_attack) \
-                or (unit.is_burrowed and unit.can_attack)]:
-                self.macro.build_order.opponent_uses_cloak = True
-                await self.chat_send("Stop hiding and fight like a honorable ... \
-                        ähm... Robot?\ndo computers have honor ?")
-
-        self.pathing.update(iteration)
-
-        for j, group in enumerate(self.army_groups):
-            await group.update(self.get_attack_target)
-            self.client.debug_text_screen(f"{group.GroupTypeId}: {group.attack_target}",\
-                (.25+(j*0.25), 0.025), color=(255,255,255), size=DEBUG_FONT_SIZE)
-            self.client.debug_text_screen(f"Supply:{group.supply}\
-                Enemysupply:{group.enemy_supply_in_proximity}",\
-                    (.25+(j*0.27), 0.05), color=(255,255,255), size=DEBUG_FONT_SIZE)
-            self.client.debug_text_screen(f"requested:{group.requested_units}",\
-                    (.25+(j*0.27), 0.075), color=(255,255,255), size=DEBUG_FONT_SIZE)
+        Chatter.build_order_comments(self)
 
         if self.townhalls and self.units:
-            self.transfer_from: List[Unit] = []
-            self.transfer_to: List[Unit] = []
-            self.transfer_from_gas: List[Unit] = []
-            self.transfer_to_gas: List[Unit] = []
-            self.resource_by_tag = {unit.tag: unit for unit in \
-                chain(self.mineral_field, self.gas_buildings)}
-
             #TODO: #33 Write a cannon rush response, that actually works
             for townhall in self.townhalls:
                 workers_in_base = self.enemy_units.closer_than(15, townhall)\
@@ -259,37 +239,18 @@ class HarstemsAunt(BotAI):
             for worker in self.workers:
                 micro_worker(self, worker)
             # TODO: #69 write on distrubute workers coroutine
-            await self.distribute_workers(1.22)
+            await self.distribute_workers(2.85)
             await self.macro()
+            self.handle_unit_markers()
 
-            self.enemies_lt_list = self.enemy_units
-            self.iteration = iteration
-            for marker in self.unitmarkers:
-               
-                # maybe having a max life for marker is not a great idea
-                if self.is_visible(marker.position): #or marker.age_in_frames(iteration) > MAX_MARKER_LIFE:
-                    self.unitmarkers.remove(marker)
-
-                if DEBUG:
-                    pos: Point2 = marker.position
-                    z = self.get_terrain_z_height(pos)+1
-                    x,y = pos.x, pos.y
-                    pos_3d = Point3((x,y,z))
-                    self.client.debug_sphere_out(pos_3d ,.2, marker.color)
-
-            # tie_breaker
             if self.units.closer_than(10, self.enemy_start_locations[0])\
                 and not self.enemy_units and not self.enemy_structures:
                 for loc in self.expand_locs:
                     worker = self.workers.closest_to(loc)
                     worker.move(loc)
-
             return
-
         if self.last_tick == 0:
-            await self.chat_send\
-                (f"GG, you are probably a hackcheating smurf cheat hacker anyway also\
-                {self.enemy_race} is IMBA")
+            await Chatter.end_game_message()
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
@@ -330,17 +291,13 @@ class HarstemsAunt(BotAI):
         for m in marker:
             self.unitmarkers.remove(m)
 
-
-    #TODO: #73 Implement on_enemy_unit_left_vision logic
+    # TODO: #73 Implement on_enemy_unit_left_vision logic
     async def on_enemy_unit_left_vision(self, unit_tag:int):
         """ Coroutine gets called when enemy left vision
-
         Args:
             unit_tag (int): unit_tag
         """
         if self.enemies_lt_list:
-            # et Unit by ID then create a marker at last know psition
-            logger.info(f"{len(self.unitmarkers)}")
             unit = self.enemies_lt_list.find_by_tag(unit_tag)
             if unit:
                 iteration = self.iteration
@@ -349,7 +306,6 @@ class HarstemsAunt(BotAI):
                 logger.info(unit)
 
     async def on_unit_created(self, unit:Unit) -> None:
-
         """ Coroutine that gets called when Unit is created
             - adds created Units to the ArmyGroup
 
@@ -392,7 +348,7 @@ class HarstemsAunt(BotAI):
         Args:
             unit_tag (int): tag of destroyed unit
         """
-        # TODO seen Units should be a set to sace memory 
+        # TODO seen Units should be a set to save memory
         # Keeps the List as short as possible
         if unit_tag in self.seen_enemies:
             self.seen_enemies.remove(unit_tag)
@@ -402,7 +358,7 @@ class HarstemsAunt(BotAI):
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
         marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit_tag]
         for m in marker:
-            self.unitmarkers.remove(m)        
+            self.unitmarkers.remove(m)
 
     async def on_upgrade_complete(self, upgrade:UpgradeId):
         """ Coroutine gets called on when upgrade is complete 
@@ -433,4 +389,3 @@ class HarstemsAunt(BotAI):
                 csv_writer.writerow(data)
 
         await self.client.leave()
-

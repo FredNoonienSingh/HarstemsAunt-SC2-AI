@@ -78,4 +78,4 @@ class Stalkers(BaseClassGround):
 
     async def _do_blink(self):
         """Not implemented yet"""
-        pass
+        pass 

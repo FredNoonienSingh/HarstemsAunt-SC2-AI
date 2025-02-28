@@ -12,9 +12,8 @@ import matplotlib.pyplot as plt
 
 from map_analyzer import MapData
 from .unitmarker import UnitMarker
-from .common import ALL_STRUCTURES, INFLUENCE_COSTS, logger
+from .common import ALL_STRUCTURES, INFLUENCE_COSTS,RANGE_BUFFER, logger
 
-RANGE_BUFFER: float = 2.22 
 
 class Pathing:
     """ Pathing class """
@@ -31,7 +30,15 @@ class Pathing:
         self.influence_fade_rate:float = fade_rate
 
     def update(self, iteration) -> None:
-        """ runs every frame  """
+        """ runs every frame 
+            
+            I want to add a sigmoid function to the grid to 'squach' the value, 
+
+            also i need to save the grids frame by frame in a fast way to use the resulting data
+            to train a model predicting the grid at the next frame, which will make the fade rate obsolete
+
+
+        """
         last_ground_grid:np.ndarray = self.ground_grid
         last_air_grid:np.ndarray = self.air_grid
         last_detection_grid:np.ndarray = self.detection_grid

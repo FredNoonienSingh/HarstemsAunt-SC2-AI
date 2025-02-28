@@ -41,10 +41,6 @@ class Macro:
         if not self.build_order.is_performing_initial_build:
             await self.build_supply()
         self.build_probes()
-        
-#        if DEBUG:
-#           logger.warning(self.production_buffer)
-
 
     def get_build_worker(self) -> Unit:
         """ returns the build worker """

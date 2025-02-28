@@ -8,6 +8,7 @@ import numpy as np
 
 from typing import Union, Iterable
 
+# pylint: disable=E0401
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
@@ -251,3 +252,7 @@ class Utils:
             bool: _description_
         """
         return unit_1.distance_to(unit_2) <= max_distance
+
+    @staticmethod
+    def sigmoid(x:float) -> float:
+        return 1/(1+ np.exp(-x))
