@@ -92,9 +92,9 @@ class DebugTools:
         start_pos: Point2 = self.bot.start_location
         geysers = self.bot.vespene_geyser.closer_than(12, start_pos)
         for geyser in geysers:
-            self.bot.client.debug_sphere_out(geyser, .5, (255,255,255))
+            self.bot.client.debug_sphere_out(geyser, 2, (255,255,255))
 
-    def draw_unit_makers(self, marker:UnitMarker) -> None:
+    def draw_unit_marker(self, marker:UnitMarker) -> None:
         """renders a unitmarker"""
         pos: Point2 = marker.position
         z = self.bot.get_terrain_z_height(pos)+1

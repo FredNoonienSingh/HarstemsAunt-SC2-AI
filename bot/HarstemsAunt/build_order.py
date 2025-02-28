@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Union, List
 from functools import cached_property
 
+# pylint: disable=E0401
 from sc2.unit import Unit
 from sc2.data import Race
 from sc2.units import Units
