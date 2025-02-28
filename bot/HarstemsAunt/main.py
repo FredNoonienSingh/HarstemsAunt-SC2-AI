@@ -140,7 +140,7 @@ class HarstemsAunt(BotAI):
             if self.is_visible(marker.position):
                 self.unitmarkers.remove(marker)
             if DEBUG:
-                self.debug_tools.draw_unit_marker(self, marker)
+                self.debug_tools.draw_unit_marker(marker)
 
     async def update_states(self, iteration:int) -> None:
         """Updates all states for the next iteration"""
