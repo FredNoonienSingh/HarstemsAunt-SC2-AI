@@ -3,30 +3,85 @@
 # pylint: disable=E0401
 # pylint: disable=E0611
 import sys
+import argparse
 from random import choice
 
 from __init__ import run_ladder_game
+
 from sc2 import maps
-from sc2.data import Difficulty, Race
 from sc2.main import run_game
+from sc2.data import Difficulty, Race
 from sc2.player import Bot, Computer
 
-from HarstemsAunt.common import MAP_LIST
 from HarstemsAunt.main import HarstemsAunt
+from HarstemsAunt.common import MAP_LIST, logger
 
+parser = argparse.ArgumentParser(prog='Harstems Aunt')
 
-bot = Bot(Race.Protoss, HarstemsAunt())
+races_dict: dict = {
+    'terran': Race.Terran, 
+    'zerg': Race.Zerg,
+    'protoss': Race.Protoss
+}
+
+difficulty_dict:dict = {
+    'very_easy': Difficulty.VeryEasy, 
+    'easy': Difficulty.Easy, 
+    'hard': Difficulty.Hard
+}
 
 # Start game
 if __name__ == "__main__":
+
     if "--LadderServer" in sys.argv:
+        bot = Bot(Race.Protoss, HarstemsAunt())
         # Ladder game started by LadderManager
-        print("Starting ladder game...")
+        logger.info("Starting ladder game...")
         result, opponentid = run_ladder_game(bot)
-        print(result, " against opponent ", opponentid)
+        logger.info(f"{result}, against opponent , {opponentid}")
+
     else:
-        # Local game
-        print("Starting local games...")
-        run_game(maps.get(choice(MAP_LIST)), \
-            [bot, Computer(Race.Terran, Difficulty.VeryEasy)],\
-            realtime=False, sc2_version="5.0.10")
+        parser.add_argument('-d', '--debug',
+                    action='store_true')
+        parser.add_argument('-r', '--realtime',
+                    action='store_true')
+        parser.add_argument('--race',
+                            type=str,
+                            help="Name of Enemy Race terran, zerg, protoss",
+                            default='terran')
+        parser.add_argument('--difficulty',
+                            type=str,
+                            help="strength of the enemy player",
+                            default='hard')
+        parser.add_argument('--map',
+                            type=str,
+                            help="Name of the Map",
+                            default=None)
+        parser.add_argument('--sc2_version',
+                            type=str,
+                            help="Version of the sc2 client",
+                            default="5.0.10")
+
+        logger.info("Starting local game...")
+        args = parser.parse_args()
+
+        if args.realtime:
+            logger.warning("running in realtime may lead to unexpected behavior and crashes")
+
+        enemy_race: Race = races_dict.get(args.race)
+        enemy_strength: Difficulty = difficulty_dict.get(args.difficulty)
+
+        bot = Bot(Race.Protoss, HarstemsAunt(args.debug))
+        enemy_bot = Computer(enemy_race, enemy_strength)
+
+        if args.map:
+            try:
+                arena = maps.get(args.map)
+            # pylint: disable=W0718
+            except Exception as e:
+                logger.warning("Map can't be found... \n\t\tloading random map...")
+                arena = maps.get(choice(MAP_LIST))
+        else:
+            arena = maps.get(choice(MAP_LIST))
+
+        run_game(arena,[bot,enemy_bot],realtime=args.realtime, sc2_version=args.sc2_version)

@@ -34,7 +34,7 @@ from .unitmarker import UnitMarker
 from .debugTools import DebugTools
 from .army_group import ArmyGroup
 from .map_sector import MapSector
-from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,DEBUG,logger
+from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
 class HarstemsAunt(BotAI):
@@ -49,12 +49,14 @@ class HarstemsAunt(BotAI):
     # Scouting Units
     observer : Observer
 
-    # TODO: This should have less members
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, debug:bool=False) -> None:
+        super().__init__()
         self.name = "HarstemsAunt"
         self.version = "1.1_dev"
         self.race:Race = Race.Protoss
+
+        self.debug:bool = debug
+        self.debug_tools = DebugTools(self)
 
         self.start_time = None
         self.game_step = None
@@ -71,8 +73,6 @@ class HarstemsAunt(BotAI):
 
         self.map_sectors:list = []
         self.army_groups:list = []
-
-        self.debug_tools = DebugTools(self)
 
     @property
     def iteration(self):
@@ -140,7 +140,7 @@ class HarstemsAunt(BotAI):
         for marker in self.unitmarkers:
             if self.is_visible(marker.position):
                 self.unitmarkers.remove(marker)
-            if DEBUG:
+            if self.debug:
                 self.debug_tools.draw_unit_marker(marker)
 
     async def update_states(self, iteration:int) -> None:
@@ -158,7 +158,7 @@ class HarstemsAunt(BotAI):
 
         for j, group in enumerate(self.army_groups):
             await group.update(self.get_attack_target)
-            if DEBUG:
+            if self.debug:
                 self.debug_tools.draw_army_group_label(j, group)
 
     async def on_before_start(self) -> None:
@@ -184,7 +184,7 @@ class HarstemsAunt(BotAI):
 
     async def on_start(self) -> None:
         """ coroutine called on game_start """
-        self.pathing = Pathing(self, DEBUG)
+        self.pathing = Pathing(self, self.debug)
         self.macro:Macro = Macro(self)
         self.stalkers:Stalkers = Stalkers(self, self.pathing)
         self.zealots:Zealot = Zealot(self, self.pathing)
@@ -196,7 +196,7 @@ class HarstemsAunt(BotAI):
 
         await Chatter.greeting(self)
 
-        if DEBUG:
+        if self.debug:
             await self.debug_tools.debug_micro()
 
         for sector in self.map_sectors:
@@ -214,7 +214,7 @@ class HarstemsAunt(BotAI):
         """
         await self.update_states(iteration)
 
-        if DEBUG:
+        if self.debug:
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
             self.debug_tools.debug_build_pos()
@@ -230,7 +230,7 @@ class HarstemsAunt(BotAI):
         Chatter.build_order_comments(self)
 
         if self.townhalls and self.units:
-            #TODO: #33 Write a cannon rush response, that actually works
+            #FIXME: #33 Write a cannon rush response, that actually works
             for townhall in self.townhalls:
                 workers_in_base = self.enemy_units.closer_than(15, townhall)\
                     .filter(lambda unit: unit.type_id in WORKER_IDS)
@@ -240,7 +240,7 @@ class HarstemsAunt(BotAI):
 
             for worker in self.workers:
                 micro_worker(self, worker)
-            # TODO: #69 write on distrubute workers coroutine
+            # FIXME: #69 write on distrubute workers coroutine
             await self.distribute_workers(2.85)
             await self.macro()
             self.handle_unit_markers()
@@ -263,7 +263,8 @@ class HarstemsAunt(BotAI):
         Args:
             unit (Unit): completed Structure
         """
-        logger.info(f"construction of {unit} started")
+        if self.debug:
+            logger.info(f"construction of {unit} started")
         self.macro.build_order.increment_step()
         if unit.type_id in self.macro.build_order.buffer:
             self.macro.build_order.remove_from_buffer(unit.type_id)
@@ -305,7 +306,8 @@ class HarstemsAunt(BotAI):
                 iteration = self.iteration
                 marker: UnitMarker = UnitMarker(unit, iteration)
                 self.unitmarkers.append(marker)
-                logger.info(unit)
+                if self.debug:
+                    logger.info(unit)
 
     async def on_unit_created(self, unit:Unit) -> None:
         """ Coroutine that gets called when Unit is created
@@ -320,7 +322,8 @@ class HarstemsAunt(BotAI):
         for group in self.army_groups:
             if unit.type_id in group.requested_units:
                 self.macro.build_order.buffer.remove(unit.type_id)
-                logger.info(f"{unit.type_id} got removed from {group}")
+                if self.debug:
+                    logger.info(f"{unit.type_id} got removed from {group}")
 
     async def on_unit_type_changed(self, unit:Unit, previous_type:UnitTypeId) -> None:
         """ Coroutine that gets called when a unit changes type:
@@ -330,7 +333,8 @@ class HarstemsAunt(BotAI):
             unit (Unit): _description_
             previous_type (UnitTypeId): _description_
         """
-        pass
+        if self.debug:
+            logger.info(f"{previous_type} changed to {unit}")
 
     async def on_unit_took_damage(self, unit:Unit, amount_damage_taken:float) -> None:
         """ Coroutine that gets called when unit takes damage
@@ -339,7 +343,8 @@ class HarstemsAunt(BotAI):
             unit (Unit): Unit that took damage 
             amount_damage_taken (float): amount of damage taken
         """
-        pass
+        if self.debug:
+            logger.info(f"{unit} took {amount_damage_taken} damage")
 
     async def on_unit_destroyed(self, unit_tag: int) -> None:
         """ Coroutine called when unit gets destroyed
@@ -368,6 +373,8 @@ class HarstemsAunt(BotAI):
         Args:
             upgrade (UpgradeId): _description_
         """
+        if self.debug:
+            logger.info(f"researched: {upgrade}")
         self.researched.append(upgrade)
 
     async def on_end(self,game_result:Result):
