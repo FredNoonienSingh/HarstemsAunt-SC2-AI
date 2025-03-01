@@ -1,14 +1,16 @@
 """ Army Group class"""
 from __future__ import annotations
 from enum import Enum
-from typing import Union, Set
+from typing import Union, Set, Dict
 import numpy as np
+
+from random import choice # Just for debugging
 
 # pylint: disable=E0402
 from .utils import Utils
 from .pathing import Pathing
 from .targeting import TargetAllocator
-from .common import WORKER_IDS,COUNTER_DICT,DEBUG,logger
+from .common import WORKER_IDS,COUNTER_DICT,logger
 from .production_buffer import ProductionBuffer,ProductionRequest
 
 # pylint: disable=C0411
@@ -81,7 +83,7 @@ class ArmyGroup:
 
     @property
     def enemy_unit_types(self) -> Set[UnitTypeId]:
-        """ Unittypes of enemies in the Area of ArmyGroup """
+        """ UnitTypes of enemies in the Area of ArmyGroup """
         enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
             .filter(lambda unit: unit.type_id not in WORKER_IDS)
  
@@ -98,10 +100,6 @@ class ArmyGroup:
         """ Center of Army Group """
         if self.units:
             return self.units.center
-
-        # THIS HAS TO BE CHANGED BACK BEFORE DEPLOYING !!!
-
-        #return self.bot.game_info.map_center
         return self.bot.main_base_ramp.top_center
 
     @property
@@ -169,23 +167,20 @@ class ArmyGroup:
         """
         buffer:ProductionBuffer = self.bot.macro.production_buffer
 
-        if DEBUG:
+        if self.bot.debug:
             self.debug_counter += 1
+            needed_units:set = set()
             unit_types:list = self.enemy_unit_types
             for typ in unit_types:
-                counters: Dict[str,UnitTypeId] = COUNTER_DICT.get(typ, None)
-                #logger.info(counters)
+                counters: Dict[str,UnitTypeId] = COUNTER_DICT.get(typ, [])
+                # -> Need to have an empty array as default to avoid none type errors
+                for counter in counters:
+                    needed_units.add(counter)
             if not self.debug_counter%250:
-                logger.info(f"created unit:  ")
-                await self.bot.client.debug_create_unit([[UnitTypeId.STALKER, 1, \
+                if needed_units:
+                    unit:Unit = choice(list(needed_units))
+                    await self.bot.client.debug_create_unit([[unit, 1, \
                         self.position.towards(self.bot.game_info.map_center), 1]])
-                await self.bot.client.debug_create_unit([[UnitTypeId.STALKER, 1, \
-                        self.bot.enemy_start_locations[0].towards(self.bot.game_info.map_center), 2]])
-
-                await self.bot.client.debug_create_unit([[UnitTypeId.ZEALOT, 1, \
-                        self.position.towards(self.bot.game_info.map_center), 1]])
-                await self.bot.client.debug_create_unit([[UnitTypeId.ZEALOT, 1, \
-                        self.bot.enemy_start_locations[0].towards(self.bot.game_info.map_center), 2]])
 
         for struct in buffer.gateways:
             request:ProductionRequest = \

@@ -17,7 +17,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 # pylint: disable=E0402
 from .army_group import ArmyGroup
-from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING, DEBUG,DEBUG_FONT_SIZE
+from .common import ALL_STRUCTURES,INITIAL_TECH,DT_TIMING,DEBUG_FONT_SIZE
 
 class InstructionType(Enum):
     """Enumeration containing InstructionTypes """
@@ -129,9 +129,9 @@ class BuildOrder:
         FOUR_GATE = [
             BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
             BuildInstruction(UnitTypeId.GATEWAY,wall_buildings[0]),
-            BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_0),
+            #BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_0),
             BuildInstruction(UnitTypeId.PYLON,tech_pylon_pos),
-            BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_1),
+            #BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_1),
             BuildInstruction(UnitTypeId.CYBERNETICSCORE,wall_buildings[1]),
             BuildInstruction(UnitTypeId.NEXUS, start_pos),
             BuildInstruction(UnitTypeId.GATEWAY, wall_pylon_pos,5),
@@ -174,7 +174,7 @@ class BuildOrder:
 
     @property
     def opponent_builds_air(self) -> bool:
-        """ Returns True if the opponent is building an Airforce """
+        """ Returns True if the opponent is building an AirForce """
         return False
 
     @opponent_builds_air.setter
@@ -258,8 +258,8 @@ class BuildOrder:
                 if not requested_unit in self.buffer:
                     self.buffer.append(requested_unit)
                     group.requested_units.remove(requested_unit)
-        
-        if DEBUG:
+
+        if self.bot.debug:
             self.bot.client.debug_text_screen(f"{self.next_instruction()} instruction {self.step}", \
                 (0.01, 0.15), color=(255,255,255), size=DEBUG_FONT_SIZE)
             self.bot.client.debug_text_screen(f"next struct in Buffer: {self.get_next_in_buffer()}", \

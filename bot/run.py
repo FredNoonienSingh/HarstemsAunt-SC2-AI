@@ -43,21 +43,21 @@ if __name__ == "__main__":
     else:
         parser.add_argument('-d', '--debug',
                     action='store_true')
-        parser.add_argument('-r', '--realtime',
+        parser.add_argument('-t', '--realtime',
                     action='store_true')
-        parser.add_argument('--race',
+        parser.add_argument('-r','--race',
                             type=str,
                             help="Name of Enemy Race terran, zerg, protoss",
                             default='terran')
-        parser.add_argument('--difficulty',
+        parser.add_argument('-di','--difficulty',
                             type=str,
                             help="strength of the enemy player",
                             default='hard')
-        parser.add_argument('--map',
+        parser.add_argument('-m','--map',
                             type=str,
                             help="Name of the Map",
                             default=None)
-        parser.add_argument('--sc2_version',
+        parser.add_argument('-v','--sc2_version',
                             type=str,
                             help="Version of the sc2 client",
                             default="5.0.10")

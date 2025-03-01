@@ -10,6 +10,7 @@ class Chatter:
         """sends the greeting"""
         await bot.chat_send(bot.greeting)
 
+    # FIXME: This shouldn't set any values therefore it needs to be reworked
     @staticmethod
     async def build_order_comments(bot:BotAI):
         """ Comments on the Build of the Opponent """
@@ -35,3 +36,13 @@ class Chatter:
         await bot.chat_send\
                 (f"GG, you are probably a hackcheating smurf cheat hacker anyway also\
                 {bot.enemy_race} is IMBA")
+
+    @staticmethod
+    async def nuke_message(bot:BotAI) -> None:
+        """ sends comment when nuke is launched """
+        await bot.chat_send("Nukes ?!? -> RUDE !!!")
+
+    @staticmethod
+    async def nydus_message(bot:BotAI) -> None:
+        """ sends comment when nydus is detected """
+        await bot.chat_send("You went into that thing ? DISGUSTING !!!")

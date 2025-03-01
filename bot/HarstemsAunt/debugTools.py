@@ -5,6 +5,7 @@ from math import sin, pi, cos
 
 # pylint: disable=E0401
 from sc2.unit import Unit
+from sc2.data import Race
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3, Pointlike
@@ -115,6 +116,13 @@ class DebugTools:
 
     async def debug_micro(self) -> None:
         """build Stalker/Zealot for both players to debug unit behavior"""
+        units_dict: dict = {
+            Race.Zerg:[UnitTypeId.ROACH, UnitTypeId.RAVAGER],
+            Race.Terran:[UnitTypeId.MARINE, UnitTypeId.MARAUDER],
+            Race.Protoss:[UnitTypeId.ZEALOT, UnitTypeId.STALKER]
+        }
+        units:list = units_dict.get(self.bot.enemy_race)
+
         await self.bot.client.debug_tech_tree()
         #await self.client.debug_show_map()
         await self.bot.client.debug_create_unit(\
@@ -122,16 +130,16 @@ class DebugTools:
         await self.bot.client.debug_create_unit(\
             [[UnitTypeId.ZEALOT, 5, self.bot.start_location, 1]])
         await self.bot.client.debug_create_unit(\
-            [[UnitTypeId.STALKER, 2, self.bot.enemy_start_locations[0], 2]])
+            [[units[1], 2, self.bot.enemy_start_locations[0], 2]])
         await self.bot.client.debug_create_unit(\
-            [[UnitTypeId.ZEALOT, 5, self.bot.enemy_start_locations[0], 2]])
+            [[units[0], 5, self.bot.enemy_start_locations[0], 2]])
 
     def draw_army_group_label(self,iterator:int, group:ArmyGroup) -> None:
         """ draws ArmyGroup onto the screen"""
         self.bot.client.debug_text_screen(f"{group.group_type_id}: {group.attack_target}",\
             (.25+(iterator*0.25), 0.025), color=(255,255,255), size=DEBUG_FONT_SIZE)
         self.bot.client.debug_text_screen(f"Supply:{group.supply}\
-            Enemysupply:{group.enemy_supply_in_proximity}",\
+            Enemy Supply:{group.enemy_supply_in_proximity}",\
             (.25+(iterator*0.27), 0.05), color=(255,255,255), size=DEBUG_FONT_SIZE)
         self.bot.client.debug_text_screen(f"requested:{group.requested_units}",\
             (.25+(iterator*0.27), 0.075), color=(255,255,255), size=DEBUG_FONT_SIZE)

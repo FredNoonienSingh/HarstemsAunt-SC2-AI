@@ -8,7 +8,6 @@ from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
 SECTORS: int = 10
-DEBUG: bool = True
 RUN_BY_SIZE: int = 4    #was suppossed to controll how many units should be in a run-by, could be removed 
 DT_TIMING: float = 480
 DEBUG_FONT_SIZE: int = 7

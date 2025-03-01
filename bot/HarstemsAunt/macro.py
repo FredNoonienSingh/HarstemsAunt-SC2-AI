@@ -14,6 +14,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 # pylint: disable=E0402
 from .utils import Utils
+from .chatter import Chatter
 from .production_buffer import ProductionBuffer
 from .common import GATEWAY_UNITS,ROBO_UNITS,STARGATE_UNITS
 from .build_order import BuildOrder, BuildInstruction, InstructionType
@@ -246,9 +247,9 @@ class Macro:
             case Alert.VespeneExhausted:
                 self.build_order.buffer.append(UnitTypeId.ASSIMILATOR)
             case Alert.NuclearLaunchDetected:
-                await self.bot.chat_send("Nukes ?!? -> RUDE !!!")
+                await Chatter.nuke_message(self)
             case Alert.NydusWormDetected:
-                await self.bot.chat_send("You went into that thing ? DISGUSTING !!!")
+                await Chatter.nydus_message(self)
 
     async def build_supply(self) -> None:
         """Builds supply structures """
@@ -282,7 +283,6 @@ class Macro:
                     self.bot.mined_out_bases.append(townhall)
 
             if not len(self.bot.mined_out_bases) == len(self.bot.temp):
-                #self.base_count += 1
                 self.temp = self.mined_out_bases
 
     def build_probes(self) -> None:
