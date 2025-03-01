@@ -255,4 +255,5 @@ class Utils:
 
     @staticmethod
     def sigmoid(x:float) -> float:
+        """ Just a sigmoid function -> uses np so it works on arrays"""
         return 1/(1+ np.exp(-x))

@@ -18,9 +18,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 # pylint: disable=E0401
 #from Unit_Classes.Archon import Archons
 from Unit_Classes.Zealots import Zealot
+from Unit_Classes.observer import Observer
 from Unit_Classes.Stalkers import Stalkers
 #from Unit_Classes.Immortal import Immortals
-from Unit_Classes.observer import Observer
 #from Unit_Classes.HighTemplar import HighTemplar
 #from Unit_Classes.DarkTemplar import DarkTemplar
 
@@ -49,6 +49,7 @@ class HarstemsAunt(BotAI):
     # Scouting Units
     observer : Observer
 
+    # TODO: This should have less members
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.name = "HarstemsAunt"
@@ -70,7 +71,7 @@ class HarstemsAunt(BotAI):
 
         self.map_sectors:list = []
         self.army_groups:list = []
-        
+
         self.debug_tools = DebugTools(self)
 
     @property
@@ -216,6 +217,7 @@ class HarstemsAunt(BotAI):
         if DEBUG:
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
+            self.debug_tools.debug_build_pos()
 
         threads: list = []
         for i, sector in enumerate(self.map_sectors):

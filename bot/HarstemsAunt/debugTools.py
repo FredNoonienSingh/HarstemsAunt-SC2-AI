@@ -140,3 +140,12 @@ class DebugTools:
         """makes things faster -> just for debugging """
         await self.bot.client.debug_fast_build()  #Buildings take no time
         await self.bot.client.debug_all_resources() #Free minerals and gas
+
+    # TODO: This needs to account for the possibility that the build pos might be a unit 
+    def debug_build_pos(self) -> None:
+        """draws are sphere at the build pos"""
+        pos:Point2 = self.bot.macro.build_order.get_build_pos()
+        z = self.bot.get_terrain_z_height(pos)+1
+        x,y = pos.x, pos.y
+        pos_3d = Point3((x,y,z))
+        self.bot.client.debug_sphere_out(pos_3d ,1, (255,255,0))

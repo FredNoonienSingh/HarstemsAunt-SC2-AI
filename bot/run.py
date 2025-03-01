@@ -14,6 +14,7 @@ from sc2.player import Bot, Computer
 from HarstemsAunt.common import MAP_LIST
 from HarstemsAunt.main import HarstemsAunt
 
+
 bot = Bot(Race.Protoss, HarstemsAunt())
 
 # Start game

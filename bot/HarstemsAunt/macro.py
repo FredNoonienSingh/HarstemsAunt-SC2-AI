@@ -15,7 +15,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 # pylint: disable=E0402
 from .utils import Utils
 from .production_buffer import ProductionBuffer
-from .common import GATEWAY_UNITS,ROBO_UNITS,STARGATE_UNITS,DEBUG,logger
+from .common import GATEWAY_UNITS,ROBO_UNITS,STARGATE_UNITS
 from .build_order import BuildOrder, BuildInstruction, InstructionType
 
 class Macro:

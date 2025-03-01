@@ -92,9 +92,7 @@ class BuildInstruction:
             return f"train {self.type_id}"
 
 class BuildOrder:
-    """ Class containing the build order and methods connected with it
-    """
-
+    """ Class containing the build order and methods connected with it"""
     def __init__(self, bot:BotAI, build:Build=Build.FOUR_GATE):
         self.bot = bot
         self.build = build
@@ -266,13 +264,6 @@ class BuildOrder:
                 (0.01, 0.15), color=(255,255,255), size=DEBUG_FONT_SIZE)
             self.bot.client.debug_text_screen(f"next struct in Buffer: {self.get_next_in_buffer()}", \
                 (0.01, 0.20), color=(255,255,255), size=DEBUG_FONT_SIZE)
-
-    def debug_build_pos(self, pos:Union[Point2, Point3]):
-        """debug method to show the current build pos """
-        z = self.bot.get_terrain_z_height(pos)+1
-        x,y = pos.x, pos.y
-        pos_3d = Point3((x,y,z))
-        self.bot.client.debug_sphere_out(pos_3d ,1, (255,255,0))
 
     #TODO: rework so into separate unit and structure buffers
     def get_next_in_buffer(self) -> UnitTypeId:
