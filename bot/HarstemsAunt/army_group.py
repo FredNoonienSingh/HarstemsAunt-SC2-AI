@@ -10,8 +10,8 @@ from random import choice # Just for debugging
 from .utils import Utils
 from .pathing import Pathing
 from .targeting import TargetAllocator
-from .common import WORKER_IDS,COUNTER_DICT,logger
 from .production_buffer import ProductionBuffer,ProductionRequest
+from .common import WORKER_IDS,COUNTER_DICT, ATTACK_TARGET_IGNORE
 
 # pylint: disable=C0411
 from sc2.unit import Unit
@@ -43,6 +43,7 @@ class ArmyGroup:
         self.bot:BotAI = bot
         self.name = name
         self.id = army_group_id
+        self.needed_units:set = set()
         self.requested_units:list = []
         self.unit_list:list = unit_list
         self.units_in_transit:list = units_in_transit
@@ -169,16 +170,20 @@ class ArmyGroup:
 
         if self.bot.debug:
             self.debug_counter += 1
-            needed_units:set = set()
-            unit_types:list = self.enemy_unit_types
+            
+            # This should also take the unit markers in the area, 
+            # so that the need units can be cleared and refilled once per frame
+            unit_types:list = [x for x in self.enemy_unit_types if x not in ATTACK_TARGET_IGNORE]
+            # Filtering the types down so that no specific counters for ignored units are created
             for typ in unit_types:
                 counters: Dict[str,UnitTypeId] = COUNTER_DICT.get(typ, [])
                 # -> Need to have an empty array as default to avoid none type errors
                 for counter in counters:
-                    needed_units.add(counter)
+                    #if Utils.can_build_unit(self.bot, counter):
+                    self.needed_units.add(counter)
             if not self.debug_counter%250:
-                if needed_units:
-                    unit:Unit = choice(list(needed_units))
+                if self.needed_units:
+                    unit:Unit = choice(list(self.needed_units))
                     await self.bot.client.debug_create_unit([[unit, 1, \
                         self.position.towards(self.bot.game_info.map_center), 1]])
 
@@ -250,14 +255,11 @@ class ArmyGroup:
 
     def move(self,target_pos:Union[Point2, Point3, Unit]) -> None:
         """ Moves Army towards position
-
         Args:
             target_pos (Union[Point2, Point3, Unit]): _description_
         """
         for unit in self.units:
-
             # This could be handled more efficient if i could overwrite the Unit move command
-
             grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
                 else self.pathing.ground_grid
             unit.move(
@@ -315,9 +317,7 @@ class ArmyGroup:
         """ Method controlling the Behavior of the Group,\
             shall be called every tick in main.py 
         """
-        
         self.target_allocator(self.units, self.attack_target)
-        
         if not self.requested_units:
             await self.request_units()
         #last_status: GroupStatus = self.status
@@ -333,8 +333,7 @@ class ArmyGroup:
             if Utils.in_proximity_to_point(unit, self.position, 2):
                 self.units_in_transit.remove(unit.tag)
                 self.unit_list.append(unit.tag)
-                await self.bot.chat_send(f"Army Group: {self.name} \
-                    got reinforced by {unit.type_id}")
+                #await self.bot.chat_send(f"Army Group: {self.name} got reinforced by {unit.type_id}")
 
         # CHECK DEFEND POSITION
         for townhall in self.bot.townhalls:
@@ -350,9 +349,8 @@ class ArmyGroup:
         # TODO add check if enemy_supply in Target_area > self.supply
         # CHECK RETREAT CONDITIONS
         shield_condition = self.average_shield_percentage < .45
-        # Thi will be replaced by a check how many enemie units can attack 
+        # Thi will be replaced by a check how many enemy units can attack
         supply_condition = self.supply <= self.enemy_supply_in_proximity + 3
-        #enemies_in_range:Units = self.bot.enemy_units.filter(lambda unit:expression expression)
 
         if Utils.and_or(shield_condition, supply_condition) \
             or len(self.units) < len(self.units_in_transit):
@@ -363,4 +361,3 @@ class ArmyGroup:
         #self.regroup()
         await self.attack(target)
         self.status = GroupStatus.ATTACKING
-

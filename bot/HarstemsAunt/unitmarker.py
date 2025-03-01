@@ -5,8 +5,6 @@ from sc2.unit import Unit
 from sc2.position import Point2
 from sc2.ids.unit_typeid import UnitTypeId
 
-from .common import logger
-
 class UnitMarker:
     """
     A marker shall be created whenever a enemy Unit leaves the vision of the
@@ -23,7 +21,7 @@ class UnitMarker:
                 created_at_iteration: int,
                 ):
         # A bit shit to implement it like this but thats the fastest will fix it later
-        self.unit:Unit = unit
+        #self.unit:Unit = unit -> i think this is not needed
         self.unit_typeid :UnitTypeId = unit.type_id
         self.position: Point2 = unit.position
         self.unit_tag: int = unit.tag
@@ -50,6 +48,7 @@ class UnitMarker:
         """
         pass
 
+    # This could probably be removed
     def age_in_frames(self, iteration:int) -> int:
         """ Returns the Age of the marker in Frames """
         return iteration - self.created_at
@@ -69,4 +68,3 @@ class StructureMarker:
         self.position:Point2 = structure.position
         self.health: float = structure.health_percentage
         self.created_at: int = created_at_iteration
-

@@ -257,3 +257,10 @@ class Utils:
     def sigmoid(x:float) -> float:
         """ Just a sigmoid function -> uses np so it works on arrays"""
         return 1/(1+ np.exp(-x))
+
+    @staticmethod
+    def create_3D_point(bot:BotAI, point:Point2) -> Point3:
+        """creates Point3 from Point2"""
+        z = bot.get_terrain_z_height(point)+1
+        x,y = point.x, point.y
+        return Point3((x,y,z))

@@ -11,6 +11,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3, Pointlike
 
 # pylint: disable=E0402
+from .utils import Utils
 from .unitmarker import UnitMarker
 from .army_group import ArmyGroup
 from .common import DEBUG_FONT_SIZE
@@ -23,13 +24,10 @@ class DebugTools:
 
     def debug_pos(self, pos:Union[Point2, Point3, Pointlike]):
         """ Draws sphere a given position
-
         Args:
             pos (Union[Point2, Point3, Pointlike]): position that will be shown
         """
-        z = self.bot.get_terrain_z_height(pos)+1
-        x,y = pos.x, pos.y
-        pos_3d = Point3((x,y,z))
+        pos_3d = Utils.create_3D_point(pos)
         self.bot.client.debug_sphere_out(pos_3d ,.2, (255,255,0))
 
     def draw_gameinfo(self):
@@ -37,10 +35,10 @@ class DebugTools:
         text:str = ""
         supply:int = self.bot.supply_army
         enemy_supply:int=self.bot.enemy_supply
-        text = text +(f"supply: {supply}\nenemy_supply: {enemy_supply}\n")
+        text:str = text +(f"supply: {supply}\nenemy_supply: {enemy_supply}\n")
         minerals:int= self.bot.minerals
         gas:int = self.bot.vespene
-        text = text +(f"\nIncome: {minerals, gas}\n")
+        text:str = text +(f"\nIncome: {minerals, gas}\n")
         self.bot.client.debug_text_screen(str(text), (0,.125), color=None, size=14)
 
     def unit_label(self, unit:Unit):
@@ -63,6 +61,7 @@ class DebugTools:
         if unit.can_attack_air:
             self.bot.client.debug_sphere_out(unit,unit.air_range,(255,0,25))
 
+    # This is very old -> i think it is copied over from Lore
     def render_unit_vision(self, unit:Unit):
         """ draws units vision, draws a raycasting approach that is no longer in use
 
@@ -149,14 +148,11 @@ class DebugTools:
         await self.bot.client.debug_fast_build()  #Buildings take no time
         await self.bot.client.debug_all_resources() #Free minerals and gas
 
-    # TODO: This needs to account for the possibility that the build pos might be a unit
     def debug_build_pos(self) -> None:
         """draws are sphere at the build pos"""
-        pos:Point2 = self.bot.macro.build_order.get_build_pos()
-        z = self.bot.get_terrain_z_height(pos)+1
+        pos:Union[Point2, Unit] = self.bot.macro.build_order.get_build_pos()
         if isinstance(pos, Unit):
             self.bot.client.debug_sphere_out(pos ,1, (255,255,0))
             return
-        x,y = pos.x, pos.y
-        pos_3d = Point3((x,y,z))
-        self.bot.client.debug_sphere_out(pos_3d ,1, (255,255,0))
+        pos_3D = Utils.create_3D_point(self.bot,pos)
+        self.bot.client.debug_sphere_out(pos_3D ,1, (255,255,0))

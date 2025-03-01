@@ -129,7 +129,7 @@ class BuildOrder:
         FOUR_GATE = [
             BuildInstruction(UnitTypeId.PYLON,wall_pylon_pos),
             BuildInstruction(UnitTypeId.GATEWAY,wall_buildings[0]),
-            #BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_0),
+            BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_0),
             BuildInstruction(UnitTypeId.PYLON,tech_pylon_pos),
             #BuildInstruction(UnitTypeId.ASSIMILATOR,vespene_position_1),
             BuildInstruction(UnitTypeId.CYBERNETICSCORE,wall_buildings[1]),

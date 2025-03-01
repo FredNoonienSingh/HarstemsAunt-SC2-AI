@@ -41,10 +41,10 @@ class BaseClassGround:
 
         for unit in units:
             enemies = self.bot.enemy_units.\
-                filter(lambda enemy: enemy.distance_to(unit) > unit.range+12)
-            
+                filter(lambda enemy: enemy.distance_to(unit) > unit.ground_range+12)
             workers = self.bot.enemy_units.\
-                    filter(lambda enemy: enemy.type_id in WORKER_IDS and enemy.distance_to(unit) > unit.range+12)
+                    filter(lambda enemy: enemy.type_id in WORKER_IDS\
+                        and enemy.distance_to(unit) > unit.ground_range+12)
 
             if enemies:
                 attack_pos = self.pick_enemy_target(enemies, unit)

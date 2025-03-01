@@ -17,7 +17,7 @@ from HarstemsAunt.common import (ALL_STRUCTURES, ATTACK_TARGET_IGNORE,
 class Stalkers(BaseClassGround):
     """ Extension of BaseClassGround """
 
-    async def handle_attackers(self, units: Units, attack_target: Point2) -> None:
+    async def handle_attackers_debug(self, units: Units, attack_target: Point2) -> None:
         """ handles attackers 
 
         Args:
