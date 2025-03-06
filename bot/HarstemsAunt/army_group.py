@@ -2,9 +2,9 @@
 from __future__ import annotations
 from enum import Enum
 from typing import Union, Set, Dict
-import numpy as np
-
 from random import choice # Just for debugging
+
+import numpy as np
 
 # pylint: disable=E0402
 from .utils import Utils
@@ -71,7 +71,7 @@ class ArmyGroup:
         """Enemy Supply in the Area"""
         enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
             .filter(lambda unit: unit.type_id not in WORKER_IDS)
-        enemy_marker = [marker.unit for marker in self.bot.unitmarkers \
+        enemy_marker = [marker for marker in self.bot.unitmarkers \
                 if marker.position.distance_to(self.position)<25]
         if Utils.and_or(enemy_marker, enemy_units):
             return sum([self.bot.calculate_supply_cost(unit.type_id) for unit in list(enemy_units)+enemy_marker])

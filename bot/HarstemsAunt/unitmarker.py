@@ -21,8 +21,15 @@ class UnitMarker:
                 created_at_iteration: int,
                 ):
         # A bit shit to implement it like this but thats the fastest will fix it later
-        #self.unit:Unit = unit -> i think this is not needed
-        self.unit_typeid :UnitTypeId = unit.type_id
+        #self.unit:Unit = unit # -> i think this is not needed -> i was wrong, dont remove it again 
+        self.type_id :UnitTypeId = unit.type_id
+        self.can_attack_ground:bool = unit.can_attack_ground
+        self.can_attack_air:bool = unit.can_attack_air
+        self.ground_dps:float = unit.ground_dps
+        self.ground_range:float = unit.ground_range
+        self.air_dps:float = unit.air_dps
+        self.air_range:float = unit.air_range
+        self.is_detector:bool = unit.is_detector
         self.position: Point2 = unit.position
         self.unit_tag: int = unit.tag
         self.health: float = unit.health_percentage
@@ -38,7 +45,7 @@ class UnitMarker:
         return (255,255,0)
 
     def __repr__(self) -> str:
-        return f"marker for {self.unit_typeid} at position {self.position}"
+        return f"marker for {self.type_id} at position {self.position}"
 
     def __call__(self) -> None:
         """

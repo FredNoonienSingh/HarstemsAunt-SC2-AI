@@ -156,3 +156,16 @@ class DebugTools:
             return
         pos_3D = Utils.create_3D_point(self.bot,pos)
         self.bot.client.debug_sphere_out(pos_3D ,1, (255,255,0))
+
+    def debug_unit_direction(self, unit:Unit) -> None:
+        """Renders a debug sphere and a line to the Point where the 
+            unit is facing
+        """
+        distance: float = 2
+        direction: float = unit.facing
+        x,y = unit.position
+        q_x = x + distance*cos(direction)
+        q_y = y + distance*sin(direction)
+        pos_3D = Utils.create_3D_point(self.bot,Point2((q_x,q_y)))
+        self.bot.client.debug_sphere_out(pos_3D ,.25, (255,155,155))
+        self.bot.client.debug_line_out(unit.position3d, pos_3D, (255,155,155))

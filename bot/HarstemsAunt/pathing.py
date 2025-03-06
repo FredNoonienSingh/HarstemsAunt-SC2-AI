@@ -10,9 +10,11 @@ from scipy import spatial
 
 import matplotlib.pyplot as plt
 
+# pylint: disable=E0401
+# pylint: disable=E0402
 from map_analyzer import MapData
 from .unitmarker import UnitMarker
-from .common import ALL_STRUCTURES, INFLUENCE_COSTS,RANGE_BUFFER, logger
+from .common import ALL_STRUCTURES, INFLUENCE_COSTS,RANGE_BUFFER
 
 
 class Pathing:
@@ -58,7 +60,7 @@ class Pathing:
                 self._add_unit_influence(unit)
 
         for marker in self.bot.unitmarkers:
-            self._add_unit_influence(marker.unit) 
+            self._add_unit_influence(marker) 
                     
         # self.add_positional_costs()
         
@@ -152,8 +154,8 @@ class Pathing:
         elif enemy.can_attack_air and not enemy.can_attack_ground:
             (self.air_grid) = self._add_cost_to_multiple_grids(
                 enemy.position,
-                enemy.ground_dps,
-                enemy.ground_range + RANGE_BUFFER,
+                enemy.air_dps,
+                enemy.air_range + RANGE_BUFFER,
                 [self.air_grid]
             )
 

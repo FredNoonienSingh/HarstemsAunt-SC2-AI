@@ -218,6 +218,8 @@ class HarstemsAunt(BotAI):
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
             self.debug_tools.debug_build_pos()
+            for unit in self.units:
+                self.debug_tools.debug_unit_direction(unit)
 
         threads: list = []
         for i, sector in enumerate(self.map_sectors):
