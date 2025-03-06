@@ -1,7 +1,7 @@
 """Module containing a Debug Class"""
 # pylint: disable=C0103
 from typing import Union
-from math import sin, pi, cos
+from math import sin, pi, cos, atan2
 
 # pylint: disable=E0401
 from sc2.unit import Unit
@@ -47,7 +47,8 @@ class DebugTools:
         Args:
             unit (Unit): Unit which will be labeled
         """
-        text:str=f"Type: {unit.type_id}\nHealth: {unit.health}\nOrders: {unit.orders} \nPos {unit.position3d}"
+        text:str=f"Type: {unit.type_id}\nHealth: \
+            {unit.health}\nOrders: {unit.orders} \nPos {unit.position3d}"
         self.bot.client.debug_text_world(text,unit,color=(255,90,0),size=12)
 
     def unit_range(self, unit:Unit):
@@ -145,7 +146,7 @@ class DebugTools:
 
     async def speed_things_up(self) -> None:
         """makes things faster -> just for debugging """
-        await self.bot.client.debug_fast_build()  #Buildings take no time
+        await self.bot.client.debug_fast_build() #Buildings take no time
         await self.bot.client.debug_all_resources() #Free minerals and gas
 
     def debug_build_pos(self) -> None:
@@ -167,5 +168,34 @@ class DebugTools:
         q_x = x + distance*cos(direction)
         q_y = y + distance*sin(direction)
         pos_3D = Utils.create_3D_point(self.bot,Point2((q_x,q_y)))
-        self.bot.client.debug_sphere_out(pos_3D ,.25, (255,155,155))
-        self.bot.client.debug_line_out(unit.position3d, pos_3D, (255,155,155))
+        self.bot.client.debug_sphere_out(pos_3D ,.25, (0,255,0))
+        self.bot.client.debug_line_out(unit.position3d, pos_3D, (0,255,0))
+
+    def debug_angle_to_target(self, unit:Unit) -> None:
+        """ Renders the a debug sphere and a line pointing to
+            the closest enemy unit 
+
+        Args:
+            unit (Unit): unit to render angle
+        """
+        distance:float = 2
+        Px,Py = unit.position
+
+        if self.bot.enemy_units:
+            closest_enemy:Unit = self.bot.enemy_units.closest_to(unit)
+            Qx,Qy = closest_enemy.position
+        else:
+            Qx,Qy = self.bot.enemy_start_locations[0]
+
+        delta_x:float = Px-Qx
+        delta_y:float = Py-Qy
+        theta:float = atan2(delta_x, delta_y)
+
+        if theta < 0:
+            theta += 2 * pi
+
+        TargetX = Px + distance*cos(theta)
+        TargetY = Py + distance*sin(theta)
+        pos_3D = Utils.create_3D_point(self.bot,Point2((TargetX,TargetY)))
+        self.bot.client.debug_sphere_out(pos_3D ,.25, (0,0,255))
+        self.bot.client.debug_line_out(unit.position3d, pos_3D, (0,0,255))

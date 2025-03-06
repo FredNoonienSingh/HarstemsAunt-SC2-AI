@@ -65,7 +65,7 @@ class HarstemsAunt(BotAI):
         self.expand_locs:list = []
         self.researched:list = []
 
-        self.seen_enemies:set = []
+        self.seen_enemies:set = set() # this is typed as set but implemented as a list -> should be fixed
         self.enemies_lt_list: list = []
         self.unitmarkers: List[UnitMarker] = []
         self.enemy_supply:int = 0
@@ -168,7 +168,8 @@ class HarstemsAunt(BotAI):
 
         def build_sectors() -> None:
             """ Builds Map Sector """
-            top_right = Point2((self.game_info.playable_area.right, self.game_info.playable_area.top))
+            top_right = Point2((self.game_info.playable_area.right,\
+                self.game_info.playable_area.top))
             bottom_right = Point2((self.game_info.playable_area.right, 0))
             top_left = Point2((0, self.game_info.playable_area.top))
 
@@ -176,8 +177,10 @@ class HarstemsAunt(BotAI):
             sector_width:int = abs(top_right.x - top_left.x)//SECTORS
             for x in range(SECTORS):
                 for y in range(SECTORS):
-                    upper_left: Point2 = Point2((0+(sector_width*x), 0+bottom_right.y+(sector_width*(y))))
-                    lower_right: Point2 = Point2((0+(sector_width*(x+1)),0+bottom_right.y+(sector_width*(y+1))))
+                    upper_left: Point2 = Point2((0+(sector_width*x), \
+                        0+bottom_right.y+(sector_width*(y))))
+                    lower_right: Point2 = Point2((0+(sector_width*(x+1)),\
+                        0+bottom_right.y+(sector_width*(y+1))))
                     sector: MapSector = MapSector(self, upper_left, lower_right)
                     self.map_sectors.append(sector)
         build_sectors()
@@ -208,7 +211,6 @@ class HarstemsAunt(BotAI):
 
     async def on_step(self, iteration:int):
         """ Coroutine running every game tick
-
         Args:
             iteration (_type_): current tick
         """
@@ -220,6 +222,7 @@ class HarstemsAunt(BotAI):
             self.debug_tools.debug_build_pos()
             for unit in self.units:
                 self.debug_tools.debug_unit_direction(unit)
+                self.debug_tools.debug_angle_to_target(unit)
 
         threads: list = []
         for i, sector in enumerate(self.map_sectors):
@@ -261,7 +264,6 @@ class HarstemsAunt(BotAI):
 
     async def on_building_construction_started(self,unit:Unit) -> None:
         """ Coroutine called when the construction of a building starts 
-
         Args:
             unit (Unit): completed Structure
         """
@@ -290,7 +292,7 @@ class HarstemsAunt(BotAI):
             unit (Unit): Unit
         """
         if not unit in self.seen_enemies and unit.type_id not in WORKER_IDS:
-            self.seen_enemies.append(unit)
+            self.seen_enemies.add(unit)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
         marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit.tag]
         for m in marker:
@@ -314,7 +316,6 @@ class HarstemsAunt(BotAI):
     async def on_unit_created(self, unit:Unit) -> None:
         """ Coroutine that gets called when Unit is created
             - adds created Units to the ArmyGroup
-
         Args:
             unit (Unit): Unit that gets created 
         """
@@ -330,7 +331,6 @@ class HarstemsAunt(BotAI):
     async def on_unit_type_changed(self, unit:Unit, previous_type:UnitTypeId) -> None:
         """ Coroutine that gets called when a unit changes type:
             useful for warprism and Archon
-
         Args:
             unit (Unit): _description_
             previous_type (UnitTypeId): _description_
@@ -340,7 +340,6 @@ class HarstemsAunt(BotAI):
 
     async def on_unit_took_damage(self, unit:Unit, amount_damage_taken:float) -> None:
         """ Coroutine that gets called when unit takes damage
-
         Args:
             unit (Unit): Unit that took damage 
             amount_damage_taken (float): amount of damage taken
@@ -351,9 +350,7 @@ class HarstemsAunt(BotAI):
     async def on_unit_destroyed(self, unit_tag: int) -> None:
         """ Coroutine called when unit gets destroyed
             !!! IMPORTANT DOES NOT CONTAIN THE UNIT -> JUST THE TAG !!!
-
             adjusts enemy supply 
-            
         Args:
             unit_tag (int): tag of destroyed unit
         """
@@ -371,7 +368,6 @@ class HarstemsAunt(BotAI):
 
     async def on_upgrade_complete(self, upgrade:UpgradeId):
         """ Coroutine gets called on when upgrade is complete 
-
         Args:
             upgrade (UpgradeId): _description_
         """
@@ -381,9 +377,7 @@ class HarstemsAunt(BotAI):
 
     async def on_end(self,game_result:Result):
         """ Coroutine gets called on game end
-
             writes data to csv, before closing the connection
-            
         Args:
             game_result (Result): Result of the game
         """
