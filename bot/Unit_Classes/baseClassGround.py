@@ -10,7 +10,7 @@ from sc2.position import Point2
 
 # pylint: disable=E0401
 from HarstemsAunt.pathing import Pathing
-from HarstemsAunt.common import ATTACK_TARGET_IGNORE,PRIO_ATTACK_TARGET, WORKER_IDS
+from HarstemsAunt.common import ATTACK_TARGET_IGNORE,PRIO_ATTACK_TARGET,WORKER_IDS
 
 class BaseClassGround:
     """ Baseclass for ground units"""

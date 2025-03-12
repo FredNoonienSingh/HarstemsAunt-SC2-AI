@@ -8,14 +8,17 @@ from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
 
 SECTORS: int = 10
-RUN_BY_SIZE: int = 4    #was suppossed to controll how many units should be in a run-by, could be removed 
+# was suppossed to control how many units should be in a run-by, could be removed
+RUN_BY_SIZE: int = 4
 DT_TIMING: float = 480
 DEBUG_FONT_SIZE: int = 7
 MIN_SHIELD_AMOUNT: float = 0.5
 SPEEDMINING_DISTANCE: float = 1.8
-RANGE_BUFFER: float = 2.5 
+RANGE_BUFFER: float = 2.5
 
-# This is not used anymore - remove when it is clear that the performance improved without ir 
+PROXIMITY:float = 15.0
+
+# This is not used anymore - remove when it is clear that the performance improved without ir
 MAX_MARKER_LIFE: int = 600
 
 UNIT_COMPOSITION: Dict = {
@@ -214,46 +217,46 @@ ALL_STRUCTURES: Set[UnitTypeId] = {
 COUNTER_DICT: Dict[UnitTypeId, List] = {
     # Zerg Units
     UnitTypeId.ZERGLING: [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.SENTRY, UnitTypeId.ARCHON],
-    UnitTypeId.HYDRALISK:[UnitTypeId.STALKER, UnitTypeId.ARCHON, UnitTypeId.IMMORTAL],
-    UnitTypeId.MUTALISK:[UnitTypeId.PHOENIX, UnitTypeId.ARCHON, UnitTypeId.CARRIER],
+    UnitTypeId.HYDRALISK: [UnitTypeId.STALKER, UnitTypeId.ARCHON, UnitTypeId.IMMORTAL],
+    UnitTypeId.MUTALISK: [UnitTypeId.PHOENIX, UnitTypeId.ARCHON, UnitTypeId.CARRIER],
     UnitTypeId.BANELING: [UnitTypeId.STALKER, UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS],
     UnitTypeId.ROACH: [UnitTypeId.ZEALOT, UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS],
-    UnitTypeId.ULTRALISK:[UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.TEMPEST],
+    UnitTypeId.ULTRALISK: [UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.TEMPEST],
     UnitTypeId.INFESTOR: [UnitTypeId.STALKER, UnitTypeId.HIGHTEMPLAR, UnitTypeId.DISRUPTOR],
     UnitTypeId.LURKER: [UnitTypeId.OBSERVER, UnitTypeId.STALKER, UnitTypeId.DISRUPTOR],
-    UnitTypeId.BROODLORD:[UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
-    UnitTypeId.CORRUPTOR:[UnitTypeId.PHOENIX, UnitTypeId.STALKER, UnitTypeId.CARRIER],
-    UnitTypeId.QUEEN:[UnitTypeId.ZEALOT, UnitTypeId.STALKER],
+    UnitTypeId.BROODLORD: [UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.CORRUPTOR: [UnitTypeId.PHOENIX, UnitTypeId.STALKER, UnitTypeId.CARRIER],
+    UnitTypeId.QUEEN: [UnitTypeId.ZEALOT, UnitTypeId.STALKER],
     UnitTypeId.OVERLORD: [UnitTypeId.PHOENIX, UnitTypeId.STALKER],
     # Terran Units
     UnitTypeId.MARINE: [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.ARCHON],
-    UnitTypeId.MARAUDER:[UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.ARCHON],
+    UnitTypeId.MARAUDER: [UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.ARCHON],
     UnitTypeId.REAPER: [UnitTypeId.STALKER, UnitTypeId.PHOENIX],
-    UnitTypeId.GHOST:[UnitTypeId.STALKER, UnitTypeId.HIGHTEMPLAR, UnitTypeId.DISRUPTOR],
-    UnitTypeId.SIEGETANK:[UnitTypeId.STALKER, UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST],
+    UnitTypeId.GHOST: [UnitTypeId.STALKER, UnitTypeId.HIGHTEMPLAR, UnitTypeId.DISRUPTOR],
+    UnitTypeId.SIEGETANK: [UnitTypeId.STALKER, UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST],
     UnitTypeId.HELLION: [UnitTypeId.STALKER],
-    UnitTypeId.THOR:[UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.THOR: [UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
     UnitTypeId.VIKING: [UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
-    UnitTypeId.BATTLECRUISER:[UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.BATTLECRUISER: [UnitTypeId.VOIDRAY, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
     UnitTypeId.RAVEN: [UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
     UnitTypeId.BANSHEE: [UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
-    UnitTypeId.LIBERATOR:[UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
-    UnitTypeId.WIDOWMINE:[UnitTypeId.OBSERVER, UnitTypeId.STALKER, UnitTypeId.DISRUPTOR],
+    UnitTypeId.LIBERATOR: [UnitTypeId.STALKER, UnitTypeId.PHOENIX, UnitTypeId.ARCHON],
+    UnitTypeId.WIDOWMINE: [UnitTypeId.OBSERVER, UnitTypeId.STALKER, UnitTypeId.DISRUPTOR],
     # Protoss Units
     UnitTypeId.ZEALOT: [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.SENTRY, UnitTypeId.IMMORTAL],
-    UnitTypeId.STALKER:[UnitTypeId.STALKER, UnitTypeId.ARCHON, UnitTypeId.DISRUPTOR, UnitTypeId.IMMORTAL],
+    UnitTypeId.STALKER: [UnitTypeId.STALKER, UnitTypeId.ARCHON, UnitTypeId.DISRUPTOR, UnitTypeId.IMMORTAL],
     UnitTypeId.SENTRY: [UnitTypeId.SENTRY, UnitTypeId.STALKER, UnitTypeId.HIGHTEMPLAR],
     UnitTypeId.HIGHTEMPLAR: [UnitTypeId.HIGHTEMPLAR, UnitTypeId.ARCHON, UnitTypeId.STALKER],
     UnitTypeId.DARKTEMPLAR: [UnitTypeId.DARKTEMPLAR, UnitTypeId.STALKER, UnitTypeId.ARCHON],
     UnitTypeId.ARCHON: [UnitTypeId.ARCHON, UnitTypeId.TEMPEST, UnitTypeId.CARRIER, UnitTypeId.IMMORTAL],
-    UnitTypeId.IMMORTAL:[UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.ARCHON],
-    UnitTypeId.COLOSSUS:[UnitTypeId.COLOSSUS, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
-    UnitTypeId.VOIDRAY: [UnitTypeId.VOIDRAY, UnitTypeId.PHOENIX, UnitTypeId.CARRIER], 
-    UnitTypeId.CARRIER:[UnitTypeId.CARRIER, UnitTypeId.TEMPEST, UnitTypeId.VOIDRAY],
+    UnitTypeId.IMMORTAL: [UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS, UnitTypeId.ARCHON],
+    UnitTypeId.COLOSSUS: [UnitTypeId.COLOSSUS, UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
+    UnitTypeId.VOIDRAY: [UnitTypeId.VOIDRAY, UnitTypeId.PHOENIX, UnitTypeId.CARRIER],
+    UnitTypeId.CARRIER: [UnitTypeId.CARRIER, UnitTypeId.TEMPEST, UnitTypeId.VOIDRAY],
     UnitTypeId.PHOENIX: [UnitTypeId.PHOENIX, UnitTypeId.STALKER, UnitTypeId.ARCHON],
     UnitTypeId.TEMPEST: [UnitTypeId.TEMPEST, UnitTypeId.CARRIER],
     UnitTypeId.DISRUPTOR: [UnitTypeId.DISRUPTOR, UnitTypeId.STALKER, UnitTypeId.ARCHON],
-    UnitTypeId.MOTHERSHIP:[UnitTypeId.MOTHERSHIP, UnitTypeId.CARRIER, UnitTypeId.TEMPEST], 
+    UnitTypeId.MOTHERSHIP: [UnitTypeId.MOTHERSHIP, UnitTypeId.CARRIER, UnitTypeId.TEMPEST],
 }
 
 INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {

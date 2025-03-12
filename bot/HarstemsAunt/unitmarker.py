@@ -25,6 +25,7 @@ class UnitMarker:
         self.type_id :UnitTypeId = unit.type_id
         self.can_attack_ground:bool = unit.can_attack_ground
         self.can_attack_air:bool = unit.can_attack_air
+        self.can_attack_both:bool = unit.can_attack_both
         self.ground_dps:float = unit.ground_dps
         self.ground_range:float = unit.ground_range
         self.air_dps:float = unit.air_dps

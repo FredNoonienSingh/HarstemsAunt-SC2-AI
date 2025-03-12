@@ -12,9 +12,11 @@ from sc2.position import Point2, Point3, Pointlike
 
 # pylint: disable=E0402
 from .utils import Utils
-from .unitmarker import UnitMarker
 from .army_group import ArmyGroup
-from .common import DEBUG_FONT_SIZE
+from .unitmarker import UnitMarker
+from .common import DEBUG_FONT_SIZE,logger
+from .combat_unit import CombatUnit, FightStatus
+
 
 class DebugTools:
     """ Collection of debug tools  """
@@ -117,22 +119,22 @@ class DebugTools:
     async def debug_micro(self) -> None:
         """build Stalker/Zealot for both players to debug unit behavior"""
         units_dict: dict = {
-            Race.Zerg:[UnitTypeId.ROACH, UnitTypeId.RAVAGER],
-            Race.Terran:[UnitTypeId.MARINE, UnitTypeId.MARAUDER],
-            Race.Protoss:[UnitTypeId.ZEALOT, UnitTypeId.STALKER]
+            Race.Zerg:[UnitTypeId.MUTALISK, UnitTypeId.CORRUPTOR],
+            Race.Terran:[UnitTypeId.VIKING, UnitTypeId.LIBERATOR],
+            Race.Protoss:[UnitTypeId.PHOENIX, UnitTypeId.VOIDRAY]
         }
         units:list = units_dict.get(self.bot.enemy_race)
 
         await self.bot.client.debug_tech_tree()
         #await self.client.debug_show_map()
         await self.bot.client.debug_create_unit(\
-            [[UnitTypeId.STALKER, 2, self.bot.start_location, 1]])
+            [[UnitTypeId.PHOENIX, 6, self.bot.start_location, 1]])
         await self.bot.client.debug_create_unit(\
-            [[UnitTypeId.ZEALOT, 5, self.bot.start_location, 1]])
-        await self.bot.client.debug_create_unit(\
-            [[units[1], 2, self.bot.enemy_start_locations[0], 2]])
+            [[UnitTypeId.VOIDRAY, 2, self.bot.start_location, 1]])
         await self.bot.client.debug_create_unit(\
             [[units[0], 5, self.bot.enemy_start_locations[0], 2]])
+        await self.bot.client.debug_create_unit(\
+            [[units[1], 2, self.bot.enemy_start_locations[0], 2]])
 
     def draw_army_group_label(self,iterator:int, group:ArmyGroup) -> None:
         """ draws ArmyGroup onto the screen"""
@@ -148,6 +150,22 @@ class DebugTools:
         """makes things faster -> just for debugging """
         await self.bot.client.debug_fast_build() #Buildings take no time
         await self.bot.client.debug_all_resources() #Free minerals and gas
+
+    def debug_targeting(self,unit:Unit, target:Union[Unit, Point2]) -> None:
+        """ Draws a line to the current Target of the given Unit
+            and a sphere at the target
+        Args:
+            unit (Unit): _description_
+            target (Union[Unit, Point2]): _description_
+        """
+        logger.info(f"target:{target}")
+        unit_position:Point3 = unit.position3d
+        if isinstance(target, Point2):
+            target = Utils.create_3D_point(self.bot,target)
+        if isinstance(target, Unit):
+            target = target.position3d
+        self.bot.client.debug_line_out(unit_position, target, (0,0,255))
+        self.bot.client.debug_sphere_out(target,.75, (0,0,255))
 
     def debug_build_pos(self) -> None:
         """draws are sphere at the build pos"""
@@ -199,3 +217,14 @@ class DebugTools:
         pos_3D = Utils.create_3D_point(self.bot,Point2((TargetX,TargetY)))
         self.bot.client.debug_sphere_out(pos_3D ,.25, (0,0,255))
         self.bot.client.debug_line_out(unit.position3d, pos_3D, (0,0,255))
+
+    def debug_fighting_status(self, combat_unit:CombatUnit) -> None:
+        """ Draws a green Sphere around the Unit if the Unit is attacking, 
+            and a red one when it wants to retreat
+
+        Args:
+            combat_unit (_type_): _description_
+        """
+
+        color:tuple = (0,0,255) if combat_unit.fight_status == FightStatus.RETREATING else (0,255,0)
+        self.bot.client.debug_sphere_out(combat_unit.position3d,.75, color)

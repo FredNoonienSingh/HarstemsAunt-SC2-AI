@@ -356,13 +356,21 @@ class HarstemsAunt(BotAI):
         """
         # TODO seen Units should be a set to save memory
         # Keeps the List as short as possible
+        
+        # THis can be easier -> just check if the unit is None !
+        for group in self.army_groups:
+            if unit_tag in group.unit_list:
+                group.remove_unit(unit_tag)
+                break
+        
         if unit_tag in self.seen_enemies:
             self.seen_enemies.remove(unit_tag)
 
         unit = self.enemies_lt_list.find_by_tag(unit_tag)
         if unit:
             self.enemy_supply -= self.calculate_supply_cost(unit.type_id)
-        marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit_tag]
+        marker: List[UnitMarker] = \
+            [marker for marker in self.unitmarkers if marker.unit_tag == unit_tag]
         for m in marker:
             self.unitmarkers.remove(m)
 

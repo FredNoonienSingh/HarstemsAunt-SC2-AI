@@ -1,7 +1,7 @@
 """ Army Group class"""
 from __future__ import annotations
 from enum import Enum
-from typing import Union, Set, Dict
+from typing import Union, Set, Dict, List
 from random import choice # Just for debugging
 
 import numpy as np
@@ -10,8 +10,9 @@ import numpy as np
 from .utils import Utils
 from .pathing import Pathing
 from .targeting import TargetAllocator
+from .combat_unit import CombatUnit, FightStatus
 from .production_buffer import ProductionBuffer,ProductionRequest
-from .common import WORKER_IDS,COUNTER_DICT, ATTACK_TARGET_IGNORE
+from .common import WORKER_IDS,COUNTER_DICT, ATTACK_TARGET_IGNORE, logger
 
 # pylint: disable=C0411
 from sc2.unit import Unit
@@ -52,6 +53,8 @@ class ArmyGroup:
         self.group_type_id = group_type
         self.debug_counter:int = 0
         self.target_allocator = TargetAllocator(self.bot)
+        
+        self.combat_units:List[CombatUnit] = []
 
     @property
     def units(self) -> Units:
@@ -231,44 +234,22 @@ class ArmyGroup:
     async def attack(self, attack_target:Union[Point2, Point3, Unit]) -> None:
         """ attack command for the army group"""
         # TODO: WHEN ALL UNITS_CLASSES ARE IMPLEMENTED THIS CAN JUST ONE CALL TO HANDLE ATTACKERS
-        stalkers: Units = self.units(UnitTypeId.STALKER)
-        zealots: Units = self.units(UnitTypeId.ZEALOT)
-        immortals: Units = self.units(UnitTypeId.IMMORTAL)
-        observer: Units = self.units(UnitTypeId.OBSERVER)
-
-        if stalkers:
-            await self.bot.stalkers.handle_attackers(
-                stalkers, attack_target
-            )
-        if immortals:
-            await self.bot.stalkers.handle_attackers(
-                immortals, attack_target
-            )
-        if zealots:
-            await self.bot.zealots.handle_attackers(
-                zealots, attack_target
-            )
-        if observer:
-            await self.bot.observers.move(
-                observer, attack_target
-            )
+        for combat_unit in self.combat_units:
+            #logger.info(combat_unit)
+            try:
+                await combat_unit.engage(attack_target)
+            except AttributeError as e:
+                logger.warning(f"can't retreat due to:\n {e} \n{combat_unit.unit_tag}") 
 
     def move(self,target_pos:Union[Point2, Point3, Unit]) -> None:
         """ Moves Army towards position
         Args:
             target_pos (Union[Point2, Point3, Unit]): _description_
         """
-        for unit in self.units:
-            # This could be handled more efficient if i could overwrite the Unit move command
-            grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
-                else self.pathing.ground_grid
-            unit.move(
-                   self.pathing.find_path_next_point(
-                       unit.position, target_pos, grid
-                    )
-                )
+        for unit in self.combat_units:
+            unit.move(target_pos)
 
-    def retreat(self) -> None:
+    async def retreat(self) -> None:
         """Moves Army back to retreat position
         """
         grid:np.ndarray = self.pathing.ground_grid
@@ -276,16 +257,15 @@ class ArmyGroup:
             self.regroup()
             return
 
-        for unit in self.units:
-            if self.pathing.is_position_safe(grid, unit.position):
-                continue
+        for combat_unit in self.combat_units:
+            try:
+                if self.pathing.is_position_safe(grid, combat_unit.unit.position):
+                    continue
 
-            if not Utils.in_proximity_to_point(unit, self.retreat_pos,15):
-                unit.move(
-                        self.pathing.find_path_next_point(
-                            unit.position, self.retreat_pos, grid
-                        )
-                    )
+                if not Utils.in_proximity_to_point(combat_unit.unit, self.retreat_pos,15):
+                    await combat_unit.disengage(self.retreat_pos)
+            except AttributeError as e:
+                logger.warning(f"can't retreat due to:\n {e} \n{combat_unit.unit_tag}")
 
     # TODO: #31 Regroup Units by Range
     def regroup(self) -> None:
@@ -320,7 +300,15 @@ class ArmyGroup:
         self.target_allocator(self.units, self.attack_target)
         if not self.requested_units:
             await self.request_units()
-        #last_status: GroupStatus = self.status
+#        last_status: GroupStatus = self.status
+
+        for combat_unit in self.combat_units:
+            if combat_unit.unit is None:
+                self.combat_units.remove(combat_unit)
+
+        if self.bot.debug:
+            for combat_unit in self.combat_units:
+                self.bot.debug_tools.debug_fighting_status(combat_unit)
 
         # Move Units in Transit to Army_group:
         for unit in self.reinforcements:
@@ -333,6 +321,11 @@ class ArmyGroup:
             if Utils.in_proximity_to_point(unit, self.position, 2):
                 self.units_in_transit.remove(unit.tag)
                 self.unit_list.append(unit.tag)
+                if not unit.type_id in [UnitTypeId.INTERCEPTOR]:
+                    pathing_grid:np.ndarray = self.pathing.ground_grid \
+                        if not unit.is_flying else self.pathing.ground_grid
+                    combat_unit:Unit = CombatUnit(self.bot, unit.tag,pathing_grid)
+                    self.combat_units.append(combat_unit)
                 #await self.bot.chat_send(f"Army Group: {self.name} got reinforced by {unit.type_id}")
 
         # CHECK DEFEND POSITION
@@ -346,15 +339,21 @@ class ArmyGroup:
                     self.status = GroupStatus.DEFENDING
                     return
 
-        # TODO add check if enemy_supply in Target_area > self.supply
-        # CHECK RETREAT CONDITIONS
-        shield_condition = self.average_shield_percentage < .45
-        # Thi will be replaced by a check how many enemy units can attack
-        supply_condition = self.supply <= self.enemy_supply_in_proximity + 3
+        fighting_combats_units:list = \
+            [x for x in self.combat_units if x.fight_status ==FightStatus.FIGHTING]
+        units_requesting_retreat = \
+            [x for x in self.combat_units if x not in fighting_combats_units]
 
-        if Utils.and_or(shield_condition, supply_condition) \
-            or len(self.units) < len(self.units_in_transit):
-            self.retreat()
+        fight_status_condition:bool = \
+            len(fighting_combats_units)+ len(fighting_combats_units) \
+                < len(units_requesting_retreat)/25
+
+        supply_condition:bool = self.supply <= self.enemy_supply_in_proximity + 3
+        waiting_for_reinforcements:bool = len(self.units) < len(self.units_in_transit)
+
+        if Utils.and_or(fight_status_condition, supply_condition) or\
+            waiting_for_reinforcements:
+            await self.retreat()
             self.status = GroupStatus.RETREATING
             return
 
