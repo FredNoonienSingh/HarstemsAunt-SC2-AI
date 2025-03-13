@@ -8,7 +8,7 @@ import numpy as np
 # from .utils import Utils
 from .unitmarker import UnitMarker
 from .common import MIN_SHIELD_AMOUNT, RANGE_BUFFER,\
-    PROXIMITY,PRIO_ATTACK_TARGET
+    PROXIMITY,PRIO_ATTACK_TARGET, ALL_STRUCTURES, logger
 
 # pylint: disable=C0411
 from sc2.unit import Unit
@@ -86,8 +86,9 @@ class CombatUnit:
     @property
     def enemies_in_proximity(self) -> Units:
         """The enemies_in_proximity property."""
-        if self.bot.enemy_units:
-            return self.bot.enemy_units.closer_than(15, self.unit)
+        if self.bot.enemy_units and self.unit:
+            return self.bot.enemy_units.closer_than(25, self.unit)\
+                .filter(lambda unit: unit.type_id not in ALL_STRUCTURES)
         return
 
     @property
@@ -179,12 +180,19 @@ class CombatUnit:
         """replacement for handle_attackers """
         # This is just for testing
         #logger.info(f"{self}\n{self.unit.ground_range}")
+        if not self.unit:
+            logger.warning(f"Unit not existing ->")
+            return
+        
+        enemies_can_be_attacked = []
         if self.enemies_in_proximity:
-            prio_targets = self.enemies_in_proximity.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
+            enemies_can_be_attacked:Units = self.enemies_in_proximity.filter(lambda unit: self.unit.calculate_damage_vs_target(unit)[0] > 0)
+        if enemies_can_be_attacked:
+            prio_targets = enemies_can_be_attacked.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
             if prio_targets:
-                return prio_targets.closest_to(self.unit)
-            return min(
-                self.enemies_in_proximity,
+                target = prio_targets.closest_to(self.unit)
+            target = min(
+                enemies_can_be_attacked,
                 key=lambda e: (e.health + e.shield, e.tag),
             )
 
@@ -194,44 +202,49 @@ class CombatUnit:
         elif not self.markers_in_proximity and not self.enemies_in_proximity\
             and self.bot.enemy_units:
                 enemies: Units = self.bot.enemy_units
-                prio_targets = enemies.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
+                prio_targets = enemies.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET and\
+                    self.unit.calculate_damage_vs_target(unit)[0] > 2)
                 if prio_targets:
-                    return prio_targets.closest_to(self.unit)
-                return min(
+                    target = prio_targets.closest_to(self.unit)
+                target = min(
                     enemies,
                     key=lambda e: (e.health + e.shield, e.tag),
-                )
+                    )
         else:
             target:Union[Unit, Point2] = attack_target
-        if self.bot.debug:
+        if self.bot.debug and self.unit:
             self.bot.debug_tools.debug_targeting(self, target)
 
-        if self.unit.ground_range > 3 or self.unit.ground_range > 3 and self.enemies_in_proximity:
-            if self.unit.weapon_ready:
-                self.unit.attack(target)
-                return
-            elif self.in_attack_range_of:
-                self.move(self.safe_spot)
-                return
+        if isinstance(target,Unit):
+            target = target.position
+
         target:Point2 = self.bot.pathing.find_path_next_point(
                     self.unit.position, target, self.pathing_grid
                 )
-        self.unit.attack(target)
+
+        #logger.error(self.in_attack_range_of)
+
+        if self.unit.weapon_ready:
+            self.unit.attack(target)
+        if not self.unit.weapon_ready and self.in_attack_range_of:
+            logger.warning("moving back")
+            self.unit.move(self.safe_spot)
 
     async def disengage(self, retreat_position: Point2) -> None:
         """ replacement for move to safety
             -> This should contain stutter stepping, for ranged Units
         """
+        if not self.unit:
+            logger.warning(f"Unit not existing ->")
+            return
         move_to: Point2 = self.bot.pathing.find_path_next_point(
             self.unit.position, retreat_position, self.pathing_grid
         )
         if self.can_survive_fleeing:
             if self.unit.ground_range > 3 or self.unit.air_range > 3:
-                if self.unit.weapon_ready and self.enemies_in_proximity \
+                if self.unit.weapon_ready and self.enemies_in_proximity\
                     and self.fight_status == FightStatus.FIGHTING:
-
                     # IS THERE unit turn rate property ?
-
                     self.unit.attack(move_to)
                     return
             self.unit.move(move_to)

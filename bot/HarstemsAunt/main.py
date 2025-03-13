@@ -37,6 +37,8 @@ from .map_sector import MapSector
 from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
+from benchmarks.micro_benchmark import MicroBenchmark
+
 class HarstemsAunt(BotAI):
     """ Main class of the Bot"""
     macro: Macro
@@ -192,6 +194,7 @@ class HarstemsAunt(BotAI):
         self.stalkers:Stalkers = Stalkers(self, self.pathing)
         self.zealots:Zealot = Zealot(self, self.pathing)
         self.observers:Observer = Observer(self, self.pathing)
+        self.mirco_benchmark:MicroBenchmark = MicroBenchmark(self)
 
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
@@ -200,7 +203,10 @@ class HarstemsAunt(BotAI):
         await Chatter.greeting(self)
 
         if self.debug:
-            await self.debug_tools.debug_micro()
+            #pass
+            await self.client.debug_upgrade()
+            await self.client.debug_show_map()
+            #await self.debug_tools.debug_micro()
 
         for sector in self.map_sectors:
             sector.build_sector()
@@ -217,6 +223,7 @@ class HarstemsAunt(BotAI):
         await self.update_states(iteration)
 
         if self.debug:
+            await self.mirco_benchmark()
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
             self.debug_tools.debug_build_pos()
@@ -234,7 +241,7 @@ class HarstemsAunt(BotAI):
 
         Chatter.build_order_comments(self)
 
-        if self.townhalls and self.units:
+        if self.townhalls and self.units or self.debug:
             #FIXME: #33 Write a cannon rush response, that actually works
             for townhall in self.townhalls:
                 workers_in_base = self.enemy_units.closer_than(15, townhall)\
@@ -257,7 +264,7 @@ class HarstemsAunt(BotAI):
                     worker.move(loc)
             return
         if self.last_tick == 0:
-            await Chatter.end_game_message()
+            await Chatter.end_game_message(self)
             self.last_tick = iteration
         elif self.last_tick == iteration - 120:
             await self.client.leave()
@@ -294,7 +301,8 @@ class HarstemsAunt(BotAI):
         if not unit in self.seen_enemies and unit.type_id not in WORKER_IDS:
             self.seen_enemies.add(unit)
             self.enemy_supply += self.calculate_supply_cost(unit.type_id)
-        marker: List[UnitMarker] = [marker for marker in self.unitmarkers if marker.unit_tag == unit.tag]
+        marker: List[UnitMarker] = \
+            [marker for marker in self.unitmarkers if marker.unit_tag == unit.tag]
         for m in marker:
             self.unitmarkers.remove(m)
 

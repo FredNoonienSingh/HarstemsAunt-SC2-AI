@@ -24,13 +24,13 @@ class DebugTools:
     def __init__(self, bot:BotAI) -> None:
         self.bot = bot
 
-    def debug_pos(self, pos:Union[Point2, Point3, Pointlike]):
+    def debug_pos(self, pos:Union[Point2, Point3, Pointlike], radius:float=.2):
         """ Draws sphere a given position
         Args:
             pos (Union[Point2, Point3, Pointlike]): position that will be shown
         """
-        pos_3d = Utils.create_3D_point(pos)
-        self.bot.client.debug_sphere_out(pos_3d ,.2, (255,255,0))
+        pos_3d = Utils.create_3D_point(self.bot,pos)
+        self.bot.client.debug_sphere_out(pos_3d,radius, (255,255,0))
 
     def draw_gameinfo(self):
         """draws the information about the game to the screen"""
@@ -119,22 +119,22 @@ class DebugTools:
     async def debug_micro(self) -> None:
         """build Stalker/Zealot for both players to debug unit behavior"""
         units_dict: dict = {
-            Race.Zerg:[UnitTypeId.MUTALISK, UnitTypeId.CORRUPTOR],
-            Race.Terran:[UnitTypeId.VIKING, UnitTypeId.LIBERATOR],
-            Race.Protoss:[UnitTypeId.PHOENIX, UnitTypeId.VOIDRAY]
+            Race.Zerg:[UnitTypeId.ZERGLING, UnitTypeId.ROACH],
+            Race.Terran:[UnitTypeId.MARINE, UnitTypeId.MARAUDER],
+            Race.Protoss:[UnitTypeId.STALKER, UnitTypeId.IMMORTAL]
         }
         units:list = units_dict.get(self.bot.enemy_race)
 
         await self.bot.client.debug_tech_tree()
-        #await self.client.debug_show_map()
+        #await self.bot.client.debug_show_map()
         await self.bot.client.debug_create_unit(\
-            [[UnitTypeId.PHOENIX, 6, self.bot.start_location, 1]])
+            [[UnitTypeId.STALKER, 5, self.bot.start_location, 1]])
         await self.bot.client.debug_create_unit(\
-            [[UnitTypeId.VOIDRAY, 2, self.bot.start_location, 1]])
+            [[UnitTypeId.IMMORTAL, 3, self.bot.start_location, 1]])
         await self.bot.client.debug_create_unit(\
             [[units[0], 5, self.bot.enemy_start_locations[0], 2]])
         await self.bot.client.debug_create_unit(\
-            [[units[1], 2, self.bot.enemy_start_locations[0], 2]])
+            [[units[1], 3, self.bot.enemy_start_locations[0], 2]])
 
     def draw_army_group_label(self,iterator:int, group:ArmyGroup) -> None:
         """ draws ArmyGroup onto the screen"""
@@ -158,7 +158,6 @@ class DebugTools:
             unit (Unit): _description_
             target (Union[Unit, Point2]): _description_
         """
-        logger.info(f"target:{target}")
         unit_position:Point3 = unit.position3d
         if isinstance(target, Point2):
             target = Utils.create_3D_point(self.bot,target)
@@ -225,6 +224,6 @@ class DebugTools:
         Args:
             combat_unit (_type_): _description_
         """
-
-        color:tuple = (0,0,255) if combat_unit.fight_status == FightStatus.RETREATING else (0,255,0)
-        self.bot.client.debug_sphere_out(combat_unit.position3d,.75, color)
+        if combat_unit.unit:
+            color:tuple = (0,0,255) if combat_unit.fight_status == FightStatus.RETREATING else (0,255,0)
+            self.bot.client.debug_sphere_out(combat_unit.position3d,.75, color)
