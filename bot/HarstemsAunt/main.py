@@ -206,6 +206,7 @@ class HarstemsAunt(BotAI):
 
         if self.debug:
             #pass
+            #await self.mirco_benchmark.clear_all()
             await self.client.debug_upgrade()
             await self.client.debug_show_map()
             #await self.debug_tools.debug_micro()

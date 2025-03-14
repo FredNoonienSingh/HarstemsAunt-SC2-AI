@@ -1,21 +1,22 @@
 """ Benchmarks the UnitMicro of any two BurnySC2 Bots """
 from typing import List,Dict,Tuple
 
-from datetime import datetime
+#from datetime import datetime
 
 # pylint: disable=C0411
-from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.ids.unit_typeid import UnitTypeId
 
-
 # pylint: disable=E0402
 from .utils import Utils
 from .szenario import Scenario
 from .result import Result
-from .common import WORKER_IDS
+from .common import WORKER_IDS, TOWNHALL_IDS
+
+# Just here for debugging 
+from HarstemsAunt.common import logger
 
 class MicroBenchmark:
 
@@ -29,11 +30,12 @@ class MicroBenchmark:
     @property
     def record_path(self) -> str:
         """creates a path to store the benchmark run"""
-        time:datetime = datetime.now()
-        time_string:str = time.strftime("%y_%m_%d_%H_%M")
+        #time:datetime = datetime.now()
+        #time_string:str = time.strftime("%y_%m_%d_%H_%M")
         bot_name:str = self.bot.name
-        benchmark_name:str = f"benchmark_{bot_name}_@_{time_string}"
-        
+        version:str = self.bot.version
+        benchmark_name:str = f"benchmark_{bot_name}@v_{version}"
+
         return f"benchmarks/data/{benchmark_name}.csv"
 
     @property
@@ -41,8 +43,8 @@ class MicroBenchmark:
 
         positions:List[Point2] = [
            self.bot.game_info.map_center,
-           #self.bot.enemy_start_locations[0],
-           #self.bot.start_location
+           self.bot.enemy_start_locations[0],
+           self.bot.start_location
         ] #+ self.bot.expand_locs
 
         Benchmarks:List[Dict] = []
@@ -74,39 +76,51 @@ class MicroBenchmark:
         if self.current_index <= len(self.scenarios):
             return self.scenarios[self.current_index]
 
-    async def __call__(self) -> None:
-        # Enemybots are not stopping to build workers
-        # -> therefore they need to be removed when they are build
+    async def destroy_workers(self) -> None:
+        """Destroy enemy workers"""
         enemy_workers: Units = \
             self.bot.enemy_units.filter(lambda unit: unit.type_id in WORKER_IDS)
         if enemy_workers:
             await self.bot.client.debug_kill_unit(enemy_workers)
 
-        if self.bot.units and self.bot.enemy_units:
-            enemy_center:Point2 = self.bot.enemy_units.center
-            camera_unit:Unit = self.bot.units.closest_to(enemy_center)
-            await self.bot.client.move_camera(camera_unit)
+    async def __call__(self) -> None:
+        logger.info(self.current_scenario)
+        logger.warning(self.current_index)
+
+        self.destroy_workers()
+        if not self.scenario_running:
+            await self.build_scenario()
 
         if self.scenario_running:
-            if self.scenario.end_condition(self.start_time):
+            logger.info(f"scenario is done: {self.scenario.end_condition()}\n{self.scenario.ending_condition}")
+            if self.scenario.end_condition():
                 result:Result = await self.scenario.end()
-                await self.write_benchmark(result)
-                self.scenario_running = False
-            """
-            if not self.scenario_running:
-                if self.current_index < len(self.scenarios)-1:
-                    self.current_index += 1
-                else:
-                    self.current_index = 0
-            """
-        else:
-            await self.build_scenario()
+                await self.end_benchmark(result)
 
-        if self.current_index == 0 and not self.scenario_running:
-            await self.build_scenario()
+    async def clear_all(self, blind:bool=False):
+        """clears all units and structures, beside the Townhalls """
+        if blind:
+            await self.bot.client.debug_show_map()
+
+        enemies:Units = self.bot.enemy_units
+        own_units:Units = self.bot.units
+        enemy_structure:Units = self.bot.enemy_structures.filter\
+            (lambda struct: struct.type_id not in TOWNHALL_IDS)
+        own_structures:Units = self.bot.structures.filter\
+            (lambda struct: struct.type_id not in TOWNHALL_IDS)
+
+        destroy_list:List = [enemies, own_units, enemy_structure, own_structures]
+        for units in destroy_list:
+            if units:
+                await self.bot.client.debug_kill_unit(units)
+        if blind:
+            await self.bot.client.debug_show_map()
+        return True
 
     async def build_scenario(self) -> None:
         """Build current scenario"""
+
+        await self.clear_all()
 
         engagement_title:str = self.current_scenario.get("title")
         engagement_position: Point2 = self.current_scenario.get("position")
@@ -121,11 +135,14 @@ class MicroBenchmark:
             self.bot.army_groups[0].add_combat_unit(unit)
 
         self.scenario_running = True
-        self.start_time = self.bot.time
 
-    async def write_benchmark(self, result: Result) -> None:
+    async def end_benchmark(self, result: Result) -> None:
         """ Ends the benchmarks run and writes the results to csv files"""
         path:str = self.record_path
         content:dict = result.as_dict()
         Utils.write_dict_to_csv(content, path)
-        #await self.bot.client.leave()
+        if self.current_index < len(self.scenarios) -1:
+            self.current_index += 1
+        else:
+            await self.bot.client.leave()
+        self.scenario_running = False
