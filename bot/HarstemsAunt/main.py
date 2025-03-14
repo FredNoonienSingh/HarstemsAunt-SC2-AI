@@ -24,6 +24,8 @@ from Unit_Classes.Stalkers import Stalkers
 #from Unit_Classes.HighTemplar import HighTemplar
 #from Unit_Classes.DarkTemplar import DarkTemplar
 
+from benchmarks.micro_benchmark import MicroBenchmark
+
 from map_analyzer import MapData
 
 # pylint: disable=E0402
@@ -37,7 +39,7 @@ from .map_sector import MapSector
 from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
-from benchmarks.micro_benchmark import MicroBenchmark
+
 
 class HarstemsAunt(BotAI):
     """ Main class of the Bot"""
