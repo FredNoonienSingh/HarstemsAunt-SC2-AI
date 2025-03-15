@@ -305,8 +305,9 @@ class ArmyGroup:
 
     def add_combat_unit(self, unit:Unit) -> None:
         """creates and add Combat Unit to group"""
-        
-        logger.info(f"adding unit {unit}")
+       
+        if self.bot.debug:
+            logger.info(f"adding unit {unit}")
         
         if unit.tag in self.units_in_transit:
             self.units_in_transit.remove(unit.tag)
@@ -316,7 +317,6 @@ class ArmyGroup:
             pathing_grid:np.ndarray = self.pathing.ground_grid \
                 if not unit.is_flying else self.pathing.air_grid
             combat_unit:Unit = CombatUnit(self.bot, unit.tag, pathing_grid)
-            logger.info(f"combat unit ->: {combat_unit}")
             self.combat_units.append(combat_unit)
 
     async def update(self, target:Union[Point2, Point3, Unit]):

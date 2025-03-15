@@ -41,6 +41,8 @@ if __name__ == "__main__":
         logger.info(f"{result}, against opponent , {opponentid}")
 
     else:
+        parser.add_argument('-bench', '--benchmark',
+                            action='store_true')
         parser.add_argument('-d', '--debug',
                     action='store_true')
         parser.add_argument('-t', '--realtime',
@@ -71,7 +73,7 @@ if __name__ == "__main__":
         enemy_race: Race = races_dict.get(args.race)
         enemy_strength: Difficulty = difficulty_dict.get(args.difficulty)
 
-        bot = Bot(Race.Protoss, HarstemsAunt(args.debug))
+        bot = Bot(Race.Protoss, HarstemsAunt(debug=args.debug, benchmark=args.benchmark))
         enemy_bot = Computer(enemy_race, enemy_strength)
 
         if args.map:

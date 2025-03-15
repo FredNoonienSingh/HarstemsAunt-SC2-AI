@@ -1,6 +1,5 @@
 """ scenario class for Benchmarks"""
 from typing import Union, List, Tuple
-import time
 
 # pylint: disable=C0411
 from sc2.unit import Unit
@@ -11,11 +10,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 # pylint: disable=E0402
 from .common import TOWNHALL_IDS
-from .recorder import record_benchmark
 from .result import Result, EndCondition
 
 
-@record_benchmark(['enemy_units', 'own_units'])
 class Scenario:
 
     def __init__(self,
@@ -42,6 +39,7 @@ class Scenario:
         return f"Scenario {self.title} playing at {self.position}"
 
     async def toggle_vision(self) -> None:
+        """shows the map/ stops showing the map """
         await self.bot.client.debug_show_map()
 
     async def clear_all(self, blind:bool=True):
@@ -83,11 +81,6 @@ class Scenario:
                           towards(self.bot.start_location,self.engagement_radius),1]]
                 )
 
-            # Let the enemy attack:
-            await self.bot.client.debug_control_enemy()
-            for unit in self.bot.enemy_units:
-                unit.attack(self.position)
-            await self.bot.client.debug_control_enemy()
 
     def calculate_destroyed_units(self) -> Tuple[int, int]:
         """ calculates how many units got destroyed

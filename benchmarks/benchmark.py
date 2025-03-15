@@ -11,14 +11,11 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 # pylint: disable=E0402
 from .utils import Utils
-from .szenario import Scenario
+from .scenario import Scenario
 from .result import Result
 from .common import WORKER_IDS, TOWNHALL_IDS
 
-# Just here for debugging 
-from HarstemsAunt.common import logger
-
-class MicroBenchmark:
+class Benchmark:
 
     def __init__(self, bot:BotAI) -> None:
         self.bot:BotAI = bot
@@ -30,25 +27,24 @@ class MicroBenchmark:
     @property
     def record_path(self) -> str:
         """creates a path to store the benchmark run"""
-        #time:datetime = datetime.now()
-        #time_string:str = time.strftime("%y_%m_%d_%H_%M")
         bot_name:str = self.bot.name
         version:str = self.bot.version
-        benchmark_name:str = f"benchmark_{bot_name}@v_{version}"
+        benchmark_name:str = f"benchmark_{bot_name}_v{version}"
 
         return f"benchmarks/data/{benchmark_name}.csv"
 
     @property
     def scenarios(self) -> List[Scenario]:
+        """builds a list of scenario"""
 
         positions:List[Point2] = [
            self.bot.game_info.map_center,
            self.bot.enemy_start_locations[0],
            self.bot.start_location
-        ] #+ self.bot.expand_locs
+        ] + self.bot.expand_locs
 
         Benchmarks:List[Dict] = []
-        
+
         for pos in positions:
             Benchmarks.append({"title":"Stalker_vs_RoachRavager",
                                "position":pos,
@@ -84,23 +80,30 @@ class MicroBenchmark:
             await self.bot.client.debug_kill_unit(enemy_workers)
 
     async def __call__(self) -> None:
-        logger.info(self.current_scenario)
-        logger.warning(self.current_index)
-
-        self.destroy_workers()
+        await self.destroy_workers()
         if not self.scenario_running:
             await self.build_scenario()
 
         if self.scenario_running:
-            logger.info(f"scenario is done: {self.scenario.end_condition()}\n{self.scenario.ending_condition}")
             if self.scenario.end_condition():
                 result:Result = await self.scenario.end()
                 await self.end_benchmark(result)
+            else:
+                if self.bot.enemy_units:
+                    for unit in self.bot.enemy_units:
+                        unit.attack(self.scenario.position)
+                if self.bot.units and self.bot.enemy_units:
+                    cam_center: Point2 = self.bot.units.center.towards(self.bot.enemy_units.center, 2)
+                    self.bot.client.move_camera(cam_center)
+                if self.bot.units and not self.bot.enemy_units:
+                    self.bot.client.move_camera(self.bot.units.center)
 
-    async def clear_all(self, blind:bool=False):
+    async def clear_all(self, blind:bool=True):
         """clears all units and structures, beside the Townhalls """
         if blind:
             await self.bot.client.debug_show_map()
+
+        await self.destroy_workers()
 
         enemies:Units = self.bot.enemy_units
         own_units:Units = self.bot.units
@@ -120,7 +123,7 @@ class MicroBenchmark:
     async def build_scenario(self) -> None:
         """Build current scenario"""
 
-        await self.clear_all()
+        await self.clear_all(False)
 
         engagement_title:str = self.current_scenario.get("title")
         engagement_position: Point2 = self.current_scenario.get("position")

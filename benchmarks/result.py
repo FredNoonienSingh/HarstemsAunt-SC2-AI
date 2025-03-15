@@ -3,6 +3,8 @@ from enum import Enum
 
 from datetime import datetime
 
+from .utils import Utils
+
 class EndCondition(Enum):
     """EndCondition of a Benchmark"""
     VICTORY = 1
@@ -27,6 +29,7 @@ class Result:
                  end_condition:EndCondition) -> None:
         self.benchmark = benchmark
         self.bot_version = bot_version
+        self.current_git_hash = Utils.get_git_head()
         self.benchmarked_map = benchmarked_map
         self.start_position = start_position
         self.start_time:datetime = datetime.now()
@@ -53,6 +56,7 @@ class Result:
         return {
             "benchmark": self.benchmark,
             "bot_version": self.bot_version,
+            "branch": self.current_git_hash,
             "map": self.benchmarked_map,
             "start_pos": self.start_position,
             "started_at": self.start_time,

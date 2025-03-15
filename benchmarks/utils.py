@@ -1,6 +1,7 @@
 import os
 import csv
 
+import subprocess
 
 class Utils:
     """Utils for Benchmarking"""
@@ -24,3 +25,27 @@ class Utils:
             if not file_exists:
                 writer.writeheader()
             writer.writerow(data_dict)
+
+    @staticmethod
+    def get_git_head() -> str:
+        """ Gets the git head to use a marker in Benchmarks"""
+        try:
+            process = subprocess.Popen(['git', 'rev-parse', 'HEAD'],\
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+
+            if process.returncode != 0:
+                print(f"Error getting Git HEAD: {stderr.decode()}")
+                return None
+
+            commit_hash = stdout.decode().strip()
+            return commit_hash
+        except FileNotFoundError:
+            print("Git command not found. Make sure Git is installed and in your PATH.")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+        return None
+
+if __name__ == "__main__":
+    print(Utils.get_git_head())

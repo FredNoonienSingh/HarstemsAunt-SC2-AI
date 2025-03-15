@@ -181,7 +181,8 @@ class CombatUnit:
         # This is just for testing
         #logger.info(f"{self}\n{self.unit.ground_range}")
         if not self.unit:
-            logger.warning(f"Unit not existing ->")
+            if self.bot.debug:
+                logger.warning(f"Unit not existing ->")
             return
         
         enemies_can_be_attacked = []
@@ -226,8 +227,7 @@ class CombatUnit:
 
         if self.unit.weapon_ready:
             self.unit.attack(target)
-        if not self.unit.weapon_ready and self.in_attack_range_of:
-            logger.warning("moving back")
+        if not self.unit.weapon_ready and self.in_attack_range_of: 
             self.unit.move(self.safe_spot)
 
     async def disengage(self, retreat_position: Point2) -> None:
@@ -235,7 +235,8 @@ class CombatUnit:
             -> This should contain stutter stepping, for ranged Units
         """
         if not self.unit:
-            logger.warning(f"Unit not existing ->")
+            if self.bot.debug:
+                logger.warning("Unit not existing")
             return
         move_to: Point2 = self.bot.pathing.find_path_next_point(
             self.unit.position, retreat_position, self.pathing_grid

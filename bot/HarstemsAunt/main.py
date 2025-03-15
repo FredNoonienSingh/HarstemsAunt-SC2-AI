@@ -24,7 +24,7 @@ from Unit_Classes.Stalkers import Stalkers
 #from Unit_Classes.HighTemplar import HighTemplar
 #from Unit_Classes.DarkTemplar import DarkTemplar
 
-from benchmarks.micro_benchmark import MicroBenchmark
+from benchmarks.benchmark import Benchmark
 
 from map_analyzer import MapData
 
@@ -53,7 +53,9 @@ class HarstemsAunt(BotAI):
     # Scouting Units
     observer : Observer
 
-    def __init__(self, debug:bool=False) -> None:
+    def __init__(self,
+                 debug:bool=False,
+                 benchmark:bool=False) -> None:
         super().__init__()
         self.name = "HarstemsAunt"
         self.version = "1.1_dev"
@@ -61,6 +63,8 @@ class HarstemsAunt(BotAI):
 
         self.debug:bool = debug
         self.debug_tools = DebugTools(self)
+
+        self.benchmark = benchmark
 
         self.start_time = None
         self.game_step = None
@@ -196,7 +200,7 @@ class HarstemsAunt(BotAI):
         self.stalkers:Stalkers = Stalkers(self, self.pathing)
         self.zealots:Zealot = Zealot(self, self.pathing)
         self.observers:Observer = Observer(self, self.pathing)
-        self.mirco_benchmark:MicroBenchmark = MicroBenchmark(self)
+        self.benchmarker:Benchmark = Benchmark(self)
 
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
@@ -204,12 +208,13 @@ class HarstemsAunt(BotAI):
 
         await Chatter.greeting(self)
 
-        if self.debug:
-            #pass
-            #await self.mirco_benchmark.clear_all()
-            await self.client.debug_upgrade()
+        if self.benchmark:
             await self.client.debug_show_map()
-            #await self.debug_tools.debug_micro()
+            await self.benchmarker.clear_all(False)
+            await self.client.debug_control_enemy()
+
+        if self.debug:
+            await self.client.debug_upgrade()
 
         for sector in self.map_sectors:
             sector.build_sector()
@@ -225,8 +230,10 @@ class HarstemsAunt(BotAI):
         """
         await self.update_states(iteration)
 
+        if self.benchmark:
+            await self.benchmarker()
+
         if self.debug:
-            await self.mirco_benchmark()
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
             self.debug_tools.debug_build_pos()
@@ -244,7 +251,7 @@ class HarstemsAunt(BotAI):
 
         Chatter.build_order_comments(self)
 
-        if self.townhalls and self.units or self.debug:
+        if self.townhalls and self.units or self.benchmark:
             #FIXME: #33 Write a cannon rush response, that actually works
             for townhall in self.townhalls:
                 workers_in_base = self.enemy_units.closer_than(15, townhall)\
@@ -294,9 +301,9 @@ class HarstemsAunt(BotAI):
     async def on_enemy_unit_entered_vision(self, unit:Unit) -> None:
         """ Coroutine called when unit enters vision:
             -> sets Values for build order:
-                - opponent_builds_air
-                - opponent_has_detection 
-                - opponent_uses_cloak
+                -> opponent_builds_air
+                -> opponent_has_detection 
+                -> opponent_uses_cloak
             creates a list of unit.tags for seen_enemies
         Args:
             unit (Unit): Unit
@@ -365,10 +372,6 @@ class HarstemsAunt(BotAI):
         Args:
             unit_tag (int): tag of destroyed unit
         """
-        # TODO seen Units should be a set to save memory
-        # Keeps the List as short as possible
-        
-        # THis can be easier -> just check if the unit is None !
         for group in self.army_groups:
             if unit_tag in group.unit_list:
                 group.remove_unit(unit_tag)
