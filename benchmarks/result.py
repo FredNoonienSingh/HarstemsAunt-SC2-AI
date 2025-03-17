@@ -25,6 +25,8 @@ class Result:
                  bot_version:str,
                  benchmarked_map: str,
                  start_position:Tuple[float, float],
+                 enemy_behavior: str,
+                 has_creep: bool,
                  enemy_units: List[Tuple[UnitTypeId, int]],
                  own_units:List[Tuple[UnitTypeId, int]],
                  time_running:float,
@@ -39,6 +41,8 @@ class Result:
         self.current_git_hash = Utils.get_git_head()
         self.benchmarked_map = benchmarked_map
         self.start_position = start_position
+        self.enemy_behavior = enemy_behavior
+        self.has_creep = has_creep
         self.start_time:datetime = datetime.now()
         self.enemy_units = enemy_units
         self.own_units = own_units
@@ -69,6 +73,8 @@ class Result:
             "map": self.benchmarked_map,
             "start_pos": self.start_position,
             "started_at": self.start_time,
+            "enemy_behavior": self.enemy_behavior,
+            "has_creep": self.has_creep,
             "enemy_units": self.enemy_units,
             "own_units": self.own_units,
             "time_running": self.time_running,

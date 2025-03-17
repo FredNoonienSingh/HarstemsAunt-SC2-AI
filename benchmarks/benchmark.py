@@ -71,6 +71,7 @@ class Benchmark:
                     'options': instruction['options']
                     }
                     temp.append(scenario)
+        # pylint: disable=W0718
         except Exception as e:
             logger.warning(e)
 
@@ -89,8 +90,7 @@ class Benchmark:
             return self.scenarios[self.current_index+1]
 
     def get_position(self, position_name:str="center") -> Tuple[Point2]:
-        """ returns the position on the map for a given position name
-        """
+        """ returns the position on the map for a given position name"""
         enemy_spawn = self.bot.enemy_start_locations[0]
         spawn = self.bot.start_location
         center = self.bot.game_info.map_center
@@ -158,8 +158,12 @@ class Benchmark:
                 (0.02, 0.48), (255,255,0), 12
             )
             self.bot.client.debug_text_screen(
-                f"Runs endless: {ENDLESS}",
+                f"Runs endless: {self.config['endless']}",
                 (0.02, 0.50), (255,255,0), 12
+            )
+            self.bot.client.debug_text_screen(
+                f"Saves to File: {self.config['save_data']}",
+                (0.02, 0.52), (255,255,0), 12
             )
 
     async def prepare_benchmarks(self):
@@ -187,16 +191,23 @@ class Benchmark:
         if not self.scenario_running:
             await self.build_scenario()
 
+        for unit in self.bot.units.filter(lambda unit: unit.type_id in TOWNHALL_IDS):
+            self.bot.client.debug_set_unit_value(unit,2,unit.health_max)
+        for unit in self.bot.enemy_units.filter(lambda unit: unit.type_id in TOWNHALL_IDS):
+            self.bot.client.debug_set_unit_value(unit,2,unit.health_max)
+
         if self.scenario_running:
             enemy_behavior:str = self.scenario.options.get('enemy_behavior')
             self.scenario.record_observation()
             self.scenario.record_pathing_grids()
-            
+
             if self.scenario.end_condition():
                 result:Result = await self.scenario.end()
                 await self.end_benchmark(result)
             else:
                 if self.bot.enemy_units:
+                    if enemy_behavior == "attack_retreat":
+                        await self.enemy_behavior.attack_retreat(self.bot.enemy_units)
                     if enemy_behavior == "attack_towards":
                         await self.enemy_behavior.attack_towards(self.bot.enemy_units)
                     if enemy_behavior == "attack_weakest":
@@ -215,7 +226,6 @@ class Benchmark:
     async def clear_all(self, blind:bool=True):
         """clears all units and structures, beside the Townhalls """
         await self.destroy_workers()
-        
         enemies:Units = self.bot.enemy_units
         own_units:Units = self.bot.units
         enemy_structure:Units = self.bot.enemy_structures.filter\
@@ -249,13 +259,15 @@ class Benchmark:
             self.current_scenario.get("own_units")
         options:Dict = self.current_scenario.get('options')
 
-        self.scenario = Scenario(self.bot, engagement_title, \
-            position_name,enemy_position,own_position, enemy_units, own_units, options)
+        self.scenario = Scenario(self.bot,engagement_title,\
+            position_name,enemy_position,\
+                own_position,enemy_units,own_units,options)
         try:
             await self.scenario.start_benchmark(False)
+        # pylint: disable=W0718
         except Exception as e:
             logger.warning(e)
-        
+
         for unit in self.bot.units:
             self.bot.army_groups[0].add_combat_unit(unit)
 
@@ -263,7 +275,7 @@ class Benchmark:
 
     async def end_benchmark(self, result: Result) -> None:
         """ Ends the benchmarks run and writes the results to csv files"""
-        if self.config['save_data']: 
+        if self.config['save_data']:
             path:str = self.record_path
             content:dict = result.as_dict()
             Utils.write_dict_to_csv(content, path)

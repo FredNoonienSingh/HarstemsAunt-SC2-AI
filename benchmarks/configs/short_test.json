@@ -1,0 +1,64 @@
+{
+    "benchmarks": [
+      {
+        "title": "Stalker_vs_STALKER",
+        "positions": ["center", "enemy_spawn", "ramp_top", "ram"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Stalker_vs_STALKER",
+        "positions": ["center", "enemy_spawn", "ramp_top", "ram"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Stalker_vs_STALKER",
+        "positions": ["center", "enemy_spawn", "ramp_top", "ram"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      }
+    ]
+}

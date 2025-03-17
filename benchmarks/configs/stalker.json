@@ -17,7 +17,7 @@
         ],
         "options": {
           "has_creep": false,
-          "enemy_behavior": "attack_towards"
+          "enemy_behavior": "attack_retreat"
         }
       },
       {
@@ -37,7 +37,7 @@
         ],
         "options": {
           "has_creep": false,
-          "enemy_behavior": "attack_weakest"
+          "enemy_behavior": "attack_retreat"
         }
       },
       {
@@ -77,7 +77,7 @@
         ],
         "options": {
           "has_creep": false,
-          "enemy_behavior": "attack_towards"
+          "enemy_behavior": "attack_retreat"
         }
       },
       {
@@ -97,7 +97,7 @@
         ],
         "options": {
           "has_creep": false,
-          "enemy_behavior": "attack_weakest"
+          "enemy_behavior": "attack_retreat"
         }
       },
       {
@@ -137,7 +137,7 @@
         ],
         "options": {
           "has_creep": true,
-          "enemy_behavior": "attack_towards"
+          "enemy_behavior": "attack_retreat"
         }
       },
       {
@@ -157,7 +157,7 @@
         ],
         "options": {
           "has_creep": true,
-          "enemy_behavior": "attack_weakest"
+          "enemy_behavior": "attack_retreat"
         }
       }
     ]

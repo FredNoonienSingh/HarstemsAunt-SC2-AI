@@ -230,7 +230,7 @@ class HarstemsAunt(BotAI):
             for unit in self.units:
                 self.debug_tools.debug_unit_direction(unit)
                 self.debug_tools.debug_angle_to_target(unit)
-    
+
         if self.benchmark:
             await self.benchmarker()
             return

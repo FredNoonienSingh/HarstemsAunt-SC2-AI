@@ -1,7 +1,8 @@
 {
-    "endless":false,
-    "save_data":true,
+    "endless":true,
+    "save_data":false,
     "verbose": true,
-    "scenarios":"benchmarks/configs/default.json", 
+    "blind":false,
+    "scenarios":"benchmarks/configs/short_test.json",
     "output_dir": "benchmarks/data/"
 }

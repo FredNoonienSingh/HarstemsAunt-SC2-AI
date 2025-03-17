@@ -176,20 +176,23 @@ class Scenario:
         time:float = self.bot.time - self.start_time
         bot_version: str = self.bot.version
         map_name:str = self.bot.game_info.map_name
-
+        has_creep = self.options['has_creep']
+        enemy_behavior = self.options['enemy_behavior']
         destroyed, lost = self.calculate_destroyed_units()
         return Result(self.title,
                       bot_version,
                       map_name,
                       self.position_name,
+                      enemy_behavior,
+                      has_creep,
                       self.enemy_units,
                       self.own_units,
                       time,
                       self.damage_taken,
                       destroyed,
                       lost,
-                      self.observations, 
+                      self.observations,
                       self.pathing_grids,
-                      self.ending_condition 
+                      self.ending_condition
                       )
 
