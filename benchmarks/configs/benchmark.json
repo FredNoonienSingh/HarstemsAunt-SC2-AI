@@ -1,0 +1,7 @@
+{
+    "endless":false,
+    "save_data":true,
+    "verbose": true,
+    "scenarios":"benchmarks/configs/default.json", 
+    "output_dir": "benchmarks/data/"
+}

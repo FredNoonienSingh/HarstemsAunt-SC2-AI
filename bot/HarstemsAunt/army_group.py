@@ -161,7 +161,7 @@ class ArmyGroup:
     @retreat_pos.setter
     def retreat_pos(self, new_retreat_pos:Union[Point2,Point3,Units]):
         """ sets new attack target """
-        if isinstance(new_retreat_pos) == Units:
+        if isinstance(new_retreat_pos, Units):
             self.retreat_pos = new_retreat_pos.center
             return
         self.retreat_pos = new_retreat_pos
@@ -270,12 +270,14 @@ class ArmyGroup:
                 if self.pathing.is_position_safe(combat_unit.pathing_grid, combat_unit.unit.position):
                     continue
             except AttributeError as e:
-                logger.warning(f" Pathing in retreat causes issue: {e}")
+                if self.bot.debug:
+                    logger.warning(f" Pathing in retreat causes issue: {e}")
             try:
                 if not Utils.in_proximity_to_point(combat_unit.unit, self.retreat_pos,15):
                     await combat_unit.disengage(self.retreat_pos)
             except AttributeError as e:
-                logger.warning(f"can't retreat due to:\n {e} \n{combat_unit.unit_tag}")
+                if self.bot.debug:
+                    logger.warning(f"can't retreat due to:\n {e} \n{combat_unit.unit_tag}")
 
     # TODO: #31 Regroup Units by Range
     def regroup(self) -> None:
@@ -305,10 +307,8 @@ class ArmyGroup:
 
     def add_combat_unit(self, unit:Unit) -> None:
         """creates and add Combat Unit to group"""
-       
         if self.bot.debug:
             logger.info(f"adding unit {unit}")
-        
         if unit.tag in self.units_in_transit:
             self.units_in_transit.remove(unit.tag)
 
@@ -333,7 +333,7 @@ class ArmyGroup:
                 self.combat_units.remove(combat_unit)
 
         if self.bot.debug:
-            self.bot.debug_tools.debug_pos(self.position, radius=500)
+            self.bot.debug_tools.debug_pos(self.position, radius=5)
             for combat_unit in self.combat_units:
                 self.bot.debug_tools.debug_fighting_status(combat_unit)
 
@@ -345,11 +345,15 @@ class ArmyGroup:
                     unit.position, self.position, grid
                 )
             )
-            if Utils.in_proximity_to_point(unit, self.position, 500):
-                self.add_combat_unit(unit)
-                #await self.bot.chat_send(f"Army Group: {self.name} got reinforced by {unit.type_id}")
 
-        # CHECK DEFEND POSITION
+            proximity:int = 5
+            if self.bot.benchmark:
+                proximity:int = 500
+
+            if Utils.in_proximity_to_point(unit, self.position, proximity):
+                self.add_combat_unit(unit)
+
+
         for townhall in self.bot.townhalls:
             enemies_in_area = self.bot.enemy_units.closer_than(30, townhall)
             if enemies_in_area:
@@ -372,8 +376,7 @@ class ArmyGroup:
         supply_condition:bool = self.supply <= self.enemy_supply_in_proximity + 12
         waiting_for_reinforcements:bool = len(self.units) < len(self.units_in_transit)
 
-        if False:#Utils.and_or(fight_status_condition, supply_condition) or\
-            #waiting_for_reinforcements:
+        if Utils.and_or(fight_status_condition, supply_condition) or waiting_for_reinforcements:
             await self.retreat()
             self.status = GroupStatus.RETREATING
             return

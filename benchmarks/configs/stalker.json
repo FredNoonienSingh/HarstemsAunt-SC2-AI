@@ -1,0 +1,164 @@
+{
+    "benchmarks": [
+      {
+        "title": "Stalker_vs_Marine",
+        "positions": ["center", "enemy_spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.MARINE",
+            "unit_count": 16
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Stalker_vs_Marauder",
+        "positions": ["ramp_top", "ramp_bottom"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.MARAUDER",
+            "unit_count": 8
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Stalker_vs_SiegeTank",
+        "positions": ["center_crossed", "sight_blocker"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.SIEGETANK",
+            "unit_count": 2
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Stalker_vs_Zealot",
+        "positions": ["center", "spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ZEALOT",
+            "unit_count": 10
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Stalker_vs_Stalker",
+        "positions": ["ramp_top", "center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Stalker_vs_Immortal",
+        "positions": ["center_crossed", "enemy_spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 4
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Stalker_vs_Zergling",
+        "positions": ["center", "spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ZERGLING",
+            "unit_count": 20
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Stalker_vs_Roach",
+        "positions": ["ramp_top", "center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ROACH",
+            "unit_count": 10
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_weakest"
+        }
+      }
+    ]
+}

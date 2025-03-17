@@ -1,0 +1,104 @@
+{
+    "benchmarks": [
+      {
+        "title": "Phoenix_vs_Mutalisk",
+        "positions": ["center", "enemy_spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.MUTALISK",
+            "unit_count": 6
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.PHOENIX",
+            "unit_count": 6
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "VoidRay_vs_Viking",
+        "positions": ["ramp_top"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.VIKINGFIGHTER",
+            "unit_count": 4
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.VOIDRAY",
+            "unit_count": 3
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Carrier_vs_Corruptor",
+        "positions": ["center_crossed"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.CORRUPTOR",
+            "unit_count": 3
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.CARRIER",
+            "unit_count": 2
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Tempest_vs_Battlecruiser",
+        "positions": ["center", "spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.BATTLECRUISER",
+            "unit_count": 2
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.TEMPEST",
+            "unit_count": 3
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Phoenix_vs_Phoenix",
+        "positions": ["ramp_top", "center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.PHOENIX",
+            "unit_count": 6
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.PHOENIX",
+            "unit_count": 6
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      }
+    ]
+  }

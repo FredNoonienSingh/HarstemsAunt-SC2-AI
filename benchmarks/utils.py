@@ -1,10 +1,33 @@
+from typing import Dict
+
 import os
+import ast
 import csv
+import json
 
 import subprocess
 
 class Utils:
     """Utils for Benchmarking"""
+
+    @staticmethod
+    def read_json(path_to_file:str) -> Dict:
+        """ reads json -> returns dict 
+
+        Args:
+            path_to_file (str): _description_
+
+        Returns:
+            Dict: _description_
+        """
+        try:
+            with open(path_to_file, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+                return data
+        except FileNotFoundError:
+            return None
+        except json.JSONDecodeError:
+            return None
 
     @staticmethod
     def write_dict_to_csv(data_dict:dict, csv_filename:str) ->None:
@@ -46,6 +69,3 @@ class Utils:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
         return None
-
-if __name__ == "__main__":
-    print(Utils.get_git_head())

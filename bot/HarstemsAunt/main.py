@@ -47,11 +47,6 @@ class HarstemsAunt(BotAI):
     pathing: Pathing
     map_data: MapData
 
-    # Ground Units
-    zealots: Zealot
-    stalkers: Stalkers
-    # Scouting Units
-    observer : Observer
 
     def __init__(self,
                  debug:bool=False,
@@ -209,9 +204,7 @@ class HarstemsAunt(BotAI):
         await Chatter.greeting(self)
 
         if self.benchmark:
-            await self.client.debug_show_map()
-            await self.benchmarker.clear_all(False)
-            await self.client.debug_control_enemy()
+            await self.benchmarker.prepare_benchmarks()
 
         if self.debug:
             await self.client.debug_upgrade()
@@ -230,9 +223,6 @@ class HarstemsAunt(BotAI):
         """
         await self.update_states(iteration)
 
-        if self.benchmark:
-            await self.benchmarker()
-
         if self.debug:
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
@@ -240,6 +230,10 @@ class HarstemsAunt(BotAI):
             for unit in self.units:
                 self.debug_tools.debug_unit_direction(unit)
                 self.debug_tools.debug_angle_to_target(unit)
+    
+        if self.benchmark:
+            await self.benchmarker()
+            return
 
         threads: list = []
         for i, sector in enumerate(self.map_sectors):
@@ -251,7 +245,7 @@ class HarstemsAunt(BotAI):
 
         Chatter.build_order_comments(self)
 
-        if self.townhalls and self.units or self.benchmark:
+        if self.townhalls and self.units:
             #FIXME: #33 Write a cannon rush response, that actually works
             for townhall in self.townhalls:
                 workers_in_base = self.enemy_units.closer_than(15, townhall)\
@@ -364,6 +358,9 @@ class HarstemsAunt(BotAI):
         """
         if self.debug:
             logger.info(f"{unit} took {amount_damage_taken} damage")
+        if self.benchmark:
+            if unit in self.units:
+                self.benchmarker.record_damage_taken(amount_damage_taken)
 
     async def on_unit_destroyed(self, unit_tag: int) -> None:
         """ Coroutine called when unit gets destroyed

@@ -1,0 +1,184 @@
+{
+    "benchmarks": [
+      {
+        "title": "Zealot_vs_Marine",
+        "positions": ["center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.MARINE",
+            "unit_count": 12
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.ZEALOT",
+            "unit_count": 10
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Immortal_vs_Marauder",
+        "positions": ["ramp_top"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.MARAUDER",
+            "unit_count": 8
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 4
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Colossus_vs_Tank",
+        "positions": ["center_crossed"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.SIEGETANK",
+            "unit_count": 3
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.COLOSSUS",
+            "unit_count": 3
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Adept_vs_Zealot",
+        "positions": ["center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ZEALOT",
+            "unit_count": 10
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.ADEPT",
+            "unit_count": 8
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Disruptor_vs_Stalker",
+        "positions": ["ramp_top"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 15
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.DISRUPTOR",
+            "unit_count": 2
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "HighTemplar_vs_Immortal",
+        "positions": ["center_crossed"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 5
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.HIGHTEMPLAR",
+            "unit_count": 3
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Zealot_vs_Zergling",
+        "positions": ["center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ZERGLING",
+            "unit_count": 18
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.ZEALOT",
+            "unit_count": 10
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Immortal_vs_Hydralisk",
+        "positions": ["ramp_top"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.HYDRALISK",
+            "unit_count": 12
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 4
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Colossus_vs_Roach",
+        "positions": ["center_crossed"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ROACH",
+            "unit_count": 16
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.COLOSSUS",
+            "unit_count": 3
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_closest"
+        }
+      }
+    ]
+  }

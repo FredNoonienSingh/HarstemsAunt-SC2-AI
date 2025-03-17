@@ -227,7 +227,7 @@ class CombatUnit:
 
         if self.unit.weapon_ready:
             self.unit.attack(target)
-        if not self.unit.weapon_ready and self.in_attack_range_of: 
+        if not self.unit.weapon_ready and self.in_attack_range_of:
             self.unit.move(self.safe_spot)
 
     async def disengage(self, retreat_position: Point2) -> None:

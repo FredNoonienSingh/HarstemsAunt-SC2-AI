@@ -1,0 +1,268 @@
+{
+    "benchmarks": [
+      {
+        "title": "Immortal_Warpprism_vs_Marine",
+        "positions": ["center", "enemy_spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.MARINE",
+            "unit_count": 24
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Marauder",
+        "positions": ["ramp_top", "ramp_bottom"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.MARAUDER",
+            "unit_count": 12
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_SiegeTank",
+        "positions": ["center_crossed", "sight_blocker"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.SIEGETANK",
+            "unit_count": 3
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Zealot",
+        "positions": ["center", "spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ZEALOT",
+            "unit_count": 15
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Stalker",
+        "positions": ["ramp_top", "center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 12
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Immortal",
+        "positions": ["center_crossed", "enemy_spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Zergling",
+        "positions": ["center", "spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ZERGLING",
+            "unit_count": 30
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Roach",
+        "positions": ["ramp_top", "center"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.ROACH",
+            "unit_count": 15
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_weakest"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Hydralisk",
+        "positions": ["center_crossed", "enemy_spawn"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.HYDRALISK",
+            "unit_count": 12
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": true,
+          "enemy_behavior": "attack_closest"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Hellion",
+        "positions": ["center", "ramp_bottom"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.HELLION",
+            "unit_count": 15
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_towards"
+        }
+      },
+      {
+        "title": "Immortal_Warpprism_vs_Cyclone",
+        "positions": ["ramp_top", "center_crossed"],
+        "enemy_units": [
+          {
+            "unit_type": "UnitTypeId.CYCLONE",
+            "unit_count": 6
+          }
+        ],
+        "own_units": [
+          {
+            "unit_type": "UnitTypeId.IMMORTAL",
+            "unit_count": 6
+          },
+          {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          }
+        ],
+        "options": {
+          "has_creep": false,
+          "enemy_behavior": "attack_weakest"
+        }
+      }
+    ]
+}

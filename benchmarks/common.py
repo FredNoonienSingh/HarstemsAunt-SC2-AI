@@ -1,7 +1,7 @@
 """DOCSTRING to shut up the linter"""
 # pylint: disable=E0611
 from typing import Set
-
+from __init__ import logger
 from sc2.ids.unit_typeid import UnitTypeId
 
 TOWNHALL_IDS: Set[UnitTypeId] = {
