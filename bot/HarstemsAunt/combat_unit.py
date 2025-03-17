@@ -181,15 +181,15 @@ class CombatUnit:
         # This is just for testing
         #logger.info(f"{self}\n{self.unit.ground_range}")
         if not self.unit:
-            if self.bot.debug:
-                logger.warning(f"Unit not existing ->")
             return
-        
+
         enemies_can_be_attacked = []
         if self.enemies_in_proximity:
-            enemies_can_be_attacked:Units = self.enemies_in_proximity.filter(lambda unit: self.unit.calculate_damage_vs_target(unit)[0] > 0)
+            enemies_can_be_attacked:Units = self.enemies_in_proximity.filter\
+                (lambda unit: self.unit.calculate_damage_vs_target(unit)[0] > 0)
         if enemies_can_be_attacked:
-            prio_targets = enemies_can_be_attacked.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
+            prio_targets = enemies_can_be_attacked.filter\
+                (lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
             if prio_targets:
                 target = prio_targets.closest_to(self.unit)
             target = min(
@@ -223,11 +223,11 @@ class CombatUnit:
                     self.unit.position, target, self.pathing_grid
                 )
 
-        #logger.error(self.in_attack_range_of)
-
         if self.unit.weapon_ready:
             self.unit.attack(target)
-        if not self.unit.weapon_ready and self.in_attack_range_of:
+        if not self.unit.weapon_ready \
+            and not self.bot.pathing.is_position_safe\
+                (self.pathing_grid, self.unit.position):
             self.unit.move(self.safe_spot)
 
     async def disengage(self, retreat_position: Point2) -> None:
