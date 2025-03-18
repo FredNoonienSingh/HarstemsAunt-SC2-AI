@@ -2,7 +2,7 @@
     "benchmarks": [
       {
         "title": "Stalker_vs_STALKER",
-        "positions": ["center", "enemy_spawn", "ramp_top", "ram"],
+        "positions": ["center", "enemy_spawn", "ramp_top", "ramp_bottom"],
         "enemy_units": [
           {
             "unit_type": "UnitTypeId.STALKER",
@@ -22,7 +22,7 @@
       },
       {
         "title": "Stalker_vs_STALKER",
-        "positions": ["center", "enemy_spawn", "ramp_top", "ram"],
+        "positions": ["center", "enemy_spawn", "ramp_top", "ramp_bottom"],
         "enemy_units": [
           {
             "unit_type": "UnitTypeId.STALKER",

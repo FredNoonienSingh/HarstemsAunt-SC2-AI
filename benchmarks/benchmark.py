@@ -43,7 +43,7 @@ class Benchmark:
         if not config:
             logger.warning("could not open config, loading defaults")
             return {
-                    "endless":True,
+                    "endless":False,
                     "save_data":True,
                     "verbose": True,
                     "blind":False,
@@ -216,7 +216,7 @@ class Benchmark:
             self.scenario.record_pathing_grids()
 
             if self.scenario.end_condition():
-                result:Result = await self.scenario.end()
+                result:Result = await self.scenario.end(self.bot.state_dict)
                 await self.end_benchmark(result)
             else:
                 if self.bot.enemy_units:
@@ -263,6 +263,8 @@ class Benchmark:
             return
 
         await self.clear_all()
+        
+        states:Dict = self.bot.state_dict
 
         engagement_title:str = self.current_scenario.get("title")
         comment:str = self.bot.benchmark_message
@@ -280,7 +282,13 @@ class Benchmark:
         self.scenario = Scenario(self.bot,engagement_title,comment,\
             position_name,enemy_position,\
                 own_position,enemy_units,own_units,options,\
-                    max_runtime=self.config['max_runtime'])
+                states.get('score'), \
+                states.get('total_damage_dealt_life'),\
+                states.get('total_damage_dealt_shields'),\
+                states.get('total_damage_taken_life'),\
+                states.get('total_damage_taken_shields'),\
+                    max_runtime=self.config['max_runtime']
+                )
         try:
             await self.scenario.start_benchmark(False)
         # pylint: disable=W0718

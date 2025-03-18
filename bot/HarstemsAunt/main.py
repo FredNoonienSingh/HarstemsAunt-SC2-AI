@@ -1,4 +1,6 @@
 """MainClass of the Bot handling"""
+from typing import Dict
+
 # pylint: disable=W0201
 import os
 import csv
@@ -38,7 +40,6 @@ from .army_group import ArmyGroup
 from .map_sector import MapSector
 from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
-
 
 
 class HarstemsAunt(BotAI):
@@ -132,6 +133,14 @@ class HarstemsAunt(BotAI):
             elif self.enemy_structures:
                 return self.enemy_structures.closest_to(self.start_location).position
         return self.enemy_start_locations[0]
+
+    @property
+    def state_dict(self) -> Dict:
+        """ creates dict -> self.state.score.summary """
+        state_dict:Dict = {}
+        for state in self.state.score.summary:
+            state_dict[state[0]] = state[1]
+        return state_dict
 
     def create_folders(self) -> None:
         """creates folders for data_path, map_data_path, opponent_data_path"""

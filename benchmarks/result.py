@@ -1,4 +1,4 @@
-from typing import Tuple, List, Dict
+from typing import Tuple, List
 from enum import Enum
 from datetime import datetime
 
@@ -31,7 +31,11 @@ class Result:
                  enemy_units: List[Tuple[UnitTypeId, int]],
                  own_units:List[Tuple[UnitTypeId, int]],
                  time_running:float,
-                 taken_damage:float,
+                 score:float,
+                 life_damage_dealt:float,
+                 shield_damage_dealt: float,
+                 life_damage_taken:float,
+                 shield_damage_taken:float,
                  destroyed_enemy_units:int,
                  destroyed_friendly_units:int,
                  observations:List[Tuple],
@@ -49,7 +53,11 @@ class Result:
         self.enemy_units = enemy_units
         self.own_units = own_units
         self.time_running = time_running
-        self.taken_damage = taken_damage
+        self.score = score, 
+        self.life_damage_dealt = life_damage_dealt
+        self.shield_damage_dealt = shield_damage_dealt
+        self.life_damage_taken = life_damage_taken
+        self.shield_damage_taken = shield_damage_taken
         self.destroyed_enemy_units = destroyed_enemy_units
         self.destroyed_friendly_units = destroyed_friendly_units
         self.observations= observations
@@ -81,7 +89,11 @@ class Result:
             "enemy_units": self.enemy_units,
             "own_units": self.own_units,
             "time_running": self.time_running,
-            "taken_damage": self.taken_damage,
+            "score": self.score[0],
+            "life_damage_dealt": self.life_damage_dealt,
+            "shield_damage_dealt":self.shield_damage_dealt,
+            "life_damage_taken":self.life_damage_taken,
+            "shield_damage_taken":self.shield_damage_taken,
             "destroyed_enemy_units": self.destroyed_enemy_units,
             "destroyed_friendly_units": self.destroyed_friendly_units,
             #"observations": self.observations,

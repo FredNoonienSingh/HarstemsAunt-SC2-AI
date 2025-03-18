@@ -26,6 +26,11 @@ class Scenario:
                  enemy_units: List[Tuple[UnitTypeId,int]],
                  own_units: List[Tuple[UnitTypeId,int]],
                  options:Dict,
+                 initial_score:int,
+                 initial_damage_dealt_life: float,
+                 initial_damage_dealt_shield: float,
+                 initial_damage_taken_life:float,
+                 initial_damage_taken_shield:float,
                  engagement_radius:float = 5,
                  max_runtime: float = 30
                  ) ->None:
@@ -38,6 +43,11 @@ class Scenario:
         self.enemy_units = enemy_units
         self.own_units = own_units
         self.options = options
+        self.initial_score = initial_score,
+        self.initial_damage_dealt_life = initial_damage_dealt_life,
+        self.initial_damage_dealt_shield = initial_damage_dealt_shield,
+        self.initial_damage_taken_life = initial_damage_taken_life,
+        self.initial_damage_taken_shield = initial_damage_taken_shield,
         self.engagement_radius = engagement_radius
         self.max_runtime = max_runtime
         self.start_time = self.bot.time
@@ -75,6 +85,29 @@ class Scenario:
              "units": units, 
              "effects": effects}
             )
+
+    def get_state_delta(self, states:Dict) -> Tuple[float, float, float, float, float]:
+        current_score:float = states.get('score')
+        current_damage_dealt_life:float = states.get('total_damage_dealt_life')
+        current_damage_dealt_shield:float = states.get('total_damage_dealt_shields')
+        current_damage_taken_life:float = states.get('total_damage_taken_life')
+        current_damage_taken_shield:float = states.get('total_damage_taken_shields')
+        
+        benchmark_score:float = current_score - self.initial_score[0]
+        benchmark_damage_dealt_life: float = current_damage_dealt_life- \
+            self.initial_damage_dealt_life[0]
+        benchmark_damage_dealt_shield: float = current_damage_dealt_shield -\
+            self.initial_damage_dealt_shield[0]
+        benchmark_damage_taken_life: float = current_damage_taken_life- \
+            self.initial_damage_taken_life[0]
+        benchmark_damage_taken_shield: float = current_damage_taken_shield -\
+            self.initial_damage_taken_shield[0]
+        
+        return (benchmark_score,
+                benchmark_damage_dealt_life,
+                benchmark_damage_dealt_shield,
+                benchmark_damage_taken_life,
+                benchmark_damage_taken_shield)
 
     def record_pathing_grids(self) -> None:
         ground_grid:np.ndarray = self.bot.pathing.ground_grid
@@ -174,7 +207,7 @@ class Scenario:
             return True
         return False
 
-    async def end(self) -> Result:
+    async def end(self, state_dict:Dict) -> Result:
         """returns data on end"""
         time:float = self.bot.time - self.start_time
         bot_version: str = self.bot.version
@@ -182,6 +215,8 @@ class Scenario:
         has_creep = self.options['has_creep']
         enemy_behavior = self.options['enemy_behavior']
         destroyed, lost = self.calculate_destroyed_units()
+        states = self.get_state_delta(state_dict)
+        
         return Result(self.title,
                       bot_version,
                       self.comment,
@@ -192,7 +227,11 @@ class Scenario:
                       self.enemy_units,
                       self.own_units,
                       time,
-                      self.damage_taken,
+                      states[0],
+                      states[1],
+                      states[2],
+                      states[3],
+                      states[4],
                       destroyed,
                       lost,
                       self.observations,
