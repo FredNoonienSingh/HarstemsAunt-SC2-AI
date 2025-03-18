@@ -1,8 +1,9 @@
 {
     "endless":true,
-    "save_data":false,
+    "save_data":true,
     "verbose": true,
     "blind":false,
+    "max_runtime": 30,
     "scenarios":"benchmarks/configs/short_test.json",
-    "output_dir": "benchmarks/data/"
+    "output_dir":"benchmarks/data/"
 }

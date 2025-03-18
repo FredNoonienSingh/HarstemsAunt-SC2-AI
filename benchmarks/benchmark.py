@@ -22,23 +22,35 @@ from .common import WORKER_IDS, TOWNHALL_IDS,logger
 
 ENDLESS: bool = False
 class Benchmark:
+    """Benchmaker for unit micro of BurnySC2 Bots"""
 
     def __init__(self,
                  bot:BotAI,
-                 path_to_config:str="benchmarks/configs/benchmark.json"
+                 path_to_config:str="benchmarks/configs/config.json",
                  ) -> None:
         self.bot:BotAI = bot
         self.path_to_config = path_to_config
         self.current_index:int = 0
-        self.scenario_running = False
-        self.start_time = bot.time
+        self.scenario_running:bool = False
+        self.start_time:int = bot.time
         self.scenario:Scenario = None
         self.enemy_behavior:EnemyBehavior = EnemyBehavior(self.bot)
 
     @cached_property
     def config(self) -> Dict:
         """loads config file and returns the content"""
-        return Utils.read_json(self.path_to_config)
+        config:Dict = Utils.read_json(self.path_to_config)
+        if not config:
+            logger.warning("could not open config, loading defaults")
+            return {
+                    "endless":True,
+                    "save_data":True,
+                    "verbose": True,
+                    "blind":False,
+                    "max_runtime": 3,
+                    "scenarios":"benchmarks/configs/short_test.json",
+                    "output_dir":"benchmarks/data/"}
+        return config
 
     @property
     def record_path(self) -> str:
@@ -60,14 +72,16 @@ class Benchmark:
                 for pos in instruction['positions']:
                     positions:Tuple[Point2] = self.get_position(pos)
                     scenario:Dict = {
-                    'title': instruction['title'], 
+                    'title': instruction['title'],
                     'position_name': pos,
                     'enemy_position': positions[0],
-                    'position': positions[1], 
-                    'enemy_units':[[unit_id.get(unit['unit_type']),unit['unit_count']]\
+                    'position': positions[1],
+                    'enemy_units':\
+                        [[unit_id.get(unit['unit_type']),unit['unit_count']]\
                         for unit in instruction['enemy_units']],
-                    'own_units':[[unit_id.get(unit['unit_type']),unit['unit_count']]\
-                        for unit in instruction['own_units']], 
+                    'own_units':\
+                        [[unit_id.get(unit['unit_type']),unit['unit_count']]\
+                        for unit in instruction['own_units']],
                     'options': instruction['options']
                     }
                     temp.append(scenario)
@@ -206,14 +220,17 @@ class Benchmark:
                 await self.end_benchmark(result)
             else:
                 if self.bot.enemy_units:
-                    if enemy_behavior == "attack_retreat":
-                        await self.enemy_behavior.attack_retreat(self.bot.enemy_units)
-                    if enemy_behavior == "attack_towards":
-                        await self.enemy_behavior.attack_towards(self.bot.enemy_units)
-                    if enemy_behavior == "attack_weakest":
-                        await self.enemy_behavior.attack_weakest(self.bot.enemy_units)
-                    if enemy_behavior == "attack_closest":
-                        await self.enemy_behavior.attack_closest(self.bot.enemy_units)
+                    match enemy_behavior:
+                        case "attack_retreat":
+                            await self.enemy_behavior.attack_retreat(self.bot.enemy_units)
+                        case "attack_towards":
+                            await self.enemy_behavior.attack_towards(self.bot.enemy_units)
+                        case "attack_weakest":
+                            await self.enemy_behavior.attack_weakest(self.bot.enemy_units)
+                        case "attack_closest":
+                            await self.enemy_behavior.attack_closest(self.bot.enemy_units)
+                        case _:
+                            await self.enemy_behavior.attack_towards(self.bot.enemy_units)
 
                 if self.bot.units and self.bot.enemy_units:
                     cam_center: Point2 = self.bot.units.center\
@@ -248,6 +265,7 @@ class Benchmark:
         await self.clear_all()
 
         engagement_title:str = self.current_scenario.get("title")
+        comment:str = self.bot.benchmark_message
         position_name:str=self.current_scenario.get('position_name')
         enemy_position: Point2 = \
             self.current_scenario.get("enemy_position")
@@ -259,9 +277,10 @@ class Benchmark:
             self.current_scenario.get("own_units")
         options:Dict = self.current_scenario.get('options')
 
-        self.scenario = Scenario(self.bot,engagement_title,\
+        self.scenario = Scenario(self.bot,engagement_title,comment,\
             position_name,enemy_position,\
-                own_position,enemy_units,own_units,options)
+                own_position,enemy_units,own_units,options,\
+                    max_runtime=self.config['max_runtime'])
         try:
             await self.scenario.start_benchmark(False)
         # pylint: disable=W0718

@@ -1,11 +1,12 @@
 from typing import Dict
 
 import os
-import ast
 import csv
 import json
 
 import subprocess
+
+from .common import logger
 
 class Utils:
     """Utils for Benchmarking"""
@@ -25,8 +26,10 @@ class Utils:
                 data = json.load(file)
                 return data
         except FileNotFoundError:
+            logger.error(f"can not load {path_to_file} -> FileNotFound")
             return None
         except json.JSONDecodeError:
+            logger.error(f"can not load {path_to_file} -> JSONDecodeError")
             return None
 
     @staticmethod
@@ -69,3 +72,8 @@ class Utils:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
         return None
+
+
+if __name__ == "__main__":
+    path:str = "benchmarks/configs/config.json"
+    print(Utils.read_json(path))

@@ -47,6 +47,11 @@ if __name__ == "__main__":
                     action='store_true')
         parser.add_argument('-t', '--realtime',
                     action='store_true')
+        parser.add_argument('-bm', '--benchmark_message',
+                            type=str,
+                            help="message that will be recorded in Benchmark output",
+                            default=None
+                            )
         parser.add_argument('-r','--race',
                             type=str,
                             help="Name of Enemy Race terran, zerg, protoss",
@@ -73,7 +78,12 @@ if __name__ == "__main__":
         enemy_race: Race = races_dict.get(args.race)
         enemy_strength: Difficulty = difficulty_dict.get(args.difficulty)
 
-        bot = Bot(Race.Protoss, HarstemsAunt(debug=args.debug, benchmark=args.benchmark))
+        bot = Bot(Race.Protoss,\
+            HarstemsAunt(debug=args.debug,\
+                benchmark=args.benchmark,
+                benchmark_message=args.benchmark_message
+                )
+            )
         enemy_bot = Computer(enemy_race, enemy_strength)
 
         if args.map:

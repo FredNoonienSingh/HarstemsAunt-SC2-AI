@@ -22,6 +22,7 @@ class Result:
     """
     def __init__(self,
                  benchmark:str,
+                 comment:str,
                  bot_version:str,
                  benchmarked_map: str,
                  start_position:Tuple[float, float],
@@ -37,6 +38,7 @@ class Result:
                  pathing_grids:List[np.ndarray],
                  end_condition:EndCondition) -> None:
         self.benchmark = benchmark
+        self.comment = comment
         self.bot_version = bot_version
         self.current_git_hash = Utils.get_git_head()
         self.benchmarked_map = benchmarked_map
@@ -69,6 +71,7 @@ class Result:
         return {
             "benchmark": self.benchmark,
             "bot_version": self.bot_version,
+            "comment": self.comment,
             "branch": self.current_git_hash,
             "map": self.benchmarked_map,
             "start_pos": self.start_position,
@@ -81,7 +84,8 @@ class Result:
             "taken_damage": self.taken_damage,
             "destroyed_enemy_units": self.destroyed_enemy_units,
             "destroyed_friendly_units": self.destroyed_friendly_units,
-            "observations": self.observations,
-            "pathing_grids": self.pathing_grids,
+            #"observations": self.observations,
+            #"ground_grid": self.pathing_grids[0],
+            #"air_grid": self.pathing_grids[1],
             "end_condition": self.end_condition,  # Store the name of the enum
         }

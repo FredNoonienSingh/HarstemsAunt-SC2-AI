@@ -50,7 +50,9 @@ class HarstemsAunt(BotAI):
 
     def __init__(self,
                  debug:bool=False,
-                 benchmark:bool=False) -> None:
+                 benchmark:bool=False,
+                 benchmark_message:str=None
+                 ) -> None:
         super().__init__()
         self.name = "HarstemsAunt"
         self.version = "1.1_dev"
@@ -60,6 +62,7 @@ class HarstemsAunt(BotAI):
         self.debug_tools = DebugTools(self)
 
         self.benchmark = benchmark
+        self.benchmark_message = benchmark_message
 
         self.start_time = None
         self.game_step = None
@@ -89,9 +92,7 @@ class HarstemsAunt(BotAI):
     @property
     def greeting(self) -> str:
         """ Message that is supposed to be send at start"""
-        return f"Hey {self.opponent_id}\n \
-            i am {self.name} on Version {self.version}\n\
-                GL HF"
+        return f"Hey {self.opponent_id}\ni am {self.name} on Version {self.version}\nGL HF"
 
     @property
     def match_id(self) -> str:

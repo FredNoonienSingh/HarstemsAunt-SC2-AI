@@ -19,6 +19,7 @@ class Scenario:
     def __init__(self,
                  bot:BotAI,
                  title:str,
+                 comment:str,
                  position_name:str,
                  enemy_position:Union[Point2,Unit],
                  own_position: Union[Point2, Unit],
@@ -30,6 +31,7 @@ class Scenario:
                  ) ->None:
         self.bot = bot
         self.title = title
+        self.comment = comment
         self.position_name = position_name
         self.enemy_position = enemy_position
         self.own_position = own_position
@@ -138,7 +140,7 @@ class Scenario:
         """
         destroyed_enemies:int = 0
         destroyed_units: int = 0
-        
+
         for unit in self.enemy_units:
             unit_type:UnitTypeId = unit[0]
             initial_unit_count:int = unit[1]
@@ -150,7 +152,7 @@ class Scenario:
             initial_unit_count = unit[1]
             current_unit_count = len(self.bot.units(unit_type))
             destroyed_units += (initial_unit_count-current_unit_count)
-        
+
         return (destroyed_enemies, destroyed_units)
 
     def end_condition(self) -> bool:
@@ -158,7 +160,7 @@ class Scenario:
         current_time:int = self.bot.time
         runtime = current_time - self.start_time
         under_runtime:bool = current_time >= self.start_time+self.max_runtime
-        
+
         if not self.bot.enemy_units.filter(lambda unit: unit.type_id not in TOWNHALL_IDS)\
             and runtime > 2:
             self.ending_condition = EndCondition.VICTORY
@@ -173,6 +175,7 @@ class Scenario:
         return False
 
     async def end(self) -> Result:
+        """returns data on end"""
         time:float = self.bot.time - self.start_time
         bot_version: str = self.bot.version
         map_name:str = self.bot.game_info.map_name
@@ -181,6 +184,7 @@ class Scenario:
         destroyed, lost = self.calculate_destroyed_units()
         return Result(self.title,
                       bot_version,
+                      self.comment,
                       map_name,
                       self.position_name,
                       enemy_behavior,
@@ -195,4 +199,3 @@ class Scenario:
                       self.pathing_grids,
                       self.ending_condition
                       )
-
