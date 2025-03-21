@@ -1,3 +1,4 @@
+""" Utils for the Benchmark module"""
 from typing import Dict
 
 import os
