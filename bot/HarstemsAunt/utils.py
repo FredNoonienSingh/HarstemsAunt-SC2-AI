@@ -1,7 +1,6 @@
 """Utility Module"""
 # pylint: disable=C0411
 # pylint: disable=w0611
-from .common import logger
 
 import math
 import numpy as np

@@ -109,7 +109,7 @@ if __name__ == "__main__":
                                  )
         DebugSettings.add_argument('-dc', '--debug_config',
                                    type=str,
-                                   default='bot/debug_config.json'
+                                   default='bot/configs/debug_config.json'
                                    )
 
         BotSettings = parser.add_argument_group("Bot Settings")
@@ -148,17 +148,19 @@ if __name__ == "__main__":
         if args.realtime:
             logger.warning("running in realtime may lead to unexpected behavior and crashes")
 
+
+
+        full_benchmark: bool = args.full_benchmark
+
+        if full_benchmark:
+            run_full_benchmark(args)
+            sys.exit()
+
         enemy_race: Race = races_dict.get(args.race)
         enemy_strength: Difficulty = difficulty_dict.get(args.difficulty)
         ai_build: AIBuild = builds_dict.get(args.ai_build)
 
         debug_params: dict = Utils.read_json(args.debug_config)
-
-        full_benchmark: bool = args.full_benchmark
-        
-        if full_benchmark:
-            run_full_benchmark(args)
-            sys.exit()
 
         bot = Bot(Race.Protoss,\
             HarstemsAunt(debug=args.debug,\

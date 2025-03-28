@@ -5,14 +5,14 @@
         "positions": ["center", "enemy_spawn", "ramp_top", "ramp_bottom"],
         "enemy_units": [
           {
-            "unit_type": "UnitTypeId.STALKER",
+            "unit_type": "UnitTypeId.MARINE",
             "unit_count": 8
           }
         ],
         "own_units": [
           {
             "unit_type": "UnitTypeId.STALKER",
-            "unit_count": 8
+            "unit_count": 4
           }
         ],
         "options": {
@@ -25,14 +25,14 @@
         "positions": ["center", "enemy_spawn", "ramp_top", "ramp_bottom"],
         "enemy_units": [
           {
-            "unit_type": "UnitTypeId.STALKER",
+            "unit_type": "UnitTypeId.MARINE",
             "unit_count": 8
           }
         ],
         "own_units": [
           {
             "unit_type": "UnitTypeId.STALKER",
-            "unit_count": 8
+            "unit_count": 4
           }
         ],
         "options": {
@@ -45,14 +45,14 @@
         "positions": ["center", "enemy_spawn", "ramp_top", "ram"],
         "enemy_units": [
           {
-            "unit_type": "UnitTypeId.STALKER",
+            "unit_type": "UnitTypeId.MARINE",
             "unit_count": 8
           }
         ],
         "own_units": [
           {
             "unit_type": "UnitTypeId.STALKER",
-            "unit_count": 8
+            "unit_count": 4
           }
         ],
         "options": {

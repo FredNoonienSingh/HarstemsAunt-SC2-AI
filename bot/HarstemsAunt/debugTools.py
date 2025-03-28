@@ -1,6 +1,6 @@
 """Module containing a Debug Class"""
 # pylint: disable=C0103
-from typing import Union
+from typing import Union, Tuple
 from math import sin, pi, cos, atan2
 
 # pylint: disable=E0401
@@ -12,11 +12,11 @@ from sc2.position import Point2, Point3, Pointlike
 
 # pylint: disable=E0402
 from .utils import Utils
+from .common import logger
 from .army_group import ArmyGroup
 from .unitmarker import UnitMarker
-from .common import DEBUG_FONT_SIZE,logger
+from .common import DEBUG_FONT_SIZE
 from .combat_unit import CombatUnit, FightStatus
-
 
 class DebugTools:
     """ Collection of debug tools  """
@@ -24,13 +24,17 @@ class DebugTools:
     def __init__(self, bot:BotAI) -> None:
         self.bot = bot
 
-    def debug_pos(self, pos:Union[Point2, Point3, Pointlike], radius:float=.2):
+    def debug_pos(self,
+                  pos:Union[Point2, Point3, Pointlike], \
+                  radius:float=.2, \
+                  color:Tuple[int, int, int]=(255, 255, 0)
+                  ):
         """ Draws sphere a given position
         Args:
             pos (Union[Point2, Point3, Pointlike]): position that will be shown
         """
         pos_3d = Utils.create_3D_point(self.bot,pos)
-        self.bot.client.debug_sphere_out(pos_3d,radius, (255,255,0))
+        self.bot.client.debug_sphere_out(pos_3d,radius, color)
 
     def draw_gameinfo(self):
         """draws the information about the game to the screen"""
@@ -145,6 +149,9 @@ class DebugTools:
             (.25+(iterator*0.27), 0.05), color=(255,255,255), size=DEBUG_FONT_SIZE)
         self.bot.client.debug_text_screen(f"requested:{group.requested_units}",\
             (.25+(iterator*0.27), 0.075), color=(255,255,255), size=DEBUG_FONT_SIZE)
+        if group.region:
+            self.bot.client.debug_text_screen(f"{group.region}"\
+                ,(.25+(iterator*0.27),.1),color=(255,255,255),size=DEBUG_FONT_SIZE)
 
     async def speed_things_up(self) -> None:
         """makes things faster -> just for debugging """
@@ -187,6 +194,32 @@ class DebugTools:
         pos_3D = Utils.create_3D_point(self.bot,Point2((q_x,q_y)))
         self.bot.client.debug_sphere_out(pos_3D ,.25, (0,255,0))
         self.bot.client.debug_line_out(unit.position3d, pos_3D, (0,255,0))
+
+    def draw_line_from_to(self,
+                          origin:Union[Point2, Point3, Unit],
+                          target:Union[Point2, Point3, Unit],
+                          color=(255,0,255)
+                          ):
+        """renders a line from origin to target """
+        if isinstance(origin, Point2):
+            origin_point = Utils.create_3D_point(self.bot, origin)
+        elif isinstance(origin, Unit):
+            origin_point = origin.position3d
+        else:
+            origin_point = origin
+
+        if isinstance(target, Point2):
+            target_point = Utils.create_3D_point(self.bot, target)
+        elif isinstance(target, Unit):
+            target_point = target.position3d
+        else:
+            target_point = target
+        try:
+            self.bot.client.debug_line_out(origin_point, target_point, color)
+        except Exception as e:
+            logger.warning(e)
+            logger.warning(type(origin_point))
+            logger.warning(type(target_point))
 
     def debug_angle_to_target(self, unit:Unit) -> None:
         """ Renders the a debug sphere and a line pointing to

@@ -11,14 +11,16 @@ SECTORS: int = 10
 # was suppossed to control how many units should be in a run-by, could be removed
 RUN_BY_SIZE: int = 4
 DT_TIMING: float = 480
-DEBUG_FONT_SIZE: int = 7
+DEBUG_FONT_SIZE: int = 18
+UNIT_LABEL_FONT_SIZE = 12
 MIN_SHIELD_AMOUNT: float = 0.5
 SPEEDMINING_DISTANCE: float = 1.8
 RANGE_BUFFER: float = 2.5
 
 PROXIMITY:float = 15.0
 
-# This is not used anymore - remove when it is clear that the performance improved without ir
+# This is not used anymore -
+# remove when it is clear that the performance improved without ir
 MAX_MARKER_LIFE: int = 600
 
 UNIT_COMPOSITION: Dict = {

@@ -17,7 +17,8 @@ from .utils import Utils
 from .result import Result
 from .scenario import Scenario
 from .enemy_behavior import EnemyBehavior
-from .common import WORKER_IDS, TOWNHALL_IDS,logger
+from .common import WORKER_IDS, TOWNHALL_IDS, \
+    HEADER_SIZE, ROW_SIZE,logger
 
 
 ENDLESS: bool = False
@@ -147,37 +148,37 @@ class Benchmark:
     def render_overlay(self) -> None:
         """renders overlay"""
         self.bot.client.debug_text_screen(
-                "BENCHMARK", (0.01,.35),(255,255,0),26
+                "BENCHMARK", (0.01,.35),(255,255,0),HEADER_SIZE
             )
         self.bot.client.debug_text_screen(
             f"At Benchmark {self.current_index +1} of {len(self.scenarios)+1}",
-            (0.02, 0.40), (255,255,0), 12
+            (0.02, 0.40), (255,255,0), ROW_SIZE
         )
         if self.scenario:
             self.bot.client.debug_text_screen(
                 f"{self.scenario.title} @ {self.scenario.position_name}",
-                (0.02, 0.42), (255,255,0), 12
+                (0.02, 0.42), (255,255,0), ROW_SIZE
             )
             self.bot.client.debug_text_screen(
                 f"Status: {self.scenario.ending_condition}",
-                (0.02, 0.44), (255,255,0), 12
+                (0.02, 0.44), (255,255,0), ROW_SIZE
             )
             time = round(self.bot.time - self.scenario.start_time, 2)
             self.bot.client.debug_text_screen(
                 f"Running {time} seconds of {self.scenario.max_runtime} seconds",
-                (0.02, 0.46), (255,255,0), 12
+                (0.02, 0.46), (255,255,0), ROW_SIZE
             )
             self.bot.client.debug_text_screen(
                 f"enemy behavior {self.scenario.options.get("enemy_behavior")}",
-                (0.02, 0.48), (255,255,0), 12
+                (0.02, 0.48), (255,255,0), ROW_SIZE
             )
             self.bot.client.debug_text_screen(
                 f"Runs endless: {self.config['endless']}",
-                (0.02, 0.50), (255,255,0), 12
+                (0.02, 0.50), (255,255,0), ROW_SIZE
             )
             self.bot.client.debug_text_screen(
                 f"Saves to File: {self.config['save_data']}",
-                (0.02, 0.52), (255,255,0), 12
+                (0.02, 0.52), (255,255,0), ROW_SIZE
             )
 
     async def prepare_benchmarks(self):

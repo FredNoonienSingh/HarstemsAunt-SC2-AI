@@ -6,6 +6,10 @@ from random import choice # Just for debugging
 
 import numpy as np
 
+# pylint: disable=E0401
+from map_analyzer import Region
+#from map_analyzer.constructs import MDRamp, ChokeArea
+
 # pylint: disable=E0402
 from .utils import Utils
 from .pathing import Pathing
@@ -36,7 +40,7 @@ class GroupTypeId(Enum):
 
 class ArmyGroup:
     """Class representing an Army Group """
-    
+
     def __init__(self, bot:BotAI,name:str, unit_list:list,\
             units_in_transit:list,pathing:Pathing,\
             army_group_id:int=0,group_type:GroupTypeId=GroupTypeId.ARMY
@@ -97,16 +101,20 @@ class ArmyGroup:
     @property
     def reinforcements(self) -> Units:
         """ Reinforcements moving to the Army Position"""
+        if self.bot.benchmark:
+            combat_unit_tags:List = [x.unit_tag for x in self.combat_units]
+            return self.bot.units.filter(lambda u: u.tag not in combat_unit_tags)
         return self.bot.units.filter(lambda unit: unit.tag in self.units_in_transit)
 
     @property
     def position(self) -> Point2:
         """ Center of Army Group """
-        return self.bot.main_base_ramp.top_center
+        if not self.units:
+            return self.bot.main_base_ramp.top_center
+        return self.units.center
 
     @position.setter
     def position(self, value:Point2) -> None:
-        logger.info(f"{value}")
         self._position = value
 
     @property
@@ -152,6 +160,29 @@ class ArmyGroup:
         self.attack_target = new_attack_target
 
     @property
+    def attack_target_region(self) -> Region:
+        """returns the region of the attack target"""
+        if isinstance(self.attack_target, Unit):
+            position = self.attack_target.position
+        else:
+            position = self.attack_target
+        try:
+            return self.bot.map_data.where_all(position)[0]
+        except IndexError as e:
+            logger.error(f"no region therefore {e}")
+            return None 
+
+    @property
+    def region(self) -> Region:
+        """Mapdata Region on which the ArmyGroup is located"""
+        position:Point2 = self.position
+        try:
+            return self.bot.map_data.where_all(position)[0]
+        except IndexError as e:
+            logger.error(f"no region therefore {e}")
+            return None
+
+    @property
     def retreat_pos(self) -> Union[Point2,Point3]:
         """ position to which the group retreats to """
         if self.bot.units(UnitTypeId.NEXUS):
@@ -173,11 +204,10 @@ class ArmyGroup:
             ProductionRequest: None
         """
         buffer:ProductionBuffer = self.bot.macro.production_buffer
-
         if self.bot.debug:
             self.debug_counter += 1
-            
-            # This should also take the unit markers in the area, 
+
+            # This should also take the unit markers in the area,
             # so that the need units can be cleared and refilled once per frame
             unit_types:list = [x for x in self.enemy_unit_types if x not in ATTACK_TARGET_IGNORE]
             # Filtering the types down so that no specific counters for ignored units are created
@@ -243,11 +273,8 @@ class ArmyGroup:
         """ attack command for the army group"""
         # TODO: WHEN ALL UNITS_CLASSES ARE IMPLEMENTED THIS CAN JUST ONE CALL TO HANDLE ATTACKERS
         for combat_unit in self.combat_units:
-            #logger.info(combat_unit)
-            #try:
+
             await combat_unit.engage(attack_target)
-            #except AttributeError as e:
-             #   logger.warning(f"can't attack due to:\n {e} \n{combat_unit.unit_tag}") 
 
     def move(self,target_pos:Union[Point2, Point3, Unit]) -> None:
         """ Moves Army towards position
@@ -266,12 +293,6 @@ class ArmyGroup:
         #    return
 
         for combat_unit in self.combat_units:
-            try:
-                if self.pathing.is_position_safe(combat_unit.pathing_grid, combat_unit.unit.position):
-                    continue
-            except AttributeError as e:
-                if self.bot.debug:
-                    logger.warning(f" Pathing in retreat causes issue: {e}")
             try:
                 if not Utils.in_proximity_to_point(combat_unit.unit, self.retreat_pos,15):
                     await combat_unit.disengage(self.retreat_pos)
@@ -319,25 +340,8 @@ class ArmyGroup:
             combat_unit:Unit = CombatUnit(self.bot, unit.tag, pathing_grid)
             self.combat_units.append(combat_unit)
 
-    async def update(self, target:Union[Point2, Point3, Unit]):
-        """ Method controlling the Behavior of the Group,\
-            shall be called every tick in main.py 
-        """
-        self.target_allocator(self.units, self.attack_target)
-        if not self.requested_units:
-            await self.request_units()
-#        last_status: GroupStatus = self.status
-
-        for combat_unit in self.combat_units:
-            if combat_unit.unit is None:
-                self.combat_units.remove(combat_unit)
-
-        if self.bot.debug:
-            self.bot.debug_tools.debug_pos(self.position, radius=5)
-            for combat_unit in self.combat_units:
-                self.bot.debug_tools.debug_fighting_status(combat_unit)
-
-        # Move Units in Transit to Army_group:
+    def handle_reinforcements(self) -> None:
+        """handling of units currently not in fighting """
         for unit in self.reinforcements:
             grid: np.ndarray = self.pathing.ground_grid
             unit.attack(
@@ -345,24 +349,31 @@ class ArmyGroup:
                     unit.position, self.position, grid
                 )
             )
-
-            proximity:int = 5
             if self.bot.benchmark:
-                proximity:int = 500
-
-            if Utils.in_proximity_to_point(unit, self.position, proximity):
                 self.add_combat_unit(unit)
 
+    async def update(self, target:Union[Point2, Point3, Unit]):
+        """ Method controlling the Behavior of the Group,\
+            shall be called every tick in main.py 
+        """
+        self.target_allocator(self.units, self.attack_target)
+        if not self.requested_units:
+            await self.request_units()
 
-        for townhall in self.bot.townhalls:
-            enemies_in_area = self.bot.enemy_units.closer_than(30, townhall)
-            if enemies_in_area:
-                supply_in_area = sum([self.bot.calculate_supply_cost(unit.type_id) \
-                    for unit in enemies_in_area])
-                if supply_in_area > 10:
-                    self.defend(townhall)
-                    self.status = GroupStatus.DEFENDING
-                    return
+        self.bot.debug_tools.debug_pos(self.retreat_pos, 2)
+
+        for combat_unit in self.combat_units:
+            if not combat_unit.unit:
+                self.combat_units.remove(combat_unit)
+            self.bot.debug_tools.draw_line_from_to(combat_unit.unit, combat_unit.get_retreat_pos())
+
+        if self.bot.debug:
+            self.bot.debug_tools.debug_pos(self.position, radius=3, color=(0,0,255))
+            for combat_unit in self.combat_units:
+                self.bot.debug_tools.debug_fighting_status(combat_unit)
+
+        # Move Units in Transit to Army_group:
+        self.handle_reinforcements()
 
         fighting_combats_units:list = \
             [x for x in self.combat_units if x.fight_status ==FightStatus.FIGHTING]
@@ -370,17 +381,15 @@ class ArmyGroup:
             [x for x in self.combat_units if x not in fighting_combats_units]
 
         fight_status_condition:bool = \
-            len(fighting_combats_units)+ len(fighting_combats_units) \
-                < len(units_requesting_retreat)/25
+            len(fighting_combats_units) < len(units_requesting_retreat)/4
 
-        supply_condition:bool = self.supply <= self.enemy_supply_in_proximity + 12
-        waiting_for_reinforcements:bool = len(self.units) < len(self.units_in_transit)
+        #supply_condition:bool = self.supply+self.supply/10 < self.enemy_supply_in_proximity
+        #waiting_for_reinforcements:bool = len(self.units) > len(self.units_in_transit)
 
-        if Utils.and_or(fight_status_condition, supply_condition) or waiting_for_reinforcements:
+        if fight_status_condition:
             await self.retreat()
             self.status = GroupStatus.RETREATING
             return
 
-        #self.regroup()
         await self.attack(target)
         self.status = GroupStatus.ATTACKING

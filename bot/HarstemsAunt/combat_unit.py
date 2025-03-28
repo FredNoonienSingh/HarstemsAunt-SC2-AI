@@ -8,14 +8,17 @@ import numpy as np
 # from .utils import Utils
 from .unitmarker import UnitMarker
 from .common import MIN_SHIELD_AMOUNT, RANGE_BUFFER,\
-    PROXIMITY,PRIO_ATTACK_TARGET, ALL_STRUCTURES, logger
+    PROXIMITY,PRIO_ATTACK_TARGET, ALL_STRUCTURES,UNIT_LABEL_FONT_SIZE, logger
 
 # pylint: disable=C0411
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.bot_ai import BotAI
 from sc2.position import Point2,Point3
+from sc2.ids.ability_id import AbilityId
 
+# pylint: disable=E0401
+from map_analyzer import MapData, Region
 
 class FightStatus(Enum):
     """Could be named better, will be used to report to the 
@@ -25,10 +28,11 @@ class FightStatus(Enum):
     RETREATING = 2
     DESTROYED = 3
 
-
 class CombatUnit:
     """Base Class for new UnitClass, controls a single unit not all units of a type
         will replace the old UnitClasses
+
+        IMPORTANT CURRENTLY JUST CARES ABOUT GROUND UNITS
     """
     def __init__(self,bot:BotAI ,unit_tag:int,pathing_grid:np.ndarray) -> None:
         # I NEED TO BE REMOVED, WHEN I GET DESTROYED
@@ -122,6 +126,7 @@ class CombatUnit:
     def potential_damage_given(self) -> float:
         """The potential_damage_give property."""
         if self.enemies_in_proximity:
+            # pylint: disable=W0108
             sorted_enemies = self.enemies_in_proximity\
                     .sort(lambda enemy: self.unit.calculate_dps_vs_target(enemy))
             return self.unit.calculate_dps_vs_target(sorted_enemies[0])
@@ -151,10 +156,58 @@ class CombatUnit:
     def fight_status(self) -> FightStatus:
         """Returns the current fighting status of the Unit """
         if self.unit:
-            if self.unit.shield_percentage > MIN_SHIELD_AMOUNT:# or not self.can_survive_fleeing:
+            if self.unit.shield_percentage >= MIN_SHIELD_AMOUNT:# or not self.can_survive_fleeing:
                 return FightStatus.FIGHTING
             return FightStatus.RETREATING
         return FightStatus.DESTROYED
+
+    @property
+    def region(self) -> Region:
+        """returns the current region"""
+        if self.unit:
+            try:
+                position:Point2 = self.unit.position
+                return self.bot.map_data.where_all(position)[0]
+            except IndexError as e:
+                logger.error(e)
+                return None
+        return None
+
+    @property
+    def retreat_region(self) -> Region:
+        """ point that sets the angle for retreating"""
+        map_data:MapData = self.bot.map_data
+        start_location:Point2 = self.bot.start_location
+        start_region:Region = map_data.where_all(start_location)[0]
+
+        connections:List[Region] \
+            = map_data.region_connectivity_all_paths(self.region, start_region)
+
+        if connections:
+            return connections[0]
+        return None
+
+    @property
+    def unit_label(self) -> str:
+        """creates a string for use as unit_label """
+        if self.unit:
+            # This line needs to be so fucking long to be rendered correctly
+            return f"{self.unit.type_id}\nweapon cooldown: {self.unit.weapon_cooldown}\nfight status: {self.fight_status}\nin region: {self.region}\norders: {self.unit.orders}"
+        return None
+
+    # TODO: breaks a bit on Bases !!! -> needs to be fixxed 
+    def get_retreat_pos(self) -> Point2:
+        """returns the positions to retreat to """
+        if not self.retreat_region or self.retreat_region[0] == self.region:
+            if self.enemies_in_proximity:
+                closest_enemy:Unit = self.enemies_in_proximity.closest_to(self.unit)
+                position_away_from_enemy:Point2 = self.unit.position.towards(closest_enemy,-self.unit.distance_to_weapon_ready/2)
+                return self.bot.pathing.find_path_next_point(self.unit.position,position_away_from_enemy,self.pathing_grid)
+            else:
+                return self.bot.start_location
+
+        next_region_center:Point2 = self.retreat_region[0].center
+        return self.bot.pathing.find_path_next_point(self.unit.position,next_region_center,self.pathing_grid)
 
     def cast_influence(self) -> np.ndarray:
         """ returns an np.array to influence the pathing Grid
@@ -168,6 +221,13 @@ class CombatUnit:
         """
         pass
 
+    async def can_cast(self, ability:AbilityId, target: Union[Point2, Point3, Unit]) -> bool:
+        """Checks if the Unit can use a certain ability"""
+        abilities = await self.bot.get_available_abilities(self.unit)
+        return await self.bot.can_cast(self.unit, ability,
+                    target,
+                    cached_abilities_of_unit=abilities)
+
     async def move(self, target_position:Union[Point2, Point3, Unit]) -> None:
         """ moves the unit to a given point """
         self.unit.move(
@@ -178,57 +238,52 @@ class CombatUnit:
 
     async def engage(self, attack_target:Union[Unit, Point2]) -> None:
         """replacement for handle_attackers """
-        # This is just for testing
-        #logger.info(f"{self}\n{self.unit.ground_range}")
         if not self.unit:
-            if self.bot.debug:
-                logger.warning(f"Unit not existing ->")
             return
-        
-        enemies_can_be_attacked = []
-        if self.enemies_in_proximity:
-            enemies_can_be_attacked:Units = self.enemies_in_proximity.filter(lambda unit: self.unit.calculate_damage_vs_target(unit)[0] > 0)
-        if enemies_can_be_attacked:
-            prio_targets = enemies_can_be_attacked.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET)
-            if prio_targets:
-                target = prio_targets.closest_to(self.unit)
-            target = min(
-                enemies_can_be_attacked,
-                key=lambda e: (e.health + e.shield, e.tag),
-            )
 
-        elif self.markers_in_proximity:
-            target:Union[Unit, Point2] = self.markers_in_proximity[0].position
+        if self.unit and self.bot.debug:
+            self.bot.client.debug_text_world(self.unit_label, \
+                self.unit, size=UNIT_LABEL_FONT_SIZE)
 
-        elif not self.markers_in_proximity and not self.enemies_in_proximity\
-            and self.bot.enemy_units:
-                enemies: Units = self.bot.enemy_units
-                prio_targets = enemies.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET and\
-                    self.unit.calculate_damage_vs_target(unit)[0] > 2)
+        try:
+            if self.enemies_in_proximity:
+                prio_targets:Unit = \
+                    self.enemies_in_proximity.filter(lambda unit: unit.type_id in PRIO_ATTACK_TARGET and\
+                        unit.distance_to(self.unit) <= self.unit.ground_range+RANGE_BUFFER
+                        )
                 if prio_targets:
                     target = prio_targets.closest_to(self.unit)
-                target = min(
-                    enemies,
-                    key=lambda e: (e.health + e.shield, e.tag),
-                    )
-        else:
-            target:Union[Unit, Point2] = attack_target
-        if self.bot.debug and self.unit:
-            self.bot.debug_tools.debug_targeting(self, target)
+                else:
+                    target = self.enemies_in_proximity.closest_to(self.unit.position)
 
-        if isinstance(target,Unit):
-            target = target.position
+            else:
+                target:Union[Unit, Point2] = attack_target
+            if self.bot.debug and self.unit:
+                try:
+                    self.bot.debug_tools.debug_targeting(self, target)
+                # pylint: disable=W0718
+                except Exception as e:
+                    logger.warning(f"can't run debug method for {self.unit} due to {e}")
 
-        target:Point2 = self.bot.pathing.find_path_next_point(
-                    self.unit.position, target, self.pathing_grid
-                )
 
-        #logger.error(self.in_attack_range_of)
+            if not self.unit.distance_to(target) <= self.unit.ground_range+RANGE_BUFFER:
+                if isinstance(target,Union[Unit, UnitMarker]):
+                    target = target.position
 
-        if self.unit.weapon_ready:
-            self.unit.attack(target)
-        if not self.unit.weapon_ready and self.in_attack_range_of:
-            self.unit.move(self.safe_spot)
+                move_to:Point2 = self.bot.pathing.find_path_next_point(
+                            self.unit.position, target, self.pathing_grid
+                        )
+                self.unit.move(move_to)
+
+            if self.unit.weapon_cooldown <= 5:
+                self.unit.attack(target)
+
+            else:
+                position:Point2 = self.get_retreat_pos()
+                self.unit.move(position)
+
+        except Exception as e:
+            logger.warning(e)
 
     async def disengage(self, retreat_position: Point2) -> None:
         """ replacement for move to safety
@@ -238,17 +293,10 @@ class CombatUnit:
             if self.bot.debug:
                 logger.warning("Unit not existing")
             return
+        self.bot.client.debug_text_world(self.unit_label,\
+            self.unit, size=UNIT_LABEL_FONT_SIZE)
         move_to: Point2 = self.bot.pathing.find_path_next_point(
             self.unit.position, retreat_position, self.pathing_grid
         )
-        if self.can_survive_fleeing:
-            if self.unit.ground_range > 3 or self.unit.air_range > 3:
-                if self.unit.weapon_ready and self.enemies_in_proximity\
-                    and self.fight_status == FightStatus.FIGHTING:
-                    # IS THERE unit turn rate property ?
-                    self.unit.attack(move_to)
-                    return
-            self.unit.move(move_to)
-            return
-        else:
-            self.unit.attack(self.unit.position)
+        self.unit.move(move_to)
+

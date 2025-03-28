@@ -7,6 +7,10 @@ from __init__ import logger
 
 from sc2.ids.unit_typeid import UnitTypeId
 
+HEADER_SIZE = 26
+ROW_SIZE = 12
+
+
 TOWNHALL_IDS: Set[UnitTypeId] = {
     UnitTypeId.NEXUS,
     UnitTypeId.LAIR,

@@ -61,7 +61,6 @@ class UnitMarker:
         """ Returns the Age of the marker in Frames """
         return iteration - self.created_at
 
-
 class StructureMarker:
     """
     May not be necessary 

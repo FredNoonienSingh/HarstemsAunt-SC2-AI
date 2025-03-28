@@ -3,7 +3,7 @@
     "save_data":true,
     "verbose": true,
     "blind":false,
-    "max_runtime": 30,
+    "max_runtime": 300,
     "scenarios":"benchmarks/configs/short_test.json",
     "output_dir":"benchmarks/data/"
 }

@@ -4,7 +4,6 @@ from typing import Dict
 # pylint: disable=W0201
 import os
 import csv
-import threading
 from typing import List
 from itertools import chain
 from datetime import datetime
@@ -17,37 +16,25 @@ from sc2.data import Race, Result
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.ids.unit_typeid import UnitTypeId
 
-# pylint: disable=E0401
-#from Unit_Classes.Archon import Archons
-from Unit_Classes.Zealots import Zealot
-from Unit_Classes.observer import Observer
-from Unit_Classes.Stalkers import Stalkers
-#from Unit_Classes.Immortal import Immortals
-#from Unit_Classes.HighTemplar import HighTemplar
-#from Unit_Classes.DarkTemplar import DarkTemplar
-
-from benchmarks.benchmark import Benchmark
-
 from map_analyzer import MapData
+from benchmarks.benchmark import Benchmark
 
 # pylint: disable=E0402
 from .macro import Macro
 from .pathing import Pathing
 from .chatter import Chatter
+from .army_group import ArmyGroup
 from .unitmarker import UnitMarker
 from .debugTools import DebugTools
-from .army_group import ArmyGroup
-from .map_sector import MapSector
-from .common import WORKER_IDS,SECTORS,ATTACK_TARGET_IGNORE,logger
+from .anchorPoints import AnchorPoints
+from .common import WORKER_IDS,ATTACK_TARGET_IGNORE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
-
 
 class HarstemsAunt(BotAI):
     """ Main class of the Bot"""
     macro: Macro
     pathing: Pathing
     map_data: MapData
-
 
     def __init__(self,
                  debug:bool=False,
@@ -78,8 +65,8 @@ class HarstemsAunt(BotAI):
         self.enemy_supply:int = 0
         self.last_tick:int = 0
 
-        self.map_sectors:list = []
         self.army_groups:list = []
+        self.anchor_points = AnchorPoints([])
 
     @property
     def iteration(self):
@@ -179,33 +166,12 @@ class HarstemsAunt(BotAI):
         self.start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.create_folders()
 
-        def build_sectors() -> None:
-            """ Builds Map Sector """
-            top_right = Point2((self.game_info.playable_area.right,\
-                self.game_info.playable_area.top))
-            bottom_right = Point2((self.game_info.playable_area.right, 0))
-            top_left = Point2((0, self.game_info.playable_area.top))
-
-            # Create Map_sectors
-            sector_width:int = abs(top_right.x - top_left.x)//SECTORS
-            for x in range(SECTORS):
-                for y in range(SECTORS):
-                    upper_left: Point2 = Point2((0+(sector_width*x), \
-                        0+bottom_right.y+(sector_width*(y))))
-                    lower_right: Point2 = Point2((0+(sector_width*(x+1)),\
-                        0+bottom_right.y+(sector_width*(y+1))))
-                    sector: MapSector = MapSector(self, upper_left, lower_right)
-                    self.map_sectors.append(sector)
-        build_sectors()
-
     async def on_start(self) -> None:
         """ coroutine called on game_start """
         self.pathing = Pathing(self, self.debug)
         self.macro:Macro = Macro(self)
-        self.stalkers:Stalkers = Stalkers(self, self.pathing)
-        self.zealots:Zealot = Zealot(self, self.pathing)
-        self.observers:Observer = Observer(self, self.pathing)
         self.benchmarker:Benchmark = Benchmark(self)
+        self.map_data = MapData(self)
 
         self.expand_locs = list(self.expansion_locations)
         self.client.game_step = self.game_step
@@ -213,14 +179,21 @@ class HarstemsAunt(BotAI):
 
         await Chatter.greeting(self)
 
+        self.anchor_points.create_anchor_points(self)
+
         if self.benchmark:
             await self.benchmarker.prepare_benchmarks()
 
         if self.debug:
             await self.client.debug_upgrade()
+            map_name:str = self.game_info.map_name
+            file_path:str = f"MapPlots/{map_name}.png"
+            if not os.path.isfile(file_path):
+                self.map_data.plot_map()
+                self.map_data.save(filename=f"MapPlots/{map_name}")
 
-        for sector in self.map_sectors:
-            sector.build_sector()
+        
+
         split_workers(self)
 
         initial_army_group:ArmyGroup = ArmyGroup(self,"HA_alpha",[],[],pathing=self.pathing)
@@ -234,24 +207,19 @@ class HarstemsAunt(BotAI):
         await self.update_states(iteration)
 
         if self.debug:
+            self.anchor_points.draw_points(self)
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
             self.debug_tools.debug_build_pos()
             for unit in self.units:
                 self.debug_tools.debug_unit_direction(unit)
                 self.debug_tools.debug_angle_to_target(unit)
+            for blocker in self.map_data.vision_blockers:
+                self.debug_tools.debug_pos(blocker)
 
         if self.benchmark:
             await self.benchmarker()
             return
-
-        threads: list = []
-        for i, sector in enumerate(self.map_sectors):
-            t_0 = threading.Thread(target=sector.update())
-            threads.append(t_0)
-            t_0.start()
-        for t in threads:
-            t.join()
 
         Chatter.build_order_comments(self)
 
@@ -383,7 +351,7 @@ class HarstemsAunt(BotAI):
             if unit_tag in group.unit_list:
                 group.remove_unit(unit_tag)
                 break
-        
+
         if unit_tag in self.seen_enemies:
             self.seen_enemies.remove(unit_tag)
 
@@ -421,5 +389,4 @@ class HarstemsAunt(BotAI):
             with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
                 csv_writer = csv.writer(csvfile)
                 csv_writer.writerow(data)
-
         await self.client.leave()
