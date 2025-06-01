@@ -149,9 +149,11 @@ class DebugTools:
             (.25+(iterator*0.27), 0.05), color=(255,255,255), size=DEBUG_FONT_SIZE)
         self.bot.client.debug_text_screen(f"requested:{group.requested_units}",\
             (.25+(iterator*0.27), 0.075), color=(255,255,255), size=DEBUG_FONT_SIZE)
+        self.bot.client.debug_text_screen(f"enemies in proximity {group.enemies_in_proximity}",\
+            (.25+(iterator*0.27), .1), color=(255,255,255), size=DEBUG_FONT_SIZE)
         if group.region:
             self.bot.client.debug_text_screen(f"{group.region}"\
-                ,(.25+(iterator*0.27),.1),color=(255,255,255),size=DEBUG_FONT_SIZE)
+                ,(.25+(iterator*0.27),.125),color=(255,255,255),size=DEBUG_FONT_SIZE)
 
     async def speed_things_up(self) -> None:
         """makes things faster -> just for debugging """
@@ -218,8 +220,6 @@ class DebugTools:
             self.bot.client.debug_line_out(origin_point, target_point, color)
         except Exception as e:
             logger.warning(e)
-            logger.warning(type(origin_point))
-            logger.warning(type(target_point))
 
     def debug_angle_to_target(self, unit:Unit) -> None:
         """ Renders the a debug sphere and a line pointing to

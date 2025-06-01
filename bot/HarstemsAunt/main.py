@@ -23,10 +23,10 @@ from benchmarks.benchmark import Benchmark
 from .macro import Macro
 from .pathing import Pathing
 from .chatter import Chatter
+from .enemy_unit import EnemyUnit
 from .army_group import ArmyGroup
 from .unitmarker import UnitMarker
 from .debugTools import DebugTools
-from .anchorPoints import AnchorPoints
 from .common import WORKER_IDS,ATTACK_TARGET_IGNORE,logger
 from .speedmining import get_speedmining_positions,split_workers, micro_worker
 
@@ -46,6 +46,9 @@ class HarstemsAunt(BotAI):
         self.version = "1.1_dev"
         self.race:Race = Race.Protoss
 
+        self.raw_affects_selection = True
+        self.enable_feature_layer = True
+
         self.debug:bool = debug
         self.debug_tools = DebugTools(self)
 
@@ -61,12 +64,12 @@ class HarstemsAunt(BotAI):
 
         self.seen_enemies:set = set() # this is typed as set but implemented as a list -> should be fixed
         self.enemies_lt_list: list = []
+        self.enemies: List[EnemyUnit] = []
         self.unitmarkers: List[UnitMarker] = []
         self.enemy_supply:int = 0
         self.last_tick:int = 0
 
         self.army_groups:list = []
-        self.anchor_points = AnchorPoints([])
 
     @property
     def iteration(self):
@@ -179,8 +182,6 @@ class HarstemsAunt(BotAI):
 
         await Chatter.greeting(self)
 
-        self.anchor_points.create_anchor_points(self)
-
         if self.benchmark:
             await self.benchmarker.prepare_benchmarks()
 
@@ -191,8 +192,6 @@ class HarstemsAunt(BotAI):
             if not os.path.isfile(file_path):
                 self.map_data.plot_map()
                 self.map_data.save(filename=f"MapPlots/{map_name}")
-
-        
 
         split_workers(self)
 
@@ -207,7 +206,8 @@ class HarstemsAunt(BotAI):
         await self.update_states(iteration)
 
         if self.debug:
-            self.anchor_points.draw_points(self)
+            for marker in self.unitmarkers:
+                self.debug_tools.draw_unit_marker(marker)
             self.debug_tools.draw_vespene_pos()
             self.debug_tools.draw_step_time_label()
             self.debug_tools.debug_build_pos()
@@ -216,6 +216,19 @@ class HarstemsAunt(BotAI):
                 self.debug_tools.debug_angle_to_target(unit)
             for blocker in self.map_data.vision_blockers:
                 self.debug_tools.debug_pos(blocker)
+
+        enemy_tags:List = [x.tag for x in self.enemies]
+        for tag in [x.tag for x in self.enemy_units if not x.tag in enemy_tags]:
+            #if not tag in [x.tag for x in self.enemies]:
+            enemy: EnemyUnit = EnemyUnit(self, tag)
+            logger.info(f"{enemy} created")
+            self.enemies.append(enemy)
+
+        for enemy in self.enemies:
+            if not enemy.unit:
+                self.enemies.remove(enemy)
+            else:
+                enemy.update()
 
         if self.benchmark:
             await self.benchmarker()
