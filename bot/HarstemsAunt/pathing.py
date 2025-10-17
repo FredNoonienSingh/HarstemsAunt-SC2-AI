@@ -54,7 +54,8 @@ class Pathing:
         for marker in self.bot.unitmarkers:
             self._add_unit_influence(marker)
 
-        # self.add_positional_costs()
+        if self.bot.debug:
+            self.map_data.draw_influence_in_game(self.air_grid, lower_threshold=1)
 
     def find_closest_safe_spot(
             self, from_pos: Point2, grid: np.ndarray, radius: int = 15
@@ -253,5 +254,3 @@ class Pathing:
         ax.set_title('Influence Map')
         plt.plot()
         plt.savefig(f"{self.bot.data_path}/influence_{iteration}.png")
-
-

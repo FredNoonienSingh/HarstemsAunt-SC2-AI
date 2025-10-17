@@ -6,6 +6,7 @@ from typing import Dict, Set, List
 from __init__ import logger
 from sc2.data import Race
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.data import Difficulty,AIBuild, Race
 
 SECTORS: int = 10
 # was suppossed to control how many units should be in a run-by, could be removed
@@ -53,6 +54,35 @@ MAP_LIST: list = [
     "InterloperAIE",
     "ThunderbirdAIE"
 ]
+
+RACES_DICT: dict = {
+    'terran': Race.Terran, 
+    'zerg': Race.Zerg,
+    'protoss': Race.Protoss,
+    'random': Race.Random
+}
+
+BUILDS_DICT:dict = {
+        'random':AIBuild.RandomBuild,
+        'rush':AIBuild.Rush,
+        'timing':AIBuild.Timing,
+        'power':AIBuild.Power,
+        'macro':AIBuild.Macro,
+        'air':AIBuild.Air
+}
+
+DIFFICULTY_DICT:dict = {
+        'very_easy':Difficulty.VeryEasy,
+        'easy':Difficulty.Easy,
+        'medium':Difficulty.Medium,
+        'medium_hard':Difficulty.MediumHard,
+        'hard':Difficulty.Hard,
+        'harder':Difficulty.Harder,
+        'very_hard':Difficulty.VeryHard,
+        'cheat_0':Difficulty.CheatVision,
+        'cheat_1':Difficulty.CheatMoney,
+        'cheat_2':Difficulty.CheatInsane,
+}
 
 TOWNHALL_IDS: Set[UnitTypeId] = {
     UnitTypeId.NEXUS,

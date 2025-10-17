@@ -260,6 +260,15 @@ class Utils:
     @staticmethod
     def create_3D_point(bot:BotAI, point:Point2) -> Point3:
         """creates Point3 from Point2"""
-        z = bot.get_terrain_z_height(point)+1
+        z = bot.get_terrain_z_height(point)+.01
         x,y = point.x, point.y
         return Point3((x,y,z))
+
+    @staticmethod
+    def angle_between_points(p_1:Point2, p_2:Point2) -> float:
+        """ calculates the $\theta$ between two points """
+        delta_x:float = p_1.x -p_2.x
+        delta_y:float = p_1.y - p_2.y
+        theta:float = math.atan2(delta_x, delta_y)
+
+        return theta

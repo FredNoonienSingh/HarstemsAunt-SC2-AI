@@ -13,46 +13,18 @@ from sc2.main import run_game
 from sc2.player import Bot, Computer
 from sc2.data import Difficulty,AIBuild, Race
 from HarstemsAunt.main import HarstemsAunt
-from HarstemsAunt.common import MAP_LIST, logger
+from HarstemsAunt.common import MAP_LIST,RACES_DICT, BUILDS_DICT, DIFFICULTY_DICT, logger
 
 from benchmarks.utils import Utils
 
 parser = argparse.ArgumentParser(prog='Harstems Aunt')
 
-races_dict: dict = {
-    'terran': Race.Terran, 
-    'zerg': Race.Zerg,
-    'protoss': Race.Protoss,
-    'random': Race.Random
-}
-
-builds_dict:dict = {
-        'random':AIBuild.RandomBuild,
-        'rush':AIBuild.Rush,
-        'timing':AIBuild.Timing,
-        'power':AIBuild.Power,
-        'macro':AIBuild.Macro,
-        'air':AIBuild.Air
-}
-
-difficulty_dict:dict = {
-        'very_easy':Difficulty.VeryEasy,
-        'easy':Difficulty.Easy,
-        'medium':Difficulty.Medium,
-        'medium_hard':Difficulty.MediumHard,
-        'hard':Difficulty.Hard,
-        'harder':Difficulty.Harder,
-        'very_hard':Difficulty.VeryHard,
-        'cheat_0':Difficulty.CheatVision,
-        'cheat_1':Difficulty.CheatMoney,
-        'cheat_2':Difficulty.CheatInsane,
-}
 
 def run_full_benchmark(arguments:dict) -> None:
     """This will run a big benchmark before deploying"""
     logger.info("Benchmarking against AI_Players")
     bot = Bot(Race.Protoss,HarstemsAunt(debug=False,benchmark=False))
-    for race in races_dict.values():
+    for race in RACES_DICT.values():
         for difficulty in [Difficulty.VeryHard,Difficulty.CheatVision,Difficulty.CheatMoney,Difficulty.CheatInsane]:
             enemy_bot = Computer(race, difficulty)
             arena = maps.get(choice(MAP_LIST))
@@ -148,17 +120,15 @@ if __name__ == "__main__":
         if args.realtime:
             logger.warning("running in realtime may lead to unexpected behavior and crashes")
 
-
-
         full_benchmark: bool = args.full_benchmark
 
         if full_benchmark:
             run_full_benchmark(args)
             sys.exit()
 
-        enemy_race: Race = races_dict.get(args.race)
-        enemy_strength: Difficulty = difficulty_dict.get(args.difficulty)
-        ai_build: AIBuild = builds_dict.get(args.ai_build)
+        enemy_race: Race = RACES_DICT.get(args.race)
+        enemy_strength: Difficulty = DIFFICULTY_DICT.get(args.difficulty)
+        ai_build: AIBuild = BUILDS_DICT.get(args.ai_build)
 
         debug_params: dict = Utils.read_json(args.debug_config)
 

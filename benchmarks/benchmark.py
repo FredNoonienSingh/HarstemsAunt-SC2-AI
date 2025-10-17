@@ -263,8 +263,9 @@ class Benchmark:
         if not self.current_scenario:
             return
 
+        await self.bot._advance_steps(50)
         await self.clear_all()
-        
+        self.bot.unitmarkers.clear()
         states:Dict = self.bot.state_dict
 
         engagement_title:str = self.current_scenario.get("title")

@@ -5,19 +5,23 @@
         "positions": ["center", "enemy_spawn", "ramp_top", "ramp_bottom"],
         "enemy_units": [
           {
-            "unit_type": "UnitTypeId.MARINE",
-            "unit_count": 8
+            "unit_type": "UnitTypeId.STALKER",
+            "unit_count": 6
           }
         ],
         "own_units": [
           {
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          },
+          {
             "unit_type": "UnitTypeId.STALKER",
-            "unit_count": 4
+            "unit_count": 5
           }
         ],
         "options": {
           "has_creep": false,
-          "enemy_behavior": "attack_closest"
+          "enemy_behavior": "attack_towards"
         }
       },
       {
@@ -31,33 +35,17 @@
         ],
         "own_units": [
           {
-            "unit_type": "UnitTypeId.STALKER",
-            "unit_count": 4
+            "unit_type": "UnitTypeId.WARPPRISM",
+            "unit_count": 1
+          },
+          {
+            "unit_type": "UnitTypeId.COLOSSUS",
+            "unit_count": 1
           }
         ],
         "options": {
           "has_creep": false,
           "enemy_behavior": "attack_towards"
-        }
-      },
-      {
-        "title": "Stalker_vs_STALKER",
-        "positions": ["center", "enemy_spawn", "ramp_top", "ram"],
-        "enemy_units": [
-          {
-            "unit_type": "UnitTypeId.MARINE",
-            "unit_count": 8
-          }
-        ],
-        "own_units": [
-          {
-            "unit_type": "UnitTypeId.STALKER",
-            "unit_count": 4
-          }
-        ],
-        "options": {
-          "has_creep": false,
-          "enemy_behavior": "attack_weakest"
         }
       }
     ]
