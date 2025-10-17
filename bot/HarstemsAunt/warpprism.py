@@ -18,7 +18,9 @@ from s2clientprotocol import sc2api_pb2 as sc_pb
 # pylint: disable=E0402
 from .utils import Utils
 from .common import logger
+from .combat_unit import FightStatus
 from .combat_flyer import CombatFlyer
+
 
 
 PRIORY_TARGETS: List[UnitTypeId] = [
@@ -62,7 +64,7 @@ class Warpprism(CombatFlyer):
             if units:
                 if self.enemies_in_proximity:
                     return units.closest_to(self.enemies_in_proximity.center)
-                else: 
+                else:
                     return None
 
     def pick_up(self, target:Unit) -> None:
@@ -84,8 +86,6 @@ class Warpprism(CombatFlyer):
         else:
             unload_unit_tag = unload_unit
 
-        # TODO Change unit.py passengers to return a List[Unit] instead of Set[Unit] ? 
-        # Then I don't have to loop over '._proto'
         unload_unit_index = next(
             (index for index, unit in enumerate(list(self.unit.passengers)) \
                 if unit.tag == unload_unit_tag),
@@ -121,13 +121,11 @@ class Warpprism(CombatFlyer):
 
         unload_tag = unload_target.tag if isinstance(unload_target, Unit) else unload_target
 
-        # Get index of the passenger inside the transporter
         unload_index = next(
             (i for i, passenger in enumerate(transporter._proto.passengers) \
                 if passenger.tag == unload_tag),
             None,
         )
-        print("THIS GETS CALLED and executed ...")
         if unload_index is None:
             self.bot._client.debug_text_screen\
                 (f"Unit {unload_tag} not found in {transporter.tag}", pos=(0.1, 0.1), size=16)

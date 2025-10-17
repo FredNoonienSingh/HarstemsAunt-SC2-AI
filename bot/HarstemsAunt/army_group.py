@@ -190,7 +190,7 @@ class ArmyGroup:
             return self.bot.map_data.where_all(position)[0]
         except IndexError as e:
             logger.error(f"no region therefore {e}")
-            return None 
+            return None
 
     @property
     def region(self) -> Region:
@@ -240,19 +240,19 @@ class ArmyGroup:
             if not self.debug_counter%250:
                 if self.needed_units:
                     unit:UnitTypeId = choice(list(self.needed_units))
-                    #await self.bot.client.debug_create_unit([[unit, 1, \
-                    #    self.position.towards(self.bot.game_info.map_center), 1]])
-                    
-                    #enemy_unit:UnitTypeId = choice(COUNTER_DICT.get(unit, []))
+                    await self.bot.client.debug_create_unit([[unit, 1, \
+                        self.position.towards(self.bot.game_info.map_center), 1]])
 
-                    #await self.bot.client.debug_create_unit([[enemy_unit, 1, \
-                    #    self.position.towards(self.bot.enemy_start_locations[0]), 2]])
+                    enemy_unit:UnitTypeId = choice(COUNTER_DICT.get(unit, []))
 
-        >1! for struct in buffer.gateways:
+                    await self.bot.client.debug_create_unit([[enemy_unit, 1, \
+                        self.position.towards(self.bot.enemy_start_locations[0]), 2]])
+
+        for struct in buffer.gateways:
             request:ProductionRequest = \
                 ProductionRequest(UnitTypeId.STALKER, self.id, struct.tag)
             buffer.add_request(request)
-        
+
         for struct in buffer.robofacilities:
             request:ProductionRequest = \
                 ProductionRequest(UnitTypeId.IMMORTAL, self.id, struct.tag)
@@ -369,7 +369,7 @@ class ArmyGroup:
         if unit.is_flying:
             pathing_grid = self.pathing.air_grid
             if unit.type_id in [UnitTypeId.WARPPRISM, UnitTypeId.WARPPRISMPHASING]:
-                combat_unit:Warpprism = Warpprism(self.bot, unit.tag, pathing_grid)
+                combat_unit:Warpprism = Warpprism(self.bot, unit.tag, self.pathing.ground_grid)
                 self.combat_units.append(combat_unit)
                 return
             combat_unit:CombatFlyer = CombatFlyer(self.bot, unit.tag, pathing_grid)

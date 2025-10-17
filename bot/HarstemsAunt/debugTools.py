@@ -77,12 +77,11 @@ class DebugTools:
         """
         terrain_height = self.bot.get_terrain_z_height(unit)+1
         origin:Unit = unit
-        num_points:int = 16  # Number of points on the circle
-        angle_increment = 2*pi / num_points  # Angle increment between points
+        num_points:int = 16
+        angle_increment = 2*pi / num_points
         radius:float = 4
-        target_x:float = origin.position_tuple[0] # X-coordinate of the target point
-        target_y:float = origin.position_tuple[1]  # Y-coordinate of the target point
-        # Iterate through a range of angles
+        target_x:float = origin.position_tuple[0]
+        target_y:float = origin.position_tuple[1]
         for i in range(num_points):
             angle:float = i * angle_increment
             x:float = target_x + radius * cos(angle)
@@ -130,7 +129,6 @@ class DebugTools:
         units:list = units_dict.get(self.bot.enemy_race)
 
         await self.bot.client.debug_tech_tree()
-        #await self.bot.client.debug_show_map()
         await self.bot.client.debug_create_unit(\
             [[UnitTypeId.STALKER, 5, self.bot.start_location, 1]])
         await self.bot.client.debug_create_unit(\
@@ -260,3 +258,4 @@ class DebugTools:
         if combat_unit.unit:
             color:tuple = (0,0,255) if combat_unit.fight_status == FightStatus.RETREATING else (0,255,0)
             self.bot.client.debug_sphere_out(combat_unit.position3d,.75, color)
+  

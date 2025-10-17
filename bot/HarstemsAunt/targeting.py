@@ -2,7 +2,7 @@
 
 import numpy as np
 from math import pi
-from typing import Union, List, Dict, Set
+from typing import List, Dict, Set
 
 # pylint: disable=E0402
 from .utils import Utils
