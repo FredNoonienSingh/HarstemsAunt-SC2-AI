@@ -18,6 +18,8 @@ MIN_SHIELD_AMOUNT: float = 0.5
 SPEEDMINING_DISTANCE: float = 1.8
 RANGE_BUFFER: float = 2.5
 
+TIME_MULTIPLIER: float = 1.4
+
 PROXIMITY:float = 15.0
 
 # This is not used anymore -
@@ -484,4 +486,21 @@ INFLUENCE_COSTS: Dict[UnitTypeId, Dict] = {
         "AirRange": 5.5,
         "GroundRange": 5.5,
     },
+}
+
+TRASH_UNITS: Set[UnitTypeId] = {
+    UnitTypeId.INTERCEPTOR,
+    UnitTypeId.AUTOTURRET,
+    UnitTypeId.BROODLING,
+    UnitTypeId.BROODLINGESCORT,
+    UnitTypeId.LOCUSTMP,
+    UnitTypeId.LOCUSTMPFLYING,
+    UnitTypeId.LOCUSTMPPRECURSOR
+}
+
+DROPSHIPS: Set[UnitTypeId] = {
+    UnitTypeId.MEDIVAC,
+    UnitTypeId.WARPPRISM,
+    UnitTypeId.WARPPRISMPHASING,
+    UnitTypeId.OVERLORDTRANSPORT,
 }

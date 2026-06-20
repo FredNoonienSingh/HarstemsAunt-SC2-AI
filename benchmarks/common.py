@@ -27,3 +27,4 @@ WORKER_IDS: Set[UnitTypeId] = {
     UnitTypeId.DRONEBURROWED,
     UnitTypeId.SCV
 }
+

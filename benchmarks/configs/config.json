@@ -1,9 +1,9 @@
 {
     "endless":true,
-    "save_data":true,
+    "save_data":false,
     "verbose": true,
     "blind":false,
     "max_runtime": 30,
-    "scenarios":"benchmarks/configs/short_test.json",
+    "scenarios":"benchmarks/configs/stalker.json",
     "output_dir":"benchmarks/data/"
 }

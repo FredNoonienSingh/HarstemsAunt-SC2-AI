@@ -20,15 +20,15 @@ from map_analyzer import MapData
 from benchmarks.benchmark import Benchmark
 
 # pylint: disable=E0402
-from .macro import Macro
-from .pathing import Pathing
-from .chatter import Chatter
-from .enemy_unit import EnemyUnit
-from .army_group import ArmyGroup
-from .unitmarker import UnitMarker
-from .debugTools import DebugTools
+from .economy.macro import Macro
+from .pathing.pathing import Pathing
+from .misc.chatter import Chatter
+from .Army.Units.enemy_unit import EnemyUnit
+from .Army.army_group import ArmyGroup
+from .misc.unitmarker import UnitMarker
+from .misc.debugTools import DebugTools
 from .common import WORKER_IDS,ATTACK_TARGET_IGNORE,logger
-from .speedmining import get_speedmining_positions,split_workers, micro_worker
+from .economy.speedmining import get_speedmining_positions,split_workers, micro_worker
 
 class HarstemsAunt(BotAI):
     """ Main class of the Bot"""

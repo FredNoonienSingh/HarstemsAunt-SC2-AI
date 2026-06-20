@@ -206,7 +206,7 @@ class Utils:
 
     @staticmethod
     def unit_in_proximity(bot:BotAI, unit_type:UnitTypeId, unit:Unit, max_distance:float) ->bool:
-        """ Checks if the a specific unit is in proyimity to a Unit of Unit type
+        """ Checks if the a specific unit is in proximity to a Unit of Unit type
 
         Args:
             bot (BotAI): Instance of Bot
@@ -258,7 +258,7 @@ class Utils:
         return 1/(1+ np.exp(-x))
 
     @staticmethod
-    def create_3D_point(bot:BotAI, point:Point2) -> Point3:
+    def create_3d_point(bot:BotAI, point:Point2) -> Point3:
         """creates Point3 from Point2"""
         z = bot.get_terrain_z_height(point)+.01
         x,y = point.x, point.y

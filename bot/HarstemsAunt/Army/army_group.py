@@ -1,0 +1,439 @@
+""" Army Group class"""
+from __future__ import annotations
+
+from typing import Union, Set, Dict, List
+from random import choice # Just for debugging
+
+import numpy as np
+
+# pylint: disable=E0401
+from map_analyzer import Region
+#from map_analyzer.constructs import MDRamp, ChokeArea
+
+# pylint: disable=E0402
+from bot.HarstemsAunt.utils import Utils
+from bot.HarstemsAunt.enums.fight_status import FightStatus
+from bot.HarstemsAunt.pathing.pathing import Pathing
+from bot.HarstemsAunt.misc.unitmarker import UnitMarker
+from bot.HarstemsAunt.Army.Units.combat_flyer import CombatFlyer
+from bot.HarstemsAunt.Army.Targeting.targeting import TargetAllocator
+from bot.HarstemsAunt.Army.Units.combat_unit import CombatUnit
+from bot.HarstemsAunt.economy.production_buffer import ProductionBuffer,ProductionRequest
+from bot.HarstemsAunt.common import WORKER_IDS,COUNTER_DICT, ATTACK_TARGET_IGNORE, logger
+from bot.HarstemsAunt.enums.GroupStatus import GroupStatus
+from bot.HarstemsAunt.enums.GroupTypeId import GroupTypeId
+from bot.HarstemsAunt.Army.Units.Ground.zealot import Zealot
+from bot.HarstemsAunt.Army.Units.Ground.stalker import Stalker
+from bot.HarstemsAunt.Army.Units.Ground.immortal import Immortal
+from bot.HarstemsAunt.Army.Units.Air.warpprism import Warpprism
+
+# pylint: disable=C0411
+from sc2.unit import Unit
+from sc2.units import Units
+from sc2.bot_ai import BotAI
+from sc2.position import Point2, Point3
+from sc2.ids.unit_typeid import UnitTypeId
+
+class ArmyGroup:
+    """Class representing an Army Group """
+
+    def __init__(self, bot:BotAI,name:str, unit_list:list,\
+            units_in_transit:list,pathing:Pathing,\
+            army_group_id:int=0,group_type:GroupTypeId=GroupTypeId.ARMY
+            ):
+        self.bot:BotAI = bot
+        self.name = name
+        self.id = army_group_id
+        self.needed_units:set = set()
+        self.requested_units:list = []
+        self.unit_list:list = unit_list
+        self.units_in_transit:list = units_in_transit
+        self.pathing:Pathing = pathing
+        self.status:GroupStatus = GroupStatus.ATTACKING
+        self.group_type_id = group_type
+        self.debug_counter:int = 0
+        self.combat_units:List[CombatUnit] = []
+        self.target_allocator = TargetAllocator(self.bot, self.combat_units, self.enemies_in_proximity)
+ 
+    @property
+    def units(self) -> Units:
+        """ Units Object containing the all units in Group """
+        return self.bot.units.filter(lambda unit: unit.tag in self.unit_list)
+
+    @property
+    def supply(self) -> int:
+        """ Supply Cost of Units in Group """
+        if self.units:
+            return sum([self.bot.calculate_supply_cost(unit.type_id)\
+                for unit in self.units if unit.can_attack])
+        return 0
+
+    @property
+    def enemy_supply_in_proximity(self) -> int:
+        """Enemy Supply in the Area"""
+        enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
+            .filter(lambda unit: unit.type_id not in WORKER_IDS)
+        enemy_marker = [marker for marker in self.bot.unitmarkers \
+                if marker.position.distance_to(self.position)<25]
+        if Utils.and_or(enemy_marker, enemy_units):
+            return sum([self.bot.calculate_supply_cost(unit.type_id) for unit in list(enemy_units)+enemy_marker])
+        return 0
+
+    @property
+    def supply_delta(self) -> int:
+        """ Difference between own and enemy supply"""
+        return self.supply-self.enemy_supply_in_proximity
+
+    @property
+    def enemy_unit_types(self) -> Set[UnitTypeId]:
+        """ UnitTypes of enemies in the Area of ArmyGroup """
+        enemy_units = self.bot.enemy_units.closer_than(25, self.position)\
+            .filter(lambda unit: unit.type_id not in WORKER_IDS)
+ 
+        types:Set = {unit.type_id for unit in enemy_units}
+        return types
+
+    @property
+    def reinforcements(self) -> Units:
+        """ Reinforcements moving to the Army Position"""
+        if self.bot.benchmark:
+            combat_unit_tags:List = [x.unit_tag for x in self.combat_units]
+            return self.bot.units.filter(lambda u: u.tag not in combat_unit_tags)
+        return self.bot.units.filter(lambda unit: unit.tag in self.units_in_transit)
+
+    @property
+    def position(self) -> Point2:
+        """ Center of Army Group """
+        if not self.units:
+            return self.bot.main_base_ramp.top_center
+        return self.units.center
+
+    @position.setter
+    def position(self, value:Point2) -> None:
+        self._position = value
+
+    @property
+    def ground_dps(self) -> float:
+        """Sum of ground_dps of Units in Group"""
+        return sum([unit.ground_dps for unit in self.units])
+
+    @property
+    def air_dps(self) -> float:
+        """Sum of air_dps of Units in Group"""
+        return sum([unit.air_dps for unit in self.units])
+
+    @property
+    def average_health_percentage(self) -> float:
+        """Sum of ground_dps of Units in Group"""
+        if not self.units:
+            return 0
+        return 1/len(self.units)*sum([unit.health_percentage for unit in self.units])
+
+    @property
+    def average_shield_percentage(self) -> float:
+        """average Shield Percentage"""
+        if not self.units:
+            return 0
+        return 1/len(self.units)*sum([unit.shield_percentage for unit in self.units])
+
+    @property
+    def has_detection(self) -> float:
+        """Returns if the the Army Group contains a detector"""
+        if self.units.filter(lambda unit: unit.is_detector):
+            return True
+        return False
+
+    @property
+    def enemies_in_proximity(self) -> Set[Unit, UnitMarker]:
+        """Creates a Set of all Unit that are in proximity to the combat units in the group"""
+        enemies = set()
+        if self.combat_units:
+            for combat_unit in self.combat_units:
+                if combat_unit.enemies_in_proximity:
+                    for enemy in combat_unit.enemies_in_proximity:
+                        enemies.add(enemy)
+                if combat_unit.markers_in_proximity:
+                    for marker in combat_unit.markers_in_proximity:
+                        enemies.add(marker)
+        return enemies
+
+    @property
+    def attack_target(self) -> Union[Point2, Unit]:
+        """Current Attack Target of the Army Group """
+        #TODO #30 Rework when regrouping is working as it is supposed to
+        return self.bot.enemy_start_locations[0]
+
+    @attack_target.setter
+    def attack_target(self, new_attack_target:Union[Point2,Point3,Unit]):
+        """ sets new attack target """
+        self.attack_target = new_attack_target
+
+    @property
+    def attack_target_region(self) -> Region:
+        """returns the region of the attack target"""
+        if isinstance(self.attack_target, Unit):
+            position = self.attack_target.position
+        else:
+            position = self.attack_target
+        try:
+            return self.bot.map_data.where_all(position)[0]
+        except IndexError as e:
+            logger.error(f"no region therefore {e}")
+            return None
+
+    @property
+    def region(self) -> Region:
+        """Mapdata Region on which the ArmyGroup is located"""
+        position:Point2 = self.position
+        try:
+            return self.bot.map_data.where_all(position)[0]
+        except IndexError as e:
+            logger.error(f"no region therefore {e}")
+            return None
+
+    @property
+    def retreat_pos(self) -> Union[Point2,Point3]:
+        """ position to which the group retreats to """
+        if self.bot.units(UnitTypeId.NEXUS):
+            return self.bot.units(UnitTypeId.NEXUS).sorted(lambda struct: struct.age)[0].position
+        return self.bot.start_location
+
+    @retreat_pos.setter
+    def retreat_pos(self, new_retreat_pos:Union[Point2,Point3,Units]):
+        """ sets new attack target """
+        if isinstance(new_retreat_pos, Units):
+            self.retreat_pos = new_retreat_pos.center
+            return
+        self.retreat_pos = new_retreat_pos
+
+    async def request_units(self) -> None:
+        """ Adds Units based on Logic to the List requested Units
+
+        Returns:
+            ProductionRequest: None
+        """
+        buffer:ProductionBuffer = self.bot.macro.production_buffer
+        if self.bot.debug:
+            self.debug_counter += 1
+
+            # This should also take the unit markers in the area,
+            # so that the need units can be cleared and refilled once per frame
+            unit_types:list = [x for x in self.enemy_unit_types if x not in ATTACK_TARGET_IGNORE]
+            # Filtering the types down so that no specific counters for ignored units are created
+            for typ in unit_types:
+                counters: Dict[str,UnitTypeId] = COUNTER_DICT.get(typ, [])
+                # -> Need to have an empty array as default to avoid none type errors
+                for counter in counters:
+                    #if Utils.can_build_unit(self.bot, counter):
+                    self.needed_units.add(counter)
+            if not self.debug_counter%250:
+                if self.needed_units:
+                    unit:UnitTypeId = choice(list(self.needed_units))
+                    await self.bot.client.debug_create_unit([[unit, 1, \
+                        self.position.towards(self.bot.game_info.map_center), 1]])
+
+                    enemy_unit:UnitTypeId = choice(COUNTER_DICT.get(unit, []))
+
+                    await self.bot.client.debug_create_unit([[enemy_unit, 1, \
+                        self.position.towards(self.bot.enemy_start_locations[0]), 2]])
+
+        for struct in buffer.gateways:
+            request:ProductionRequest = \
+                ProductionRequest(UnitTypeId.STALKER, self.id, struct.tag)
+            buffer.add_request(request)
+
+        for struct in buffer.robofacilities:
+            request:ProductionRequest = \
+                ProductionRequest(UnitTypeId.IMMORTAL, self.id, struct.tag)
+
+        for struct in buffer.stargates:
+            request:ProductionRequest = \
+               ProductionRequest(UnitTypeId.PHOENIX, self.id, struct.tag)
+
+    def remove_unit(self, unit_tag:str) -> bool:
+        """ Removes are unit from ArmyGroup 
+
+        Args:
+            unit_tag (str): tag of the Unit that is going to be removed
+
+        Returns:
+            bool: # Returns true if the Unit was in the ArmyGroup and has been removed
+        """
+        if unit_tag in self.unit_list:
+            self.unit_list.remove(unit_tag)
+            return True
+        return False
+
+    def merge_groups(self, army_group:ArmyGroup) -> bool:
+        """ Merges ArmyGroup into ArmyGroup
+        Args:
+            army_group (ArmyGroup): army group that is supposed to get merged 
+
+        Returns:
+            bool: returns True if Groups got merged
+        """
+        if army_group in self.bot.army_groups:
+            self.unit_list.extend(army_group.unit_list)
+            self.bot.army_groups.remove(army_group)
+            return True
+        return False
+
+    async def attack(self, targets:Union[Point2, Point3, Unit]) -> None:
+        """ attack command for the army group"""
+        # TODO: WHEN ALL UNITS_CLASSES ARE IMPLEMENTED THIS CAN JUST ONE CALL TO HANDLE ATTACKERS
+
+        for combat_unit in self.combat_units:
+            targets = self.target_allocator.allocated_targets
+            # TODO: Finish Target Allocator
+            target:Unit = targets.get(combat_unit.tag)
+            logger.warning(f"{type(target)}, {target}")
+                
+            if self.bot.enemy_units:
+                await combat_unit.engage(target)
+                return
+            await combat_unit.engage(self.bot.enemy_start_locations[0])
+
+    def move(self,target_pos:Union[Point2, Point3, Unit]) -> None:
+        """ Moves Army towards position
+        Args:
+            target_pos (Union[Point2, Point3, Unit]): _description_
+        """
+        for unit in self.combat_units:
+            unit.move(target_pos)
+
+    async def retreat(self) -> None:
+        """Moves Army back to retreat position
+        """
+        #grid:np.ndarray = self.pathing.ground_grid
+        #if all(self.pathing.is_position_safe(grid, unit.position,2) for unit in self.units):
+        #    self.regroup()
+        #    return
+
+        for combat_unit in self.combat_units:
+            try:
+                if not Utils.in_proximity_to_point(combat_unit.unit, self.retreat_pos,15):
+                    await combat_unit.disengage(self.retreat_pos)
+            except AttributeError as e:
+                if self.bot.debug:
+                    logger.warning(f"can't retreat due to:\n {e} \n{combat_unit.unit_tag}")
+
+    # TODO: #31 Regroup Units by Range
+    def regroup(self) -> None:
+        """ regroup command for the group  """
+
+        if not self.units.filter(lambda unit: unit.distance_to(self.position) > 5):
+            return
+
+        self.units.furthest_to(self.position).move(self.position)
+
+    # TODO: #29 very basic, needs to be Adjusted to account for different, Unit types
+    def defend(self, position:Union[Point2,Point3,Unit]) -> None:
+        """ defend command for the group"""
+        enemy_units = self.bot.enemy_units.closer_than(25, position)
+        for unit in self.units:
+            grid:np.ndarray = self.pathing.air_grid if unit.is_flying \
+                else self.pathing.ground_grid
+            if not Utils.in_proximity_to_point(unit, position, 20):
+                unit.move(
+                    self.pathing.find_path_next_point(
+                        unit.position, self.retreat_pos, grid
+                    )
+                )
+                continue
+            if enemy_units:
+                unit.attack(enemy_units.closest_to(unit))
+
+    def add_combat_unit(self, unit:Unit) -> None:
+        """creates and add Combat Unit to group"""
+        if self.bot.debug:
+            logger.info(f"adding unit {unit}")
+        if unit.tag in self.units_in_transit:
+            self.units_in_transit.remove(unit.tag)
+
+        if unit.type_id in WORKER_IDS:
+            return
+
+        self.unit_list.append(unit.tag)
+
+        if unit.is_flying:
+            pathing_grid = self.pathing.air_grid
+            if unit.type_id in [UnitTypeId.WARPPRISM, UnitTypeId.WARPPRISMPHASING]:
+                combat_unit:Warpprism = Warpprism(self.bot, unit.tag, self.pathing.ground_grid)
+                self.combat_units.append(combat_unit)
+                return
+            combat_unit:CombatFlyer = CombatFlyer(self.bot, unit.tag, pathing_grid)
+            return
+
+        if unit.type_id == UnitTypeId.STALKER:
+            pathing_grid = self.pathing.ground_grid
+            combat_unit:Stalker = Stalker(self.bot, unit.tag, pathing_grid)
+            self.combat_units.append(combat_unit)
+            return
+        if unit.type_id == UnitTypeId.ZEALOT:
+            pathing_grid = self.pathing.ground_grid
+            combat_unit:Zealot = Zealot(self.bot, unit.tag, pathing_grid)
+            self.combat_units.append(combat_unit)
+            return
+        if unit.type_id == UnitTypeId.IMMORTAL:
+            pathing_grid = self.pathing.ground_grid
+            combat_unit:Immortal = Immortal(self.bot, unit.tag, pathing_grid)
+            self.combat_units.append(combat_unit)
+            return
+        
+        else:
+            if not unit.type_id in [UnitTypeId.INTERCEPTOR]:
+                pathing_grid:np.ndarray = self.pathing.ground_grid \
+                    if not unit.is_flying else self.pathing.air_grid
+                combat_unit:CombatUnit = CombatUnit(self.bot, unit.tag, pathing_grid)
+                self.combat_units.append(combat_unit)
+
+    def handle_reinforcements(self) -> None:
+        """handling of units currently not in fighting """
+        for unit in self.reinforcements:
+            grid: np.ndarray = self.pathing.ground_grid
+            unit.attack(
+                self.pathing.find_path_next_point(
+                    unit.position, self.position, grid
+                )
+            )
+            if self.bot.benchmark:
+                self.add_combat_unit(unit)
+
+    async def update(self, target:Union[Point2, Point3, Unit]):
+        """ Method controlling the Behavior of the Group,\
+            shall be called every tick in main.py 
+        """
+        if not self.requested_units:
+            await self.request_units()
+
+        self.target_allocator.allocate_targets(self.combat_units, self.enemies_in_proximity)
+
+        for combat_unit in self.combat_units:
+            if not combat_unit.unit:
+                self.combat_units.remove(combat_unit)
+
+        if self.bot.debug:
+            self.bot.debug_tools.debug_pos(self.retreat_pos, 2)
+            self.bot.debug_tools.debug_pos(self.position, radius=3, color=(0,0,255))
+            for combat_unit in self.combat_units:
+                self.bot.debug_tools.debug_fighting_status(combat_unit)
+
+        # Move Units in Transit to Army_group:
+        self.handle_reinforcements()
+
+        fighting_combats_units:list = \
+            [x for x in self.combat_units if x.fight_status ==FightStatus.FIGHTING]
+        units_requesting_retreat = \
+            [x for x in self.combat_units if x not in fighting_combats_units]
+
+        fight_status_condition:bool = \
+            len(fighting_combats_units) < len(units_requesting_retreat)/2
+
+        if fight_status_condition:
+            await self.retreat()
+            self.status = GroupStatus.RETREATING
+            return
+
+        if target:
+            await self.attack(target)
+            self.status = GroupStatus.ATTACKING
