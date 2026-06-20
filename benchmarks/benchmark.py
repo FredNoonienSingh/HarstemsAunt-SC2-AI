@@ -21,6 +21,8 @@ from .common import WORKER_IDS, TOWNHALL_IDS, \
     HEADER_SIZE, ROW_SIZE,logger
 
 
+#TODO: Adjust for for tracking TAS and TTE
+
 ENDLESS: bool = False
 class Benchmark:
     """Benchmaker for unit micro of BurnySC2 Bots"""
