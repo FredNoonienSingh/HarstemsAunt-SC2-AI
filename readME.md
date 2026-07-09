@@ -9,12 +9,6 @@
 ![Static Badge](https://img.shields.io/badge/python-3.12.5-blue?style=for-the-badge&logo=python&logoColor=yellow&link=https%3A%2F%2Fstarcraft.fandom.com%2Fwiki%2FProtoss)
 ![Static Badge](https://img.shields.io/badge/Youtube-HarstemsAunt-red?style=for-the-badge&cacheSeconds=https%3A%2F%2Fwww.youtube.com%2F%40HarstemsAunt)
 
-
-
-<div align="center">
-<img src="https://i.ibb.co/fMDpVx6/Add-a-heading.png" width="100%"/>
-</div>
-
 We tried to get a bot to play like Harstem by scanning the brain of his Aunt - sadly the ability to play SC2 is not genetic. 
 
 #### Find me on [AI-Arena](https://aiarena.net/bots/808/)
